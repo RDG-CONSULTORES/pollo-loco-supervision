@@ -1,0 +1,50 @@
+📋 VARIABLES DE ENTORNO PARA RENDER
+==========================================
+
+⚠️  IMPORTANTE: Copiar y pegar SIN ESPACIOS en Render Dashboard
+
+Variables necesarias:
+---------------------
+
+DATABASE_URL=postgresql://neondb_owner:1hLdOZPLDwii@ep-crimson-pond-a5l7mzwx.us-east-2.aws.neon.tech/neondb?sslmode=require
+
+NODE_ENV=production
+
+PORT=3000
+
+TELEGRAM_BOT_TOKEN=8341799056:AAFvMMPzuplDDsOM07m5ANI5WVCATchBPeY
+
+RENDER_EXTERNAL_URL=https://pollo-loco-supervision.onrender.com
+
+START_BOT=true
+
+INSTRUCCIONES:
+--------------
+1. Ve a Render Dashboard
+2. Selecciona tu servicio "pollo-loco-supervision"
+3. Ve a "Environment" 
+4. Borra todas las variables existentes
+5. Agrega cada variable:
+   - Key: DATABASE_URL
+   - Value: postgresql://neondb_owner:1hLdOZPLDwii@ep-crimson-pond-a5l7mzwx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   
+   - Key: NODE_ENV  
+   - Value: production
+   
+   - Key: PORT
+   - Value: 3000
+   
+   - Key: TELEGRAM_BOT_TOKEN
+   - Value: 8341799056:AAFvMMPzuplDDsOM07m5ANI5WVCATchBPeY
+   
+   - Key: RENDER_EXTERNAL_URL
+   - Value: https://pollo-loco-supervision.onrender.com
+   
+   - Key: START_BOT
+   - Value: true
+
+6. Hacer "Deploy" nuevamente
+7. El bot empezará a funcionar con datos reales
+
+🔧 Si sigue fallando, usa el comando de prueba:
+curl https://pollo-loco-supervision.onrender.com/health

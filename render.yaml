@@ -1,71 +1,20 @@
 services:
-  # Main Web App Service
   - type: web
     name: pollo-loco-supervision
-    runtime: node
+    env: node
     plan: free
-    region: oregon
-    repo: https://github.com/robertodavila/pollo-loco-supervision.git
-    branch: main
-    buildCommand: npm run install-deps && npm run build
+    buildCommand: npm install
     startCommand: npm start
-    healthCheckPath: /health
     envVars:
+      - key: DATABASE_URL
+        value: postgresql://neondb_owner:1hLdOZPLDwii@ep-crimson-pond-a5l7mzwx.us-east-2.aws.neon.tech/neondb?sslmode=require
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 3000
-      - key: START_BOT
-        value: "true"
       - key: TELEGRAM_BOT_TOKEN
-        fromService:
-          type: web
-          name: pollo-loco-supervision
-          envVarKey: TELEGRAM_BOT_TOKEN
-      - key: DATABASE_URL
-        fromService:
-          type: web
-          name: pollo-loco-supervision
-          envVarKey: DATABASE_URL
-      - key: NEON_DATABASE_URL
-        fromService:
-          type: web
-          name: pollo-loco-supervision
-          envVarKey: NEON_DATABASE_URL
+        value: 8341799056:AAFvMMPzuplDDsOM07m5ANI5WVCATchBPeY
       - key: RENDER_EXTERNAL_URL
         value: https://pollo-loco-supervision.onrender.com
-      - key: API_BASE_URL
-        value: https://pollo-loco-supervision.onrender.com/api
-      - key: BACKEND_URL
-        value: https://pollo-loco-supervision.onrender.com/api
-      - key: SESSION_SECRET
-        generateValue: true
-
-databases:
-  # If you need a separate database, uncomment below
-  # - name: pollo-loco-db
-  #   databaseName: pollo_loco_cas
-  #   user: pollo_user
-  #   region: oregon
-
-# Static site for design showcase (optional alternative)
-# - type: static
-#   name: pollo-loco-designs
-#   staticPublishPath: ./
-#   buildCommand: echo "Serving static files"
-#   headers:
-#     - path: /*
-#       name: Cache-Control
-#       value: public, max-age=86400
-
-# Background worker (if needed for scheduled tasks)
-# - type: worker
-#   name: pollo-loco-worker
-#   runtime: node
-#   repo: https://github.com/robertodavila/pollo-loco-supervision.git
-#   branch: main
-#   buildCommand: npm install
-#   startCommand: node workers/scheduler.js
-#   envVars:
-#     - key: NODE_ENV
-#       value: production
+      - key: START_BOT
+        value: true
