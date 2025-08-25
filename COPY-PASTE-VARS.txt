@@ -1,0 +1,50 @@
+🔐 VARIABLES PARA COPIAR Y PEGAR EN RENDER
+==========================================
+
+⚠️  SELECCIONA TODO EL TEXTO DE CADA VARIABLE Y COPIA EXACTAMENTE
+
+VARIABLE 1:
+-----------
+Key: DATABASE_URL
+Value: postgresql://neondb_owner:1hLdOZPLDwii@ep-crimson-pond-a5l7mzwx.us-east-2.aws.neon.tech/neondb?sslmode=require
+
+VARIABLE 2:
+-----------  
+Key: NODE_ENV
+Value: production
+
+VARIABLE 3:
+-----------
+Key: TELEGRAM_BOT_TOKEN
+Value: 8341799056:AAFvMMPzuplDDsOM07m5ANI5WVCATchBPeY
+
+VARIABLE 4:
+-----------
+Key: START_BOT
+Value: true
+
+🎯 INSTRUCCIONES EXACTAS:
+========================
+
+1. Ve a: https://dashboard.render.com
+2. Click en tu servicio: "pollo-loco-supervision"
+3. Click en "Environment" (menú izquierdo)
+4. BORRA todas las variables existentes
+5. Click "Add Environment Variable"
+6. COPIA el texto después de "Key:" y PÉGALO en el campo Key
+7. COPIA el texto después de "Value:" y PÉGALO en el campo Value
+8. Repite para las 4 variables
+9. Click "Save Changes"
+10. Click "Deploy Latest Commit"
+
+🚨 MUY IMPORTANTE:
+- NO agregues espacios extras
+- NO modifiques los valores
+- COPIA exactamente como están escritos
+- Si algo sale mal, borra todo y vuelve a empezar
+
+✅ VALIDACIÓN:
+Después de configurar, ve a:
+https://pollo-loco-supervision.onrender.com/health
+
+Debería mostrar: "database_status": "Connected to Neon PostgreSQL"
