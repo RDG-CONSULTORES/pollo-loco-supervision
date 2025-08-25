@@ -246,8 +246,16 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Webhook endpoint for Telegram
+app.post('/webhook', (req, res) => {
+    if (process.env.NODE_ENV === 'production' && global.telegramBot) {
+        global.telegramBot.processUpdate(req.body);
+    }
+    res.sendStatus(200);
+});
+
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
     console.log(`🍗 El Pollo Loco CAS Mini Web App running on port ${PORT}`);
     console.log(`🌐 Access at: http://localhost:${PORT}`);
     console.log(`📱 Telegram Web App ready`);
@@ -255,7 +263,22 @@ app.listen(PORT, () => {
     // Start Telegram Bot if in production
     if (process.env.NODE_ENV === 'production' || process.env.START_BOT === 'true') {
         console.log('🤖 Starting Telegram Bot...');
-        require('./telegram-bot/bot.js');
+        
+        // Import and store bot globally for webhook access
+        global.telegramBot = require('./telegram-bot/bot.js');
+        
+        // Set webhook in production
+        if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL) {
+            const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/webhook`;
+            console.log(`🔗 Setting webhook to: ${webhookUrl}`);
+            
+            try {
+                await global.telegramBot.setWebHook(webhookUrl);
+                console.log('✅ Webhook set successfully');
+            } catch (error) {
+                console.error('❌ Error setting webhook:', error.message);
+            }
+        }
     }
 });
 

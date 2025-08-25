@@ -15,7 +15,16 @@ if (!token) {
   process.exit(1);
 }
 
-const bot = new TelegramBot(token, { polling: true });
+// Configure bot to avoid conflicts
+const bot = new TelegramBot(token, { polling: false });
+
+// Only start polling in development or if explicitly enabled
+if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_POLLING === 'true') {
+    bot.startPolling();
+    console.log('📡 Bot polling enabled');
+} else {
+    console.log('📡 Bot in webhook mode (polling disabled)');
+}
 
 console.log('🤖 EPL Estandarización Operativa Bot started!');
 
@@ -545,3 +554,6 @@ bot.on('polling_error', (error) => {
 });
 
 console.log('✅ Bot is running! Send /start to begin.');
+
+// Export bot for webhook usage
+module.exports = bot;
