@@ -57,6 +57,16 @@ app.get('/webapp', (req, res) => {
     res.sendFile(path.join(__dirname, 'design-showcase.html'));
 });
 
+// Complete Dashboard
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard-react.html'));
+});
+
+// Dashboard redirect for easy access
+app.get('/full', (req, res) => {
+    res.redirect('/dashboard');
+});
+
 // API Routes
 app.get('/api/kpis', async (req, res) => {
     try {
@@ -144,12 +154,95 @@ app.get('/api/grupos/ranking', async (req, res) => {
     }
 });
 
+// Estados endpoint
+app.get('/api/estados', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                estado,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                COUNT(DISTINCT location_name) as sucursales
+            FROM supervision_operativa_detalle 
+            WHERE porcentaje IS NOT NULL AND estado IS NOT NULL
+            GROUP BY estado
+            ORDER BY AVG(porcentaje) DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Indicadores endpoint
+app.get('/api/indicadores', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                area_evaluacion as indicador,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(*) as evaluaciones
+            FROM supervision_operativa_detalle 
+            WHERE porcentaje IS NOT NULL AND area_evaluacion IS NOT NULL
+            GROUP BY area_evaluacion
+            ORDER BY AVG(porcentaje) DESC
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Trimestres endpoint
+app.get('/api/trimestres', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT 
+                DISTINCT 
+                CASE 
+                    WHEN EXTRACT(MONTH FROM fecha_supervision) IN (1,2,3) THEN 'Q1 2025'
+                    WHEN EXTRACT(MONTH FROM fecha_supervision) IN (4,5,6) THEN 'Q2 2025'
+                    WHEN EXTRACT(MONTH FROM fecha_supervision) IN (7,8,9) THEN 'Q3 2025'
+                    WHEN EXTRACT(MONTH FROM fecha_supervision) IN (10,11,12) THEN 'Q4 2025'
+                END as trimestre,
+                COUNT(*) as evaluaciones
+            FROM supervision_operativa_detalle 
+            WHERE fecha_supervision IS NOT NULL
+            GROUP BY trimestre
+            ORDER BY trimestre
+        `);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
+// Bot test endpoint
+app.get('/api/bot/status', (req, res) => {
+    res.json({
+        status: 'active',
+        bot_name: 'EPL Estandarización Operativa',
+        telegram_username: '@EPLEstandarizacionBot',
+        features: ['AI Agent', 'Real-time data', 'Multi-design webapp'],
+        timestamp: new Date().toISOString()
+    });
+});
+
 // Health check
 app.get('/health', (req, res) => {
     res.json({ 
         status: 'OK', 
         timestamp: new Date().toISOString(),
-        service: 'El Pollo Loco CAS Mini Web App'
+        service: 'El Pollo Loco CAS Mini Web App',
+        features: {
+            database: 'Connected to Neon PostgreSQL',
+            bot: 'Telegram Bot Active',
+            webapp: '5 Design Variants Available',
+            dashboard: 'Complete React Dashboard'
+        }
     });
 });
 

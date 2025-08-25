@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍗 El Pollo Loco CAS - Dashboard Completo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<div id="dashboard-root"></div>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+
+// API Base URL
+const API_BASE = window.location.origin + '/api';
+
+// Main Dashboard Component
+function Dashboard() {
+    const [data, setData] = useState({
+        kpis: null,
+        grupos: [],
+        critical: [],
+        ranking: [],
+        loading: true
+    });
+    
+    const [filters, setFilters] = useState({
+        grupo: '',
+        estado: '',
+        trimestre: ''
+    });
+
+    // Fetch all data
+    useEffect(() => {
+        Promise.all([
+            fetch(`${API_BASE}/kpis`),
+            fetch(`${API_BASE}/grupos`),
+            fetch(`${API_BASE}/kpis/critical`),
+            fetch(`${API_BASE}/grupos/ranking`)
+        ])
+        .then(responses => Promise.all(responses.map(r => r.json())))
+        .then(([kpis, grupos, critical, ranking]) => {
+            setData({
+                kpis,
+                grupos,
+                critical,
+                ranking: ranking.top || ranking,
+                loading: false
+            });
+        })
+        .catch(error => {
+            console.error('Error loading data:', error);
+            setData(prev => ({ ...prev, loading: false }));
+        });
+    }, []);
+
+    if (data.loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <div className="glass p-8 text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                    <p className="text-white text-lg">Cargando datos...</p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen p-4">
+            <Header />
+            <KPISection kpis={data.kpis} />
+            <FiltersSection filters={filters} setFilters={setFilters} />
+            <ChartsSection grupos={data.grupos} />
+            <RankingSection ranking={data.ranking} />
+            <CriticalSection critical={data.critical} />
+        </div>
+    );
+}
+
+// Header Component
+function Header() {
+    return (
+        <div className="glass p-6 mb-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-white font-bold text-2xl mb-2">
+                        🍗 El Pollo Loco CAS
+                    </h1>
+                    <p className="text-white/80 text-sm">
+                        Dashboard de Supervisión Operativa
+                    </p>
+                </div>
+                <div className="text-right">
+                    <div className="text-white/60 text-xs">
+                        {new Date().toLocaleDateString('es-MX')}
+                    </div>
+                    <div className="text-white/80 text-sm font-semibold">
+                        Datos en tiempo real
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+// KPI Cards Section
+function KPISection({ kpis }) {
+    if (!kpis) return null;
+
+    return (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <KPICard 
+                icon="📊" 
+                title="Promedio" 
+                value={`${kpis.promedio_general}%`}
+                subtitle="General"
+                color="bg-green-500"
+            />
+            <KPICard 
+                icon="📋" 
+                title="Supervisiones" 
+                value={kpis.total_supervisiones}
+                subtitle="Completadas"
+                color="bg-blue-500"
+            />
+            <KPICard 
+                icon="🏪" 
+                title="Sucursales" 
+                value={kpis.total_sucursales}
+                subtitle="Evaluadas"
+                color="bg-purple-500"
+            />
+            <KPICard 
+                icon="📍" 
+                title="Estados" 
+                value={kpis.total_estados}
+                subtitle="Cobertura"
+                color="bg-orange-500"
+            />
+        </div>
+    );
+}
+
+// Individual KPI Card
+function KPICard({ icon, title, value, subtitle, color }) {
+    return (
+        <div className="glass p-4 card-hover">
+            <div className="flex items-center mb-3">
+                <div className={`w-10 h-10 ${color} rounded-full flex items-center justify-center text-white mr-3`}>
+                    <span className="text-lg">{icon}</span>
+                </div>
+                <div>
+                    <div className="text-white/60 text-xs font-semibold uppercase">
+                        {title}
+                    </div>
+                    <div className="text-white text-xl font-bold">
+                        {value}
+                    </div>
+                </div>
+            </div>
+            <div className="text-white/70 text-xs">{subtitle}</div>
+        </div>
+    );
+}
+
+// Filters Section
+function FiltersSection({ filters, setFilters }) {
+    return (
+        <div className="glass p-4 mb-6">
+            <h3 className="text-white font-semibold text-lg mb-4">🔍 Filtros</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <select 
+                    className="bg-white/20 text-white p-3 rounded-lg border border-white/30"
+                    value={filters.grupo}
+                    onChange={(e) => setFilters({...filters, grupo: e.target.value})}
+                >
+                    <option value="">Todos los grupos</option>
+                    <option value="OGAS">OGAS</option>
+                    <option value="PLOG QUERÉTARO">PLOG QUERÉTARO</option>
+                    <option value="TEC">TEC</option>
+                </select>
+                
+                <select 
+                    className="bg-white/20 text-white p-3 rounded-lg border border-white/30"
+                    value={filters.estado}
+                    onChange={(e) => setFilters({...filters, estado: e.target.value})}
+                >
+                    <option value="">Todos los estados</option>
+                    <option value="Nuevo León">Nuevo León</option>
+                    <option value="Jalisco">Jalisco</option>
+                    <option value="CDMX">CDMX</option>
+                </select>
+                
+                <select 
+                    className="bg-white/20 text-white p-3 rounded-lg border border-white/30"
+                    value={filters.trimestre}
+                    onChange={(e) => setFilters({...filters, trimestre: e.target.value})}
+                >
+                    <option value="">Todos los trimestres</option>
+                    <option value="Q1 2025">Q1 2025</option>
+                    <option value="Q2 2025">Q2 2025</option>
+                    <option value="Q3 2025">Q3 2025</option>
+                </select>
+            </div>
+        </div>
+    );
+}
+
+// Charts Section
+function ChartsSection({ grupos }) {
+    useEffect(() => {
+        if (grupos.length > 0) {
+            createGroupChart(grupos);
+        }
+    }, [grupos]);
+
+    return (
+        <div className="glass p-6 mb-6">
+            <h3 className="text-white font-semibold text-lg mb-4">📊 Grupos Operativos</h3>
+            <div className="bg-white/10 rounded-lg p-4">
+                <canvas id="groupChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+    );
+}
+
+// Create Chart
+function createGroupChart(grupos) {
+    const ctx = document.getElementById('groupChart');
+    if (ctx && grupos.length > 0) {
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: grupos.map(g => g.grupo_operativo),
+                datasets: [{
+                    label: 'Promedio (%)',
+                    data: grupos.map(g => parseFloat(g.promedio)),
+                    backgroundColor: 'rgba(102, 126, 234, 0.8)',
+                    borderColor: 'rgba(102, 126, 234, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: { color: 'white' }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    x: {
+                        ticks: { color: 'white' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+    }
+}
+
+// Ranking Section
+function RankingSection({ ranking }) {
+    return (
+        <div className="glass p-6 mb-6">
+            <h3 className="text-white font-semibold text-lg mb-4">🏆 Top Sucursales</h3>
+            <div className="space-y-3">
+                {ranking.slice(0, 5).map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-white/10 rounded-lg">
+                        <div className="flex items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold mr-3 ${
+                                index === 0 ? 'bg-yellow-500' : 
+                                index === 1 ? 'bg-gray-400' : 
+                                index === 2 ? 'bg-amber-600' : 'bg-blue-500'
+                            }`}>
+                                {index + 1}
+                            </div>
+                            <div>
+                                <div className="text-white font-semibold">{item.sucursal}</div>
+                                <div className="text-white/70 text-sm">{item.grupo_operativo}</div>
+                            </div>
+                        </div>
+                        <div className="text-white font-bold text-lg">{item.promedio}%</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// Critical Section
+function CriticalSection({ critical }) {
+    return (
+        <div className="glass p-6">
+            <h3 className="text-white font-semibold text-lg mb-4">🚨 Indicadores Críticos</h3>
+            <div className="space-y-3">
+                {critical.slice(0, 5).map((item, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-red-500/20 rounded-lg border-l-4 border-red-500">
+                        <div>
+                            <div className="text-white font-semibold">{item.indicador}</div>
+                            <div className="text-white/70 text-sm">{item.sucursal} - {item.grupo_operativo}</div>
+                        </div>
+                        <div className="text-red-300 font-bold text-lg">{item.promedio}%</div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+}
+
+// Render the app
+ReactDOM.render(<Dashboard />, document.getElementById('dashboard-root'));
+</script>
+
+<script>
+    lucide.createIcons();
+</script>
+
+</body>
+</html>

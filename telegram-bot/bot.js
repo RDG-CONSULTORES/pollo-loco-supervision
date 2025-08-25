@@ -219,6 +219,48 @@ bot.onText(/\/kpis/, async (msg) => {
   }
 });
 
+// Comando /estados
+bot.onText(/\/estados(?:\s+(.+))?/, async (msg, match) => {
+  const chatId = msg.chat.id;
+  const estadoFilter = match ? match[1] : null;
+  
+  try {
+    bot.sendMessage(chatId, '📍 Obteniendo datos por estado...');
+    
+    const response = await axios.get(`${API_BASE_URL}/estados`);
+    const estados = response.data;
+    
+    if (estadoFilter) {
+      const estado = estados.find(e => e.estado.toLowerCase().includes(estadoFilter.toLowerCase()));
+      if (estado) {
+        const message = `📍 **Estado: ${estado.estado}**
+
+📊 Promedio: **${estado.promedio}%**
+👥 Supervisiones: **${estado.supervisiones}**
+🏪 Sucursales: **${estado.sucursales}**
+
+📈 Actualizado: ${new Date().toLocaleString('es-MX')}`;
+        
+        bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+      } else {
+        bot.sendMessage(chatId, `❌ No se encontró el estado "${estadoFilter}"`);
+      }
+    } else {
+      let message = '📍 **Ranking por Estados:**\n\n';
+      estados.slice(0, 10).forEach((estado, index) => {
+        const emoji = index < 3 ? ['🥇', '🥈', '🥉'][index] : '📍';
+        message += `${emoji} **${estado.estado}**\n`;
+        message += `   📊 ${estado.promedio}% (${estado.supervisiones} sup.)\n\n`;
+      });
+      
+      bot.sendMessage(chatId, message, { parse_mode: 'Markdown' });
+    }
+  } catch (error) {
+    console.error('Error fetching estados:', error);
+    bot.sendMessage(chatId, '❌ Error al obtener datos de estados. Intenta más tarde.');
+  }
+});
+
 // Comando /grupos
 bot.onText(/\/grupos(?:\s+(.+))?/, async (msg, match) => {
   const chatId = msg.chat.id;
@@ -227,8 +269,7 @@ bot.onText(/\/grupos(?:\s+(.+))?/, async (msg, match) => {
   try {
     bot.sendMessage(chatId, '🏢 Obteniendo datos de grupos...');
     
-    const params = grupoFilter ? { grupo: grupoFilter } : {};
-    const response = await axios.get(`${API_BASE_URL}/grupos`, { params });
+    const response = await axios.get(`${API_BASE_URL}/grupos`);
     const grupos = response.data;
     
     if (grupoFilter) {
@@ -334,17 +375,28 @@ bot.onText(/\/dashboard/, (msg) => {
     reply_markup: {
       inline_keyboard: [
         [
-          { text: '📊 Abrir Dashboard', web_app: { url: WEBAPP_URL } }
+          { text: '🎨 Mini Web App (5 Diseños)', web_app: { url: WEBAPP_URL } }
         ],
         [
-          { text: '📈 KPIs', callback_data: 'kpis' },
+          { text: '📊 Dashboard Completo', url: `${WEBAPP_URL}/dashboard` }
+        ],
+        [
+          { text: '📈 KPIs Rápidos', callback_data: 'kpis' },
           { text: '📋 Resumen', callback_data: 'resumen' }
         ]
       ]
     }
   };
   
-  bot.sendMessage(chatId, '📊 Dashboard de Supervisión Operativa', keyboard);
+  const message = `📊 **Dashboard de Supervisión Operativa**
+
+🎨 **Mini Web App**: 5 diseños únicos para elegir
+📊 **Dashboard Completo**: React con gráficos y filtros
+📱 **Optimizado para móviles**
+
+¿Qué prefieres usar?`;
+  
+  bot.sendMessage(chatId, message, keyboard);
 });
 
 // Callback queries
