@@ -8,9 +8,9 @@
     "dev": "concurrently \"npm run server\" \"npm run bot\"",
     "server": "cd backend && npm run dev",
     "bot": "node telegram-bot/bot.js",
-    "build": "cd frontend && npm run build",
-    "install-deps": "npm install && cd backend && npm install && cd frontend && npm install && cd telegram-bot && npm install",
-    "deploy": "npm run build && npm start",
+    "build": "echo 'Using static HTML files, no build needed'",
+    "install-deps": "npm install && cd backend && npm install && cd telegram-bot && npm install",
+    "deploy": "npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
