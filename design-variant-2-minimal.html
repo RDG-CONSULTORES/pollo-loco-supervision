@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍗 Diseño 2: Minimalista Claro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        .card-hover {
+            transition: all 0.2s ease;
+        }
+        .card-hover:active {
+            transform: scale(0.98);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        }
+        .gradient-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+        }
+        .gradient-success {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+        }
+        .gradient-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Header Minimalista -->
+<div class="card p-5 m-4 mt-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-gradient font-bold text-xl">🍗 El Pollo Loco CAS</h1>
+            <p class="text-gray-600 text-sm">Supervisión Operativa</p>
+        </div>
+        <div class="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center">
+            <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
+        </div>
+    </div>
+</div>
+
+<!-- KPIs Minimalistas -->
+<div class="px-4 py-2">
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="card p-4 card-hover">
+            <div class="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Promedio</div>
+            <div class="text-gray-900 text-2xl font-bold">89.54%</div>
+            <div class="flex items-center mt-1">
+                <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span class="text-green-600 text-xs font-medium">+2.3%</span>
+            </div>
+        </div>
+        <div class="card p-4 card-hover">
+            <div class="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Supervisiones</div>
+            <div class="text-gray-900 text-2xl font-bold">135</div>
+            <div class="text-gray-500 text-xs">Total realizadas</div>
+        </div>
+        <div class="card p-4 card-hover">
+            <div class="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Sucursales</div>
+            <div class="text-gray-900 text-2xl font-bold">79</div>
+            <div class="text-gray-500 text-xs">Evaluadas</div>
+        </div>
+        <div class="card p-4 card-hover">
+            <div class="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Estados</div>
+            <div class="text-gray-900 text-2xl font-bold">9</div>
+            <div class="text-gray-500 text-xs">Con presencia</div>
+        </div>
+    </div>
+
+    <!-- Ranking Limpio -->
+    <div class="card p-5 mb-6">
+        <div class="flex items-center mb-4">
+            <i data-lucide="trending-up" class="w-5 h-5 text-blue-600 mr-3"></i>
+            <h3 class="text-gray-900 font-semibold">Top Grupos Operativos</h3>
+        </div>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-success rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">1</span>
+                    </div>
+                    <div>
+                        <div class="text-gray-900 font-medium text-sm">OGAS</div>
+                        <div class="text-gray-500 text-xs">8 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-gray-900 font-bold">97.6%</div>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-primary rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">2</span>
+                    </div>
+                    <div>
+                        <div class="text-gray-900 font-medium text-sm">PLOG QUERÉTARO</div>
+                        <div class="text-gray-500 text-xs">4 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-gray-900 font-bold">97.0%</div>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-warning rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">3</span>
+                    </div>
+                    <div>
+                        <div class="text-gray-900 font-medium text-sm">TEC</div>
+                        <div class="text-gray-500 text-xs">4 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-gray-900 font-bold">93.1%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Sutiles -->
+    <div class="card p-5 mb-6">
+        <div class="flex items-center mb-4">
+            <i data-lucide="alert-circle" class="w-5 h-5 text-orange-600 mr-3"></i>
+            <h3 class="text-gray-900 font-semibold">Áreas de Mejora</h3>
+        </div>
+        <div class="space-y-2">
+            <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg border-l-4 border-orange-400">
+                <div>
+                    <div class="text-gray-900 font-medium text-sm">FREIDORAS</div>
+                    <div class="text-gray-600 text-xs">Requiere atención</div>
+                </div>
+                <div class="text-orange-600 font-bold">70.1%</div>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border-l-4 border-yellow-400">
+                <div>
+                    <div class="text-gray-900 font-medium text-sm">EXTERIOR SUCURSAL</div>
+                    <div class="text-gray-600 text-xs">Mejora necesaria</div>
+                </div>
+                <div class="text-yellow-600 font-bold">71.4%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center text-gray-500 text-sm py-4">
+    DISEÑO 2: Minimalista Claro
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+</body>
+</html>

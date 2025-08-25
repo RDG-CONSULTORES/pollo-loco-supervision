@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍗 Diseño 5: Clásico El Pollo Loco (Suave)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui;
+            background: linear-gradient(135deg, #fef7ed 0%, #fed7aa 50%, #fdba74 100%);
+        }
+        .classic-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            box-shadow: 0 4px 20px rgba(251, 146, 60, 0.15);
+        }
+        .card-hover {
+            transition: all 0.2s ease;
+        }
+        .card-hover:active {
+            transform: scale(0.97);
+        }
+        .gradient-pollo {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+        .gradient-gold {
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        }
+        .gradient-orange {
+            background: linear-gradient(135deg, #fb923c 0%, #ea580c 100%);
+        }
+        .gradient-warm {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+        }
+        .pollo-red {
+            color: #dc2626;
+        }
+        .pollo-gold {
+            color: #d97706;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+
+<!-- Header Clásico -->
+<div class="classic-card p-5 m-3 mt-6">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="pollo-red font-bold text-xl flex items-center">
+                🍗 <span class="ml-2">El Pollo Loco CAS</span>
+            </h1>
+            <p class="pollo-gold text-sm font-medium">Supervisión de Calidad</p>
+        </div>
+        <div class="w-12 h-12 gradient-pollo rounded-lg flex items-center justify-center shadow-lg">
+            <i data-lucide="menu" class="w-6 h-6 text-white"></i>
+        </div>
+    </div>
+</div>
+
+<!-- KPIs Clásicos -->
+<div class="px-3 py-2">
+    <div class="grid grid-cols-2 gap-3 mb-6">
+        <div class="classic-card p-5 card-hover">
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 gradient-pollo rounded-lg flex items-center justify-center mr-3">
+                    <i data-lucide="target" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <div class="text-gray-600 text-xs font-semibold uppercase">Promedio</div>
+                    <div class="pollo-red text-2xl font-bold">89.54%</div>
+                </div>
+            </div>
+            <div class="flex items-center">
+                <div class="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span class="text-green-600 text-sm font-semibold">Excelente desempeño</span>
+            </div>
+        </div>
+        <div class="classic-card p-5 card-hover">
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 gradient-gold rounded-lg flex items-center justify-center mr-3">
+                    <i data-lucide="clipboard-list" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <div class="text-gray-600 text-xs font-semibold uppercase">Supervisiones</div>
+                    <div class="pollo-gold text-2xl font-bold">135</div>
+                </div>
+            </div>
+            <div class="text-gray-500 text-sm">Total completadas</div>
+        </div>
+        <div class="classic-card p-5 card-hover">
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 gradient-orange rounded-lg flex items-center justify-center mr-3">
+                    <i data-lucide="store" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <div class="text-gray-600 text-xs font-semibold uppercase">Sucursales</div>
+                    <div class="text-orange-600 text-2xl font-bold">79</div>
+                </div>
+            </div>
+            <div class="text-gray-500 text-sm">Evaluadas</div>
+        </div>
+        <div class="classic-card p-5 card-hover">
+            <div class="flex items-center mb-3">
+                <div class="w-10 h-10 gradient-warm rounded-lg flex items-center justify-center mr-3">
+                    <i data-lucide="map" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <div class="text-gray-600 text-xs font-semibold uppercase">Estados</div>
+                    <div class="text-amber-600 text-2xl font-bold">9</div>
+                </div>
+            </div>
+            <div class="text-gray-500 text-sm">Cobertura nacional</div>
+        </div>
+    </div>
+
+    <!-- Ranking Tradicional -->
+    <div class="classic-card p-5 mb-6">
+        <div class="flex items-center mb-4">
+            <div class="w-10 h-10 gradient-pollo rounded-lg flex items-center justify-center mr-3">
+                <i data-lucide="award" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h3 class="pollo-red font-bold text-lg">Grupos Destacados</h3>
+                <p class="text-gray-600 text-sm">Mejores resultados del trimestre</p>
+            </div>
+        </div>
+        <div class="space-y-4">
+            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-lg border border-green-200">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-4 shadow-md">
+                        <i data-lucide="trophy" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-gray-900 font-bold">OGAS</div>
+                        <div class="text-gray-600 text-sm">🏆 Campeón del trimestre</div>
+                        <div class="text-gray-500 text-xs">8 sucursales evaluadas</div>
+                    </div>
+                </div>
+                <div class="text-green-600 font-black text-xl">97.6%</div>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-4 shadow-md">
+                        <i data-lucide="medal" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-gray-900 font-bold">PLOG QUERÉTARO</div>
+                        <div class="text-gray-600 text-sm">🥈 Subcampeón regional</div>
+                        <div class="text-gray-500 text-xs">4 sucursales evaluadas</div>
+                    </div>
+                </div>
+                <div class="text-blue-600 font-black text-xl">97.0%</div>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-gradient-to-r from-amber-50 to-amber-100 rounded-lg border border-amber-200">
+                <div class="flex items-center">
+                    <div class="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center mr-4 shadow-md">
+                        <i data-lucide="star" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="text-gray-900 font-bold">TEC</div>
+                        <div class="text-gray-600 text-sm">🥉 Tercer lugar destacado</div>
+                        <div class="text-gray-500 text-xs">4 sucursales evaluadas</div>
+                    </div>
+                </div>
+                <div class="text-amber-600 font-black text-xl">93.1%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Áreas de Oportunidad -->
+    <div class="classic-card p-5 mb-6">
+        <div class="flex items-center mb-4">
+            <div class="w-10 h-10 bg-orange-500 rounded-lg flex items-center justify-center mr-3">
+                <i data-lucide="trending-up" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+                <h3 class="text-orange-600 font-bold text-lg">Áreas de Oportunidad</h3>
+                <p class="text-gray-600 text-sm">Enfoque en mejora continua</p>
+            </div>
+        </div>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between p-4 bg-red-50 rounded-lg border-l-4 border-red-400">
+                <div>
+                    <div class="text-gray-900 font-semibold">🍟 FREIDORAS</div>
+                    <div class="text-gray-600 text-sm">Requiere capacitación especializada</div>
+                </div>
+                <div class="text-red-600 font-bold text-lg">70.1%</div>
+            </div>
+            <div class="flex items-center justify-between p-4 bg-orange-50 rounded-lg border-l-4 border-orange-400">
+                <div>
+                    <div class="text-gray-900 font-semibold">🏪 EXTERIOR SUCURSAL</div>
+                    <div class="text-gray-600 text-sm">Mejora en imagen corporativa</div>
+                </div>
+                <div class="text-orange-600 font-bold text-lg">71.4%</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center text-amber-600 text-sm py-4 font-semibold">
+    DISEÑO 5: Clásico El Pollo Loco (Suave)
+</div>
+
+<script>
+    lucide.createIcons();
+</script>
+
+</body>
+</html>

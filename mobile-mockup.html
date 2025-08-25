@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍗 El Pollo Loco CAS - Mobile Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+        .card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .card-hover:active {
+            transform: scale(0.98);
+        }
+        .gradient-red {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+        }
+        .gradient-yellow {
+            background: linear-gradient(135deg, #f6e05e 0%, #d69e2e 100%);
+        }
+        .gradient-green {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+        .telegram-safe-area {
+            padding-bottom: env(safe-area-inset-bottom);
+            padding-top: env(safe-area-inset-top);
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-red-400 to-red-600 min-h-screen telegram-safe-area">
+
+<!-- Mobile Header -->
+<div class="sticky top-0 z-50 glass p-4 m-2 mt-4">
+    <div class="flex items-center justify-between">
+        <div>
+            <h1 class="text-white font-bold text-lg">🍗 El Pollo Loco CAS</h1>
+            <p class="text-white text-sm opacity-90">Supervisión Operativa</p>
+        </div>
+        <div class="w-10 h-10 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+            <i data-lucide="menu" class="w-5 h-5 text-white"></i>
+        </div>
+    </div>
+</div>
+
+<!-- KPI Cards Mobile -->
+<div class="px-2 py-2">
+    <div class="grid grid-cols-2 gap-2 mb-4">
+        <div class="glass p-4 card-hover">
+            <div class="text-white text-sm opacity-90 mb-1">Promedio General</div>
+            <div class="text-white text-2xl font-bold">89.54%</div>
+            <div class="flex items-center mt-1">
+                <div class="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
+                <span class="text-white text-xs">↑ 2.3%</span>
+            </div>
+        </div>
+        <div class="glass p-4 card-hover">
+            <div class="text-white text-sm opacity-90 mb-1">Supervisiones</div>
+            <div class="text-white text-2xl font-bold">135</div>
+            <div class="text-white text-xs opacity-75">Total realizadas</div>
+        </div>
+        <div class="glass p-4 card-hover">
+            <div class="text-white text-sm opacity-90 mb-1">Sucursales</div>
+            <div class="text-white text-2xl font-bold">79</div>
+            <div class="text-white text-xs opacity-75">Evaluadas</div>
+        </div>
+        <div class="glass p-4 card-hover">
+            <div class="text-white text-sm opacity-90 mb-1">Estados</div>
+            <div class="text-white text-2xl font-bold">9</div>
+            <div class="text-white text-xs opacity-75">Con presencia</div>
+        </div>
+    </div>
+
+    <!-- Filtros Mobile -->
+    <div class="glass p-4 mb-4">
+        <div class="text-white font-semibold mb-3 flex items-center">
+            <i data-lucide="filter" class="w-4 h-4 mr-2"></i>
+            Filtros
+        </div>
+        <div class="space-y-2">
+            <select class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border-0 backdrop-blur-sm">
+                <option>Todos los trimestres</option>
+                <option>Q3 2025</option>
+                <option>Q2 2025</option>
+                <option>Q1 2025</option>
+            </select>
+            <select class="w-full p-3 rounded-lg bg-white bg-opacity-20 text-white border-0 backdrop-blur-sm">
+                <option>Todos los grupos</option>
+                <option>OGAS</option>
+                <option>TEC</option>
+                <option>TEPEYAC</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Top 5 Grupos - Mobile Optimized -->
+    <div class="glass p-4 mb-4">
+        <div class="text-white font-semibold mb-3 flex items-center">
+            <i data-lucide="award" class="w-4 h-4 mr-2"></i>
+            Top 5 Grupos Operativos
+        </div>
+        <div class="space-y-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-green rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">1</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">OGAS</div>
+                        <div class="text-white text-xs opacity-75">8 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-white font-bold">97.6%</div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-green rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">2</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">PLOG QUERETARO</div>
+                        <div class="text-white text-xs opacity-75">4 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-white font-bold">97.0%</div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-yellow rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">3</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">TEC</div>
+                        <div class="text-white text-xs opacity-75">4 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-white font-bold">93.1%</div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 gradient-yellow rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">4</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">TEPEYAC</div>
+                        <div class="text-white text-xs opacity-75">7 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-white font-bold">92.7%</div>
+            </div>
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mr-3">
+                        <span class="text-white text-xs font-bold">5</span>
+                    </div>
+                    <div>
+                        <div class="text-white font-medium text-sm">PLOG LAGUNA</div>
+                        <div class="text-white text-xs opacity-75">6 sucursales</div>
+                    </div>
+                </div>
+                <div class="text-white font-bold">89.8%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alertas Críticas -->
+    <div class="glass p-4 mb-4">
+        <div class="text-white font-semibold mb-3 flex items-center">
+            <i data-lucide="alert-triangle" class="w-4 h-4 mr-2"></i>
+            Alertas Críticas
+        </div>
+        <div class="space-y-2">
+            <div class="bg-red-500 bg-opacity-20 rounded-lg p-3 border-l-4 border-red-400">
+                <div class="text-white font-medium text-sm">FREIDORAS</div>
+                <div class="text-white text-xs opacity-90">Promedio: 70.1% - Requiere atención</div>
+            </div>
+            <div class="bg-orange-500 bg-opacity-20 rounded-lg p-3 border-l-4 border-orange-400">
+                <div class="text-white font-medium text-sm">EXTERIOR SUCURSAL</div>
+                <div class="text-white text-xs opacity-90">Promedio: 71.4% - Mejora necesaria</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-2 gap-2 mb-6">
+        <button class="glass p-4 card-hover flex flex-col items-center">
+            <i data-lucide="map-pin" class="w-6 h-6 text-white mb-2"></i>
+            <span class="text-white text-sm font-medium">Ver Mapa</span>
+        </button>
+        <button class="glass p-4 card-hover flex flex-col items-center">
+            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white mb-2"></i>
+            <span class="text-white text-sm font-medium">Gráficos</span>
+        </button>
+    </div>
+</div>
+
+<!-- Bottom Navigation - Telegram Style -->
+<div class="fixed bottom-0 left-0 right-0 glass p-4 m-2 mb-4 rounded-2xl">
+    <div class="flex justify-around">
+        <button class="flex flex-col items-center space-y-1">
+            <i data-lucide="home" class="w-5 h-5 text-white"></i>
+            <span class="text-white text-xs">Inicio</span>
+        </button>
+        <button class="flex flex-col items-center space-y-1">
+            <i data-lucide="trending-up" class="w-5 h-5 text-white opacity-60"></i>
+            <span class="text-white text-xs opacity-60">Trends</span>
+        </button>
+        <button class="flex flex-col items-center space-y-1">
+            <i data-lucide="building-2" class="w-5 h-5 text-white opacity-60"></i>
+            <span class="text-white text-xs opacity-60">Grupos</span>
+        </button>
+        <button class="flex flex-col items-center space-y-1">
+            <i data-lucide="settings" class="w-5 h-5 text-white opacity-60"></i>
+            <span class="text-white text-xs opacity-60">Config</span>
+        </button>
+    </div>
+</div>
+
+<!-- Telegram Web App Script -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    // Initialize Telegram Web App
+    let tg = window.Telegram.WebApp;
+    tg.ready();
+    
+    // Set viewport height
+    tg.expand();
+    
+    // Theme integration
+    document.body.style.setProperty('--tg-theme-bg-color', tg.themeParams.bg_color);
+    document.body.style.setProperty('--tg-theme-text-color', tg.themeParams.text_color);
+    
+    // Initialize Lucide icons
+    lucide.createIcons();
+    
+    // Add haptic feedback on touch
+    document.querySelectorAll('.card-hover').forEach(el => {
+        el.addEventListener('touchstart', () => {
+            tg.HapticFeedback.impactOccurred('light');
+        });
+    });
+    
+    console.log('📱 Telegram Mini Web App inicializada');
+    console.log('📊 Dashboard móvil listo para El Pollo Loco CAS');
+</script>
+
+</body>
+</html>

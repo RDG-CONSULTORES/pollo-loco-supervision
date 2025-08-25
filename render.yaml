@@ -1,0 +1,71 @@
+services:
+  # Main Web App Service
+  - type: web
+    name: pollo-loco-supervision
+    runtime: node
+    plan: free
+    region: oregon
+    repo: https://github.com/robertodavila/pollo-loco-supervision.git
+    branch: main
+    buildCommand: npm run install-deps && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: START_BOT
+        value: "true"
+      - key: TELEGRAM_BOT_TOKEN
+        fromService:
+          type: web
+          name: pollo-loco-supervision
+          envVarKey: TELEGRAM_BOT_TOKEN
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: pollo-loco-supervision
+          envVarKey: DATABASE_URL
+      - key: NEON_DATABASE_URL
+        fromService:
+          type: web
+          name: pollo-loco-supervision
+          envVarKey: NEON_DATABASE_URL
+      - key: RENDER_EXTERNAL_URL
+        value: https://pollo-loco-supervision.onrender.com
+      - key: API_BASE_URL
+        value: https://pollo-loco-supervision.onrender.com/api
+      - key: BACKEND_URL
+        value: https://pollo-loco-supervision.onrender.com/api
+      - key: SESSION_SECRET
+        generateValue: true
+
+databases:
+  # If you need a separate database, uncomment below
+  # - name: pollo-loco-db
+  #   databaseName: pollo_loco_cas
+  #   user: pollo_user
+  #   region: oregon
+
+# Static site for design showcase (optional alternative)
+# - type: static
+#   name: pollo-loco-designs
+#   staticPublishPath: ./
+#   buildCommand: echo "Serving static files"
+#   headers:
+#     - path: /*
+#       name: Cache-Control
+#       value: public, max-age=86400
+
+# Background worker (if needed for scheduled tasks)
+# - type: worker
+#   name: pollo-loco-worker
+#   runtime: node
+#   repo: https://github.com/robertodavila/pollo-loco-supervision.git
+#   branch: main
+#   buildCommand: npm install
+#   startCommand: node workers/scheduler.js
+#   envVars:
+#     - key: NODE_ENV
+#       value: production
