@@ -2,14 +2,14 @@
   "name": "pollo-loco-supervision",
   "version": "1.0.0",
   "description": "El Pollo Loco CAS - Sistema de Supervisión Operativa con Telegram Bot y Mini Web App",
-  "main": "server.js",
+  "main": "server-integrated.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "node server-integrated.js",
     "dev": "concurrently \"npm run server\" \"npm run bot\"",
     "server": "cd backend && npm run dev",
     "bot": "node telegram-bot/bot.js",
     "build": "echo 'Using static HTML files, no build needed'",
-    "install-deps": "npm install && cd backend && npm install && cd telegram-bot && npm install",
+    "install-deps": "npm install",
     "deploy": "npm start",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -32,6 +32,14 @@
     "concurrently": "^8.2.2",
     "express": "^4.18.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "node-telegram-bot-api": "^0.66.0",
+    "axios": "^1.6.2",
+    "canvas": "^2.11.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }
