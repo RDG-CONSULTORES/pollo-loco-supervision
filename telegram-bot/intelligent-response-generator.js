@@ -11,7 +11,7 @@ class IntelligentResponseGenerator {
     // Templates de prompts optimizados
     this.promptTemplates = {
       dataAnalysis: this.getDataAnalysisTemplate(),
-      insight Generation: this.getInsightGenerationTemplate(),
+      insightGeneration: this.getInsightGenerationTemplate(),
       recommendation: this.getRecommendationTemplate(),
       adaptive: this.getAdaptiveTemplate()
     };
