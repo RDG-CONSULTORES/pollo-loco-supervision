@@ -23,9 +23,8 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Initialize AI engine and tutorial system
+// Initialize AI engine
 const aiEngine = new SupervisionAI(pool);
-const tutorialSystem = new TutorialSystem(bot, aiEngine);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -46,6 +45,9 @@ if (!token) {
 
 // Configure bot to avoid conflicts
 const bot = new TelegramBot(token, { polling: false });
+
+// Initialize tutorial system AFTER bot is created
+const tutorialSystem = new TutorialSystem(bot, aiEngine);
 
 // Only start polling in development or if explicitly enabled
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_POLLING === 'true') {
