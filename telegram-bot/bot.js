@@ -6,6 +6,7 @@ const TutorialSystem = require('./tutorial-system');
 const RealSupervisionIntelligence = require('./real-data-intelligence');
 const IntelligentSupervisionSystem = require('./intelligent-supervision-system');
 const IntelligentKnowledgeBase = require('./intelligent-knowledge-base');
+const AgenticDirector = require('./agentic-director');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -31,6 +32,9 @@ const aiEngine = new SupervisionAI(pool);
 const realDataEngine = new RealSupervisionIntelligence(pool);
 const intelligentSystem = new IntelligentSupervisionSystem(pool);
 const knowledgeBase = new IntelligentKnowledgeBase(pool);
+
+// AGENTIC SYSTEM - CONVERSATIONAL AI
+const agenticDirector = new AgenticDirector(pool, knowledgeBase, intelligentSystem);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -150,10 +154,22 @@ async function queryDatabase(question) {
   }
 }
 
-async function askAI(question, context = null) {
+async function askAI(question, context = null, chatId = null) {
   try {
-    console.log(`🧠 Processing with INTELLIGENT SUPERVISION SYSTEM: "${question}"`);
+    console.log(`🧠 AGENTIC SYSTEM Processing: "${question}"`);
     
+    // USAR SISTEMA AGENTIC PARA RESPUESTAS NATURALES
+    if (chatId) {
+      console.log(`🤖 Delegando a AGENTE DIRECTOR para chat ${chatId}`);
+      const agenticResponse = await agenticDirector.processUserQuestion(question, chatId);
+      
+      if (agenticResponse && agenticResponse.length > 10) {
+        console.log(`✅ AGENTE DIRECTOR generó respuesta natural`);
+        return agenticResponse;
+      }
+    }
+    
+    console.log(`🔄 Fallback a sistema tradicional...`);
     // Use Intelligent Supervision System for advanced analysis
     const analysis = await intelligentSystem.analyzeIntelligentQuestion(question);
     
@@ -1282,8 +1298,8 @@ bot.on('message', async (msg) => {
       
       console.log(`🚀 PROCESSING QUESTION: "${question}"`);
       
-      // Use INTELLIGENT SYSTEM for responses
-      const response = await askAI(question);
+      // Use AGENTIC SYSTEM for natural responses
+      const response = await askAI(question, null, chatId);
       
       // Send without markdown to avoid parsing errors for now
       bot.sendMessage(chatId, response);
