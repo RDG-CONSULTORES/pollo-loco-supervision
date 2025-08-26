@@ -47,16 +47,24 @@ class AgenticDirector {
       console.log('🚀 INICIANDO SISTEMA ULTRA INTELIGENTE ANA...');
       this.isTraining = true;
       
-      // Train Ana with complete database knowledge
-      await this.ultraIntelligence.executeCompleteTraining();
+      // Train Ana with complete database knowledge with proper error handling
+      const trainingResult = await this.ultraIntelligence.executeCompleteTraining();
       
-      this.trainingComplete = true;
+      if (trainingResult) {
+        this.trainingComplete = true;
+        console.log('✅ ANA ULTRA INTELIGENTE LISTA - 120% conocimiento de la base de datos');
+      } else {
+        console.log('⚠️ Entrenamiento parcial - Ana funcionará con capacidades básicas');
+        this.trainingComplete = false;
+      }
+      
       this.isTraining = false;
       
-      console.log('✅ ANA ULTRA INTELIGENTE LISTA - 120% conocimiento de la base de datos');
     } catch (error) {
       console.error('❌ Error inicializando ultra inteligencia:', error);
+      console.log('🔄 Ana funcionará con sistema AGENTIC de fallback');
       this.isTraining = false;
+      this.trainingComplete = false;
     }
   }
 
