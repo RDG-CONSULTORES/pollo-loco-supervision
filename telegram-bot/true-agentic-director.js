@@ -64,7 +64,7 @@ class TrueAgenticDirector {
       this.intelligenceMetrics.conversations_handled++;
       
       // FASE 0: VERIFICAR COMANDOS FALCON AI PRIMERO
-      const falconCommand = this.checkFalconCommands(question);
+      const falconCommand = await this.checkFalconCommands(question);
       if (falconCommand) {
         console.log(`🦅 Comando Falcon detectado: ${falconCommand.type}`);
         this.updateIntelligenceMetrics({confidence_score: 1.0, data_found: 1}, true);
@@ -78,12 +78,9 @@ class TrueAgenticDirector {
       const grupoDetected = this.detectGrupoQuestion(question);
       if (grupoDetected) {
         console.log(`🏢 Pregunta sobre grupo detectada: ${grupoDetected}`);
-        const grupoInfo = this.businessKnowledge.getGrupoInfo(grupoDetected);
-        if (grupoInfo) {
-          // Combinar conocimiento pre-cargado con datos dinámicos
-          const dynamicData = await this.queryEngine.processIntelligentQuery(question, conversationContext);
-          const falconResponse = this.generateHybridResponse(grupoInfo, dynamicData, question);
-          this.updateIntelligenceMetrics(dynamicData, true);
+        const falconResponse = await this.businessKnowledge.generateFalconResponse('grupo_info', this.pool, grupoDetected);
+        if (falconResponse && !falconResponse.includes('❌')) {
+          this.updateIntelligenceMetrics({confidence_score: 0.9, data_found: 1}, true);
           return falconResponse;
         }
       }
@@ -530,21 +527,21 @@ Tuve un problema procesando: "${question}"
 
   // ==================== MÉTODOS FALCON AI ====================
 
-  // Verificar comandos tipo Falcon AI
-  checkFalconCommands(question) {
+  // Verificar comandos tipo Falcon AI con datos REALES
+  async checkFalconCommands(question) {
     const lowerQ = question.toLowerCase().trim();
 
-    if (lowerQ === '/ranking' || lowerQ.includes('ranking') || lowerQ.includes('mejores grupos')) {
+    if (lowerQ === '/ranking' || lowerQ === '/top10' || lowerQ.includes('ranking') || lowerQ.includes('mejores grupos')) {
       return {
         type: 'ranking',
-        response: this.businessKnowledge.generateFalconResponse('ranking', 5)
+        response: await this.businessKnowledge.generateFalconResponse('ranking', this.pool, 5)
       };
     }
 
     if (lowerQ === '/areas_criticas' || lowerQ.includes('areas críticas') || lowerQ.includes('áreas críticas')) {
       return {
         type: 'areas_criticas',
-        response: this.businessKnowledge.generateFalconResponse('areas_criticas')
+        response: await this.businessKnowledge.generateFalconResponse('areas_criticas', this.pool)
       };
     }
 
@@ -552,14 +549,14 @@ Tuve un problema procesando: "${question}"
       const trimestre = lowerQ.replace('/', '').toUpperCase();
       return {
         type: 'trimestre',
-        response: this.businessKnowledge.generateFalconResponse('trimestre', trimestre)
+        response: await this.businessKnowledge.generateFalconResponse('trimestre', this.pool, trimestre)
       };
     }
 
     if (lowerQ === '/general' || lowerQ === '/help' || lowerQ === '/start') {
       return {
         type: 'general',
-        response: this.businessKnowledge.generateFalconResponse('general')
+        response: await this.businessKnowledge.generateFalconResponse('general', this.pool)
       };
     }
 

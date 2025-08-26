@@ -1,391 +1,425 @@
 // =========================================
-// BUSINESS KNOWLEDGE - EL POLLO LOCO CAS
-// Conocimiento empresarial pre-cargado estilo Falcon AI
+// SMART BUSINESS KNOWLEDGE - EL POLLO LOCO CAS
+// Conocimiento híbrido: estructura Falcon + datos reales diarios
+// Optimizado para Render Free Tier
 // =========================================
 
 class ElPolloLocoBusinessKnowledge {
   constructor() {
-    // GRUPOS OPERATIVOS EXACTOS (20 grupos confirmados)
-    this.grupos = {
+    // CACHE INTELIGENTE
+    this.lastUpdate = null;
+    this.cachedData = null;
+    this.isRefreshing = false;
+    this.cacheValidHours = 24; // Cache válido por 24 horas
+    
+    // ESTRUCTURA FIJA (nunca cambia)
+    this.estructura = {
+      total_grupos_esperados: 20,
+      total_areas: 29,
+      benchmark_excelencia: 95.0,
+      benchmark_objetivo: 85.0,
+      benchmark_critico: 75.0
+    };
+    
+    // GRUPOS OPERATIVOS ESTRUCTURA (nombres fijos)
+    this.grupos_estructura = [
+      'OGAS', 'TEPEYAC', 'PLOG QUERETARO', 'EPL SO', 'TEC', 
+      'EXPO', 'EFM', 'CRR', 'RAP', 'PLOG LAGUNA',
+      'GRUPO MATAMOROS', 'GRUPO RIO BRAVO', 'GRUPO SALTILLO',
+      'PLANTA REYNOLDS', 'ADMINISTRACION'
+    ];
+
+    // AREAS CRÍTICAS CONOCIDAS (nombres fijos)
+    this.areas_conocidas = [
+      'FREIDORAS', 'EXTERIOR SUCURSAL', 'FREIDORA DE PAPA',
+      'HORNOS', 'MAQUINA DE HIELO', 'LIMPIEZA', 'SERVICIO AL CLIENTE'
+    ];
+
+    // DATOS FALLBACK (solo para emergencias cuando BD falla)
+    this.fallbackData = {
       'OGAS': { 
         sucursales: 8, 
         promedio_historico: 97.55, 
         ranking: 1,
-        estado: 'Nuevo León',
-        status: 'LÍDER ABSOLUTO'
-      },
-      'TEPEYAC': { 
-        sucursales: 10, 
-        promedio_historico: 92.66, 
-        ranking: 2,
-        estado: 'Multi-estado',
-        status: 'VOLUMEN LÍDER'
-      },
-      'PLOG QUERETARO': { 
-        sucursales: 4, 
-        promedio_historico: 91.2, 
-        ranking: 3,
-        estado: 'Querétaro',
-        status: 'ALTA PERFORMANCE'
-      },
-      'EPL SO': { 
-        sucursales: 1, 
-        promedio_historico: 94.9, 
-        ranking: 4,
-        estado: 'Sur',
-        status: 'EXCELENCIA INDIVIDUAL'
-      },
-      'TEC': { 
-        sucursales: 3, 
-        promedio_historico: 89.5, 
-        ranking: 5,
-        estado: 'Nuevo León',
-        status: 'SÓLIDO'
-      },
-      'EXPO': { 
-        sucursales: 2, 
-        promedio_historico: 88.1, 
-        ranking: 6,
-        estado: 'Multi-estado',
-        status: 'ESTABLE'
-      },
-      'EFM': { 
-        sucursales: 3, 
-        promedio_historico: 87.8, 
-        ranking: 7,
-        estado: 'Multi-estado',
-        status: 'OPORTUNIDAD'
-      },
-      'CRR': { 
-        sucursales: 2, 
-        promedio_historico: 86.5, 
-        ranking: 8,
-        estado: 'Multi-estado',
-        status: 'MEJORANDO'
-      },
-      'RAP': { 
-        sucursales: 4, 
-        promedio_historico: 85.2, 
-        ranking: 9,
-        estado: 'Multi-estado',
-        status: 'DESARROLLO'
-      },
-      'PLOG LAGUNA': { 
-        sucursales: 3, 
-        promedio_historico: 84.1, 
-        ranking: 10,
-        estado: 'Coahuila',
-        status: 'CRECIMIENTO'
-      },
-      'GRUPO MATAMOROS': { 
-        sucursales: 2, 
-        promedio_historico: 83.5, 
-        ranking: 11,
-        estado: 'Tamaulipas',
-        status: 'FRONTERA'
-      },
-      'GRUPO RIO BRAVO': { 
-        sucursales: 2, 
-        promedio_historico: 82.8, 
-        ranking: 12,
-        estado: 'Tamaulipas',
-        status: 'POTENCIAL'
-      },
-      'GRUPO SALTILLO': { 
-        sucursales: 3, 
-        promedio_historico: 81.9, 
-        ranking: 13,
-        estado: 'Coahuila',
-        status: 'REGIONAL'
-      },
-      'PLANTA REYNOLDS': { 
-        sucursales: 1, 
-        promedio_historico: 81.2, 
-        ranking: 14,
-        estado: 'Tamaulipas',
-        status: 'INDUSTRIAL'
-      },
-      'ADMINISTRACION': { 
-        sucursales: 1, 
-        promedio_historico: 80.5, 
-        ranking: 15,
-        estado: 'Corporativo',
-        status: 'APOYO'
+        'TEPEYAC': { promedio_historico: 92.66, ranking: 2 },
+        'PLOG QUERETARO': { promedio_historico: 91.2, ranking: 3 }
       }
     };
 
-    // ÁREAS DE EVALUACIÓN CRÍTICAS (29 áreas confirmadas)
-    this.areas_criticas = {
-      'FREIDORAS': { 
-        promedio_general: 74.63, 
-        criticidad: 'ALTA', 
-        impacto_operacional: 'CRÍTICO',
-        mejora_potencial: '15-20 puntos'
-      },
-      'EXTERIOR SUCURSAL': { 
-        promedio_general: 75.35, 
-        criticidad: 'ALTA', 
-        impacto_operacional: 'IMAGEN',
-        mejora_potencial: '12-18 puntos'
-      },
-      'FREIDORA DE PAPA': { 
-        promedio_general: 76.12, 
-        criticidad: 'ALTA', 
-        impacto_operacional: 'CALIDAD',
-        mejora_potencial: '10-15 puntos'
-      },
-      'HORNOS': { 
-        promedio_general: 82.45, 
-        criticidad: 'MEDIA', 
-        impacto_operacional: 'PRODUCCIÓN',
-        mejora_potencial: '8-12 puntos'
-      },
-      'MAQUINA DE HIELO': { 
-        promedio_general: 78.89, 
-        criticidad: 'MEDIA', 
-        impacto_operacional: 'SERVICIO',
-        mejora_potencial: '10-15 puntos'
-      },
-      'LIMPIEZA': { 
-        promedio_general: 85.67, 
-        criticidad: 'BAJA', 
-        impacto_operacional: 'HYGIENE',
-        mejora_potencial: '5-10 puntos'
-      },
-      'SERVICIO AL CLIENTE': { 
-        promedio_general: 87.23, 
-        criticidad: 'BAJA', 
-        impacto_operacional: 'EXPERIENCIA',
-        mejora_potencial: '3-8 puntos'
-      }
-    };
-
-    // CONTEXTO TRIMESTRAL 2025
-    this.trimestres = {
-      'Q1': { 
-        sucursales_evaluadas: 27, 
-        evaluaciones_totales: 2400, 
-        promedio: 91.1,
-        tendencia: 'BASELINE'
-      },
-      'Q2': { 
-        sucursales_evaluadas: 63, 
-        evaluaciones_totales: 5800, 
-        promedio: 88.9,
-        tendencia: 'DECLIVE'
-      },
-      'Q3': { 
-        sucursales_evaluadas: 14, 
-        evaluaciones_totales: 263, 
-        promedio: 93.2,
-        tendencia: 'RECUPERACIÓN'
-      }
-    };
-
-    // BENCHMARKS EMPRESARIALES
-    this.benchmarks = {
-      excelencia: 95.0,
-      objetivo: 85.0,
-      critico: 75.0,
-      total_grupos: 20,
-      total_sucursales: 82,
-      total_areas: 29
-    };
-
-    // COMANDOS ESTILO FALCON AI
-    this.comandos_disponibles = [
-      '/ranking - Top 10 grupos operativos',
-      '/areas_criticas - Áreas que necesitan atención',
-      '/q1 /q2 /q3 - Análisis por trimestre',
-      '/sucursales_{grupo} - Sucursales por grupo',
-      '/oportunidades - Mejores oportunidades CAS'
-    ];
-
-    console.log('🧠 Business Knowledge cargado: 20 grupos, 29 áreas, contexto 2025');
+    console.log('🧠 Smart Business Knowledge inicializado - Render Free optimizado');
   }
 
-  // Obtener información rápida de un grupo
-  getGrupoInfo(grupoName) {
+  // ==================== SMART LAZY LOADING ====================
+
+  // Verificar si el cache es válido
+  isDataStale() {
+    if (!this.lastUpdate) return true;
+    
+    const hoursAgo = (Date.now() - this.lastUpdate.getTime()) / (1000 * 60 * 60);
+    return hoursAgo >= this.cacheValidHours;
+  }
+
+  // Obtener datos inteligentes (cache + BD)
+  async getSmartData(pool) {
+    // Si no hay datos O son muy viejos
+    if (!this.cachedData || this.isDataStale()) {
+      console.log('🔄 Cache expirado, actualizando datos reales...');
+      await this.refreshFromDatabase(pool);
+    }
+    
+    return this.cachedData || this.getFallbackData();
+  }
+
+  // Actualizar desde base de datos REAL
+  async refreshFromDatabase(pool) {
+    if (this.isRefreshing) {
+      console.log('⏳ Ya actualizando, esperando...');
+      return;
+    }
+
+    this.isRefreshing = true;
+    const startTime = Date.now();
+
+    try {
+      console.log('📊 Consultando datos REALES de la base de datos...');
+
+      // QUERY 1: Rankings actuales de grupos
+      const gruposQuery = `
+        SELECT 
+          grupo_operativo,
+          COUNT(DISTINCT sucursal_clean) as sucursales,
+          ROUND(AVG(porcentaje), 2) as promedio_actual,
+          COUNT(*) as evaluaciones
+        FROM supervision_operativa_detalle 
+        WHERE fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'
+          AND grupo_operativo IS NOT NULL
+        GROUP BY grupo_operativo 
+        ORDER BY promedio_actual DESC
+      `;
+
+      // QUERY 2: Áreas críticas actuales
+      const areasQuery = `
+        SELECT 
+          area_evaluacion,
+          ROUND(AVG(porcentaje), 2) as promedio_area,
+          COUNT(*) as evaluaciones
+        FROM supervision_operativa_detalle 
+        WHERE fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'
+          AND area_evaluacion IS NOT NULL
+        GROUP BY area_evaluacion
+        ORDER BY promedio_area ASC
+        LIMIT 10
+      `;
+
+      // QUERY 3: Contexto trimestral actual
+      const trimestreQuery = `
+        SELECT 
+          trimestre,
+          COUNT(DISTINCT sucursal_clean) as sucursales_evaluadas,
+          COUNT(*) as evaluaciones_totales,
+          ROUND(AVG(porcentaje), 2) as promedio_trimestre
+        FROM supervision_operativa_detalle 
+        WHERE año = 2025
+          AND trimestre IS NOT NULL
+        GROUP BY trimestre
+        ORDER BY trimestre
+      `;
+
+      // Ejecutar queries en paralelo
+      const [gruposResult, areasResult, trimestreResult] = await Promise.all([
+        pool.query(gruposQuery),
+        pool.query(areasQuery), 
+        pool.query(trimestreQuery)
+      ]);
+
+      // Procesar resultados
+      const gruposData = {};
+      gruposResult.rows.forEach((row, index) => {
+        gruposData[row.grupo_operativo] = {
+          nombre: row.grupo_operativo,
+          sucursales: parseInt(row.sucursales),
+          promedio_actual: parseFloat(row.promedio_actual),
+          ranking: index + 1,
+          evaluaciones: parseInt(row.evaluaciones),
+          status: this.getStatusByPromedio(row.promedio_actual)
+        };
+      });
+
+      const areasData = areasResult.rows.map((row, index) => ({
+        area: row.area_evaluacion,
+        promedio: parseFloat(row.promedio_area),
+        evaluaciones: parseInt(row.evaluaciones),
+        criticidad: row.promedio_area < 75 ? 'ALTA' : row.promedio_area < 85 ? 'MEDIA' : 'BAJA',
+        ranking_critico: index + 1
+      }));
+
+      const trimestreData = {};
+      trimestreResult.rows.forEach(row => {
+        trimestreData[row.trimestre] = {
+          trimestre: row.trimestre,
+          sucursales: parseInt(row.sucursales_evaluadas),
+          evaluaciones: parseInt(row.evaluaciones_totales),
+          promedio: parseFloat(row.promedio_trimestre),
+          tendencia: this.getTrendencia(row.promedio_trimestre)
+        };
+      });
+
+      // Actualizar cache
+      this.cachedData = {
+        grupos: gruposData,
+        areas_criticas: areasData,
+        trimestres: trimestreData,
+        stats: {
+          total_grupos: gruposResult.rows.length,
+          total_areas: areasResult.rows.length,
+          ultima_actualizacion: new Date().toISOString(),
+          tiempo_consulta: Date.now() - startTime
+        }
+      };
+
+      this.lastUpdate = new Date();
+      
+      console.log(`✅ Datos reales actualizados en ${Date.now() - startTime}ms`);
+      console.log(`📊 ${gruposResult.rows.length} grupos, ${areasResult.rows.length} áreas críticas`);
+
+    } catch (error) {
+      console.error('❌ Error actualizando datos reales:', error);
+      // En caso de error, usar datos fallback
+      if (!this.cachedData) {
+        this.cachedData = this.getFallbackData();
+      }
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  // Datos fallback en caso de error
+  getFallbackData() {
+    return {
+      grupos: this.fallbackData,
+      areas_criticas: [],
+      trimestres: {},
+      stats: {
+        total_grupos: this.estructura.total_grupos_esperados,
+        fallback_mode: true,
+        ultima_actualizacion: 'Datos de emergencia'
+      }
+    };
+  }
+
+  // Obtener información de grupo con datos REALES
+  async getGrupoInfo(grupoName, pool) {
+    const data = await this.getSmartData(pool);
     const grupo = grupoName.toUpperCase();
-    const info = this.grupos[grupo];
+    const info = data.grupos[grupo];
     
     if (!info) {
       return null;
     }
 
     return {
-      nombre: grupo,
+      nombre: info.nombre,
       sucursales: info.sucursales,
-      promedio_historico: info.promedio_historico,
+      promedio_actual: info.promedio_actual,
       ranking: info.ranking,
-      estado: info.estado,
       status: info.status,
-      total_grupos: this.benchmarks.total_grupos
+      evaluaciones: info.evaluaciones,
+      total_grupos: data.stats.total_grupos,
+      actualizado: data.stats.ultima_actualizacion,
+      data_real: !data.stats.fallback_mode
     };
   }
 
-  // Obtener top performers
-  getTopPerformers(limit = 5) {
-    return Object.entries(this.grupos)
-      .sort((a, b) => a[1].ranking - b[1].ranking)
+  // Obtener top performers con datos REALES
+  async getTopPerformers(pool, limit = 5) {
+    const data = await this.getSmartData(pool);
+    
+    return Object.values(data.grupos)
+      .sort((a, b) => a.ranking - b.ranking)
       .slice(0, limit)
-      .map(([nombre, info], index) => ({
-        posicion: index + 1,
-        nombre: nombre,
+      .map((info) => ({
+        posicion: info.ranking,
+        nombre: info.nombre,
         sucursales: info.sucursales,
-        promedio: info.promedio_historico,
-        status: info.status
+        promedio: info.promedio_actual,
+        status: info.status,
+        evaluaciones: info.evaluaciones
       }));
   }
 
-  // Obtener áreas críticas
-  getAreasCriticas() {
-    return Object.entries(this.areas_criticas)
-      .sort((a, b) => a[1].promedio_general - b[1].promedio_general)
-      .map(([area, info]) => ({
-        area: area,
-        promedio: info.promedio_general,
-        criticidad: info.criticidad,
-        impacto: info.impacto_operacional,
-        potencial_mejora: info.mejora_potencial
-      }));
+  // Obtener áreas críticas con datos REALES
+  async getAreasCriticas(pool) {
+    const data = await this.getSmartData(pool);
+    return data.areas_criticas.slice(0, 7); // Top 7 áreas más críticas
   }
 
-  // Obtener contexto trimestral
-  getTrimestreInfo(trimestre) {
+  // Obtener contexto trimestral con datos REALES
+  async getTrimestreInfo(trimestre, pool) {
+    const data = await this.getSmartData(pool);
     const q = trimestre.toUpperCase();
-    const info = this.trimestres[q];
+    const info = data.trimestres[q];
     
     if (!info) {
       return null;
     }
 
-    return {
-      trimestre: q,
-      sucursales: info.sucursales_evaluadas,
-      evaluaciones: info.evaluaciones_totales,
-      promedio: info.promedio,
-      tendencia: info.tendencia
-    };
+    return info;
   }
 
-  // Verificar si un grupo existe
+  // Verificar si un grupo existe (estructura fija)
   grupoExists(grupoName) {
-    return this.grupos.hasOwnProperty(grupoName.toUpperCase());
+    return this.grupos_estructura.includes(grupoName.toUpperCase());
   }
 
-  // Obtener todos los nombres de grupos
+  // Obtener todos los nombres de grupos (estructura fija)
   getAllGrupoNames() {
-    return Object.keys(this.grupos);
+    return this.grupos_estructura;
   }
 
-  // Obtener estadísticas generales
-  getGeneralStats() {
+  // Obtener estadísticas generales con datos REALES
+  async getGeneralStats(pool) {
+    const data = await this.getSmartData(pool);
     return {
-      total_grupos: this.benchmarks.total_grupos,
-      total_sucursales: this.benchmarks.total_sucursales,
-      total_areas: this.benchmarks.total_areas,
-      benchmark_excelencia: this.benchmarks.excelencia,
-      benchmark_objetivo: this.benchmarks.objetivo,
-      benchmark_critico: this.benchmarks.critico
+      total_grupos: data.stats.total_grupos,
+      total_areas: data.stats.total_areas,
+      benchmark_excelencia: this.estructura.benchmark_excelencia,
+      benchmark_objetivo: this.estructura.benchmark_objetivo,
+      benchmark_critico: this.estructura.benchmark_critico,
+      ultima_actualizacion: data.stats.ultima_actualizacion,
+      data_real: !data.stats.fallback_mode,
+      tiempo_consulta: data.stats.tiempo_consulta
     };
   }
 
-  // Generar respuesta estilo Falcon AI
-  generateFalconResponse(tipo, data) {
+  // ==================== MÉTODOS AUXILIARES ====================
+
+  // Determinar status por promedio
+  getStatusByPromedio(promedio) {
+    if (promedio >= 95) return 'EXCELENCIA';
+    if (promedio >= 90) return 'LÍDER';
+    if (promedio >= 85) return 'SÓLIDO';
+    if (promedio >= 80) return 'OPORTUNIDAD';
+    return 'CRÍTICO';
+  }
+
+  // Determinar tendencia por promedio
+  getTrendencia(promedio) {
+    if (promedio >= 92) return 'EXCELENTE';
+    if (promedio >= 89) return 'BUENA';
+    if (promedio >= 85) return 'ESTABLE';
+    return 'DECLIVE';
+  }
+
+  // Generar respuesta estilo Falcon AI con datos REALES
+  async generateFalconResponse(tipo, pool, param = null) {
     switch (tipo) {
       case 'grupo_info':
-        return this.formatGrupoInfo(data);
+        return await this.formatGrupoInfo(param, pool);
       case 'ranking':
-        return this.formatRanking(data);
+        return await this.formatRanking(pool, param || 5);
       case 'areas_criticas':
-        return this.formatAreasCriticas();
+        return await this.formatAreasCriticas(pool);
       case 'trimestre':
-        return this.formatTrimestre(data);
+        return await this.formatTrimestre(param, pool);
       default:
-        return this.formatGeneral();
+        return await this.formatGeneral(pool);
     }
   }
 
-  // Formatear información de grupo estilo Falcon
-  formatGrupoInfo(grupoInfo) {
+  // Formatear información de grupo estilo Falcon con datos REALES
+  async formatGrupoInfo(grupoName, pool) {
+    const grupoInfo = await this.getGrupoInfo(grupoName, pool);
+    
     if (!grupoInfo) {
       return '❌ Grupo no encontrado. Usa /ranking para ver todos los grupos.';
     }
 
-    return `📊 ${grupoInfo.nombre} - ANÁLISIS GRUPO
-• Sucursales: ${grupoInfo.sucursales}
-• Promedio histórico: ${grupoInfo.promedio_historico}%
-• Ranking: #${grupoInfo.ranking} de ${grupoInfo.total_grupos} grupos
-• Estado: ${grupoInfo.estado}
-• Status: ${grupoInfo.status}
+    const statusEmoji = grupoInfo.promedio_actual >= 95 ? '🏆' : 
+                       grupoInfo.promedio_actual >= 90 ? '🥇' : 
+                       grupoInfo.promedio_actual >= 85 ? '✅' : '⚠️';
 
-🎯 /sucursales_${grupoInfo.nombre.toLowerCase()} | /areas_${grupoInfo.nombre.toLowerCase()} | /ranking`;
+    return `📊 ${grupoInfo.nombre} - ANÁLISIS GRUPO ${statusEmoji}
+• Sucursales: ${grupoInfo.sucursales}
+• Promedio actual: ${grupoInfo.promedio_actual}%
+• Ranking: #${grupoInfo.ranking} de ${grupoInfo.total_grupos} grupos
+• Status: ${grupoInfo.status}
+• Evaluaciones: ${grupoInfo.evaluaciones}
+
+🎯 /areas_criticas | /ranking | /q3 | /top10`;
   }
 
-  // Formatear ranking estilo Falcon
-  formatRanking(limit = 5) {
-    const top = this.getTopPerformers(limit);
-    let response = `🏆 TOP ${limit} GRUPOS OPERATIVOS\n\n`;
+  // Formatear ranking estilo Falcon con datos REALES
+  async formatRanking(pool, limit = 5) {
+    const top = await this.getTopPerformers(pool, limit);
+    const data = await this.getSmartData(pool);
+    
+    let response = `🏆 TOP ${limit} GRUPOS OPERATIVOS (DATOS REALES)\n\n`;
     
     top.forEach(grupo => {
       const medal = grupo.posicion === 1 ? '🥇' : grupo.posicion === 2 ? '🥈' : grupo.posicion === 3 ? '🥉' : `${grupo.posicion}️⃣`;
-      response += `${medal} ${grupo.nombre}\n├── Sucursales: ${grupo.sucursales}\n└── Promedio: ${grupo.promedio}%\n\n`;
+      response += `${medal} ${grupo.nombre}\n├── Sucursales: ${grupo.sucursales}\n├── Promedio: ${grupo.promedio}%\n└── Status: ${grupo.status}\n\n`;
     });
 
-    response += `🎯 /areas_criticas | /oportunidades | /q3`;
+    response += `🎯 /areas_criticas | /q3 | /top10\n\n📅 Actualizado: ${data.stats.ultima_actualizacion.substring(0, 10)}`;
     return response;
   }
 
-  // Formatear áreas críticas
-  formatAreasCriticas() {
-    const areas = this.getAreasCriticas();
-    let response = `🚨 ÁREAS CRÍTICAS - OPORTUNIDADES CAS\n\n`;
+  // Formatear áreas críticas con datos REALES
+  async formatAreasCriticas(pool) {
+    const areas = await this.getAreasCriticas(pool);
+    const data = await this.getSmartData(pool);
+    
+    let response = `🚨 ÁREAS CRÍTICAS - OPORTUNIDADES CAS (DATOS REALES)\n\n`;
     
     areas.slice(0, 5).forEach((area, index) => {
-      response += `${index + 1}️⃣ ${area.area}\n├── Promedio: ${area.promedio}%\n├── Criticidad: ${area.criticidad}\n└── Potencial: ${area.potencial_mejora}\n\n`;
+      const criticEmoji = area.criticidad === 'ALTA' ? '🔴' : area.criticidad === 'MEDIA' ? '🟡' : '🟢';
+      response += `${index + 1}️⃣ ${area.area} ${criticEmoji}\n├── Promedio: ${area.promedio}%\n├── Criticidad: ${area.criticidad}\n└── Evaluaciones: ${area.evaluaciones}\n\n`;
     });
 
-    response += `🎯 /ranking | /q3 | /oportunidades`;
+    response += `🎯 /ranking | /q3 | /top10\n\n📅 Actualizado: ${data.stats.ultima_actualizacion.substring(0, 10)}`;
     return response;
   }
 
-  // Formatear información trimestral
-  formatTrimestre(trimestre) {
-    const info = this.getTrimestreInfo(trimestre);
+  // Formatear información trimestral con datos REALES
+  async formatTrimestre(trimestre, pool) {
+    const info = await this.getTrimestreInfo(trimestre, pool);
     if (!info) {
       return '❌ Trimestre no válido. Usa: /q1 /q2 /q3';
     }
 
-    return `📅 ${info.trimestre} 2025 - ANÁLISIS TRIMESTRAL
+    const trendEmoji = info.tendencia === 'EXCELENTE' ? '📈' : 
+                       info.tendencia === 'BUENA' ? '✅' : 
+                       info.tendencia === 'ESTABLE' ? '➡️' : '📉';
+
+    return `📅 ${info.trimestre} 2025 - ANÁLISIS TRIMESTRAL ${trendEmoji}
 • Sucursales evaluadas: ${info.sucursales}
 • Total evaluaciones: ${info.evaluaciones.toLocaleString()}
 • Promedio trimestre: ${info.promedio}%
 • Tendencia: ${info.tendencia}
 
-🎯 /ranking | /areas_criticas | /q${info.trimestre.charAt(1)}`;
+🎯 /ranking | /areas_criticas | /top10`;
   }
 
-  // Respuesta general estilo Falcon
-  formatGeneral() {
-    const stats = this.getGeneralStats();
+  // Respuesta general estilo Falcon con datos REALES
+  async formatGeneral(pool) {
+    const stats = await this.getGeneralStats(pool);
     
-    return `🦅 FALCON AI - SUPERVISIÓN OPERATIVA
-El Pollo Loco CAS - Análisis Empresarial
+    return `🦅 ANA - SUPERVISIÓN OPERATIVA INTELIGENTE
+El Pollo Loco CAS - Datos Actualizados Diariamente
 
 📊 RESUMEN GENERAL 2025:
 • Total grupos: ${stats.total_grupos}
-• Total sucursales: ${stats.total_sucursales}
-• Total áreas: ${stats.total_areas}
+• Total áreas evaluadas: ${stats.total_areas}
 • Benchmark objetivo: ${stats.benchmark_objetivo}%
+• Sistema: ${stats.data_real ? 'DATOS REALES' : 'MODO EMERGENCIA'}
 
 🎯 COMANDOS DISPONIBLES:
-• /ranking - Top grupos operativos
+• /ranking o /top10 - Top grupos operativos
 • /areas_criticas - Oportunidades CAS
 • /q1 /q2 /q3 - Análisis trimestral
-• /oportunidades - Mejores acciones
 
-📅 Última actualización: ${new Date().toLocaleString('es-MX')}`;
+📅 Última actualización: ${stats.ultima_actualizacion.substring(0, 16)}
+⚡ Tiempo consulta: ${stats.tiempo_consulta || 0}ms`;
   }
 }
 
