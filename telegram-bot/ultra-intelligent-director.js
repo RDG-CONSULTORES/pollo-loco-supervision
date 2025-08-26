@@ -8,6 +8,7 @@ const IntelligentContextManager = require('./intelligent-context-manager');
 const IntelligentResponseGenerator = require('./intelligent-response-generator');
 const ElPolloLocoBusinessKnowledge = require('./business-knowledge');
 const ComprehensiveAnalyzer = require('./comprehensive-analyzer');
+const UserOnboardingSystem = require('./user-onboarding-system');
 const { getDatabaseManager } = require('./database-manager');
 
 class UltraIntelligentDirector {
@@ -19,6 +20,9 @@ class UltraIntelligentDirector {
     this.llm = new LLMManager();
     this.contextManager = new IntelligentContextManager(this.llm);
     this.responseGenerator = new IntelligentResponseGenerator(this.llm, this.pool);
+    
+    // Sistema de onboarding híbrido
+    this.onboardingSystem = new UserOnboardingSystem(this.llm, this.contextManager);
     
     // Sistemas híbridos (datos reales + IA)
     this.businessKnowledge = new ElPolloLocoBusinessKnowledge();
@@ -45,6 +49,13 @@ class UltraIntelligentDirector {
     console.log(`🚀 ULTRA IA procesando: "${question}" (Chat: ${chatId})`);
     
     try {
+      // FASE 0: VERIFICAR ONBOARDING HÍBRIDO
+      const onboardingResponse = await this.onboardingSystem.checkOnboardingNeeded(chatId, question);
+      if (onboardingResponse) {
+        console.log('👋 Usuario en onboarding');
+        return onboardingResponse;
+      }
+      
       // FASE 1: ANÁLISIS DE CONTEXTO CON IA
       const conversationContext = this.contextManager.getConversationContext(chatId);
       const contextData = await this.contextManager.analyzeQuestionContext(

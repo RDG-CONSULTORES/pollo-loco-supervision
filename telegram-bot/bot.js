@@ -787,7 +787,7 @@ function generateValidatedResponse(question, context) {
 
 
 // Comando /start with deduplication
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const messageId = `${chatId}_start_${msg.message_id}`;
   
@@ -797,6 +797,18 @@ bot.onText(/\/start/, (msg) => {
     return;
   }
   messageCache.set(messageId, true);
+
+  // Verificar si necesita onboarding
+  try {
+    const onboardingResponse = await ultraIntelligentDirector.onboardingSystem.checkOnboardingNeeded(chatId, '/start');
+    
+    if (onboardingResponse) {
+      bot.sendMessage(chatId, onboardingResponse, { parse_mode: 'Markdown' });
+      return;
+    }
+  } catch (error) {
+    console.error('❌ Error en onboarding check:', error);
+  }
   const welcomeMessage = `🍗 **EPL Estandarización Operativa**
 
 ¡Bienvenido al sistema de supervisión operativa inteligente!
