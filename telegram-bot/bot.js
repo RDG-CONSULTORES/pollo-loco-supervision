@@ -1,6 +1,11 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
-require('dotenv').config();
+// Load environment variables based on NODE_ENV
+if (process.env.NODE_ENV === 'production') {
+    require('dotenv').config({ path: '.env.production' });
+} else {
+    require('dotenv').config();
+}
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api';

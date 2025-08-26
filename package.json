@@ -4,7 +4,7 @@
   "description": "El Pollo Loco CAS - Sistema de Supervisión Operativa con Telegram Bot y Mini Web App",
   "main": "server-integrated.js",
   "scripts": {
-    "start": "node server-integrated.js",
+    "start": "NODE_ENV=production node server-integrated.js",
     "dev": "concurrently \"npm run server\" \"npm run bot\"",
     "server": "cd backend && npm run dev",
     "bot": "node telegram-bot/bot.js",
