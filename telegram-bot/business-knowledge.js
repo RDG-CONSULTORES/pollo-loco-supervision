@@ -87,7 +87,7 @@ class ElPolloLocoBusinessKnowledge {
       const gruposQuery = `
         SELECT 
           grupo_operativo,
-          COUNT(DISTINCT sucursal_clean) as sucursales,
+          COUNT(DISTINCT location_name) as sucursales,
           ROUND(AVG(porcentaje), 2) as promedio_actual,
           COUNT(*) as evaluaciones
         FROM supervision_operativa_detalle 
@@ -114,15 +114,15 @@ class ElPolloLocoBusinessKnowledge {
       // QUERY 3: Contexto trimestral actual
       const trimestreQuery = `
         SELECT 
-          trimestre,
-          COUNT(DISTINCT sucursal_clean) as sucursales_evaluadas,
+          'Q' || EXTRACT(QUARTER FROM fecha_supervision) as trimestre,
+          COUNT(DISTINCT location_name) as sucursales_evaluadas,
           COUNT(*) as evaluaciones_totales,
           ROUND(AVG(porcentaje), 2) as promedio_trimestre
         FROM supervision_operativa_detalle 
-        WHERE año = 2025
-          AND trimestre IS NOT NULL
-        GROUP BY trimestre
-        ORDER BY trimestre
+        WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025
+          AND fecha_supervision IS NOT NULL
+        GROUP BY EXTRACT(QUARTER FROM fecha_supervision)
+        ORDER BY EXTRACT(QUARTER FROM fecha_supervision)
       `;
 
       // Ejecutar queries en paralelo

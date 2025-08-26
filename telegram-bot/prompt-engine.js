@@ -90,15 +90,15 @@ Responde formato Falcon AI - evolución trimestral con porcentajes y tendencias,
 
 ESQUEMA DE BASE DE DATOS:
 supervision_operativa_detalle (
-    sucursal_clean VARCHAR(255) -- Nombre limpio de sucursal
+    location_name VARCHAR(255) -- Nombre de sucursal (usar para contar sucursales)
     grupo_operativo VARCHAR(255) -- 20 grupos: OGAS, TEPEYAC, TEC, etc.
     area_evaluacion VARCHAR(255) -- 29 áreas: FREIDORAS, HORNOS, etc.
     porcentaje DECIMAL(5,2) -- Calificación 0-100%
     fecha_supervision DATE -- 2025-01-01 to 2025-12-31
     estado VARCHAR(100) -- Nuevo León, Tamaulipas, etc.
-    ciudad VARCHAR(100)
-    trimestre VARCHAR(10) -- Q1, Q2, Q3, Q4
-    año INTEGER -- 2025
+    municipio VARCHAR(100) -- Municipio
+    submission_id VARCHAR(255) -- ID único de supervisión
+    location_id VARCHAR(255) -- ID único de sucursal
 )
 
 CONTEXT: {business_context}
@@ -114,9 +114,13 @@ GENERA SQL QUE:
 5. Sea optimizado y eficiente
 
 REGLAS:
-- SIEMPRE filtra por año = 2025 AND fecha_supervision >= '2025-01-01'
+- SIEMPRE filtra por EXTRACT(YEAR FROM fecha_supervision) = 2025 AND fecha_supervision >= '2025-01-01'
+- Para trimestres usa: EXTRACT(QUARTER FROM fecha_supervision) y 'Q' || EXTRACT(QUARTER FROM fecha_supervision)
+- Para años usa: EXTRACT(YEAR FROM fecha_supervision)
 - USA ROUND(AVG(porcentaje), 2) para promedios
 - Incluye COUNT(*) para contexto de volumen
+- COUNT(DISTINCT location_name) para contar sucursales
+- COUNT(DISTINCT submission_id) para contar supervisiones
 - GROUP BY apropiadamente según la pregunta
 - ORDER BY según la lógica de negocio
 

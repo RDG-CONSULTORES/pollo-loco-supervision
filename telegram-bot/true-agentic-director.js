@@ -473,7 +473,7 @@ Tuve un problema procesando: "${question}"
       const contextQuery = `
         SELECT 
           COUNT(DISTINCT grupo_operativo) as total_grupos,
-          COUNT(DISTINCT sucursal_clean) as total_sucursales,
+          COUNT(DISTINCT location_name) as total_sucursales,
           COUNT(DISTINCT area_evaluacion) as total_areas,
           ROUND(AVG(porcentaje), 2) as promedio_general,
           MAX(fecha_supervision) as fecha_mas_reciente

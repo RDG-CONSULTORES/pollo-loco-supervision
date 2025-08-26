@@ -878,7 +878,7 @@ bot.onText(/\/ana/, async (msg) => {
 
 🎯 **Estado actual:**
 • Entrenamiento: ${status.training_complete ? '✅ COMPLETO' : status.is_training ? '🔄 EN PROCESO' : '❌ PENDIENTE'}
-• Nivel de inteligencia: ${status.intelligence_level.toUpperCase()}
+• Nivel de inteligencia: ${status.intelligence_type || 'LLM_POWERED'}
 • Conocimiento de BD: ${status.database_knowledge}
 • Consultas dinámicas: ${status.dynamic_queries_enabled ? '✅ ACTIVAS' : '❌ INACTIVAS'}
 
