@@ -2,6 +2,7 @@ const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
 const { Pool } = require('pg');
 const SupervisionAI = require('./ai-intelligence');
+const TutorialSystem = require('./tutorial-system');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -22,8 +23,9 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Initialize AI engine
+// Initialize AI engine and tutorial system
 const aiEngine = new SupervisionAI(pool);
+const tutorialSystem = new TutorialSystem(bot, aiEngine);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -349,6 +351,52 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, welcomeMessage, keyboard);
 });
 
+// Comando /tutorial - Sistema de capacitación
+bot.onText(/\/tutorial/, async (msg) => {
+  const chatId = msg.chat.id;
+  const userName = msg.from.first_name || '';
+  await tutorialSystem.startTutorial(chatId, userName);
+});
+
+// Comando /ayuda_avanzada - Ayuda contextual inteligente
+bot.onText(/\/ayuda_avanzada/, async (msg) => {
+  const chatId = msg.chat.id;
+  
+  try {
+    // Obtener datos actuales para sugerencias contextuales
+    const kpis = await axios.get(`${API_BASE_URL}/kpis`);
+    const grupos = await axios.get(`${API_BASE_URL}/grupos`);
+    
+    const suggestions = `🧠 **SUGERENCIAS INTELIGENTES**
+    
+Basado en los datos actuales, puedes preguntar:
+
+📊 **Sobre el promedio actual (${kpis.data.promedio_general}%)**:
+• "¿Cómo está el promedio comparado con el mes pasado?"
+• "¿Qué grupos están arriba del promedio?"
+
+🏆 **Sobre el mejor grupo (${grupos.data[0]?.grupo_operativo})**:
+• "¿Por qué ${grupos.data[0]?.grupo_operativo} es el mejor?"
+• "¿Qué hace diferente a ${grupos.data[0]?.grupo_operativo}?"
+
+⚠️ **Para identificar problemas**:
+• "¿Qué sucursales necesitan atención urgente?"
+• "¿Cuáles son los peores indicadores?"
+
+🔍 **Análisis comparativo**:
+• "Compara los 3 mejores vs los 3 peores grupos"
+• "¿Cómo varía el desempeño por estado?"
+
+💡 **Para recomendaciones**:
+• "¿En qué debemos enfocarnos esta semana?"
+• "Dame un plan de acción para mejorar"`;
+
+    bot.sendMessage(chatId, suggestions, { parse_mode: 'Markdown' });
+  } catch (error) {
+    bot.sendMessage(chatId, '🤖 Error al generar sugerencias. Intenta más tarde.');
+  }
+});
+
 // Comando /help
 bot.onText(/\/help/, (msg) => {
   const chatId = msg.chat.id;
@@ -592,6 +640,32 @@ bot.on('callback_query', async (callbackQuery) => {
   const data = callbackQuery.data;
   const chatId = message.chat.id;
   
+  // Tutorial callbacks
+  if (data.startsWith('tutorial_')) {
+    switch (data) {
+      case 'tutorial_basic':
+        await tutorialSystem.sendBasicTutorial(chatId);
+        break;
+      case 'tutorial_queries':
+        await tutorialSystem.sendQueriesTutorial(chatId);
+        break;
+      case 'tutorial_dashboard':
+        await tutorialSystem.sendDashboardTutorial(chatId);
+        break;
+      case 'tutorial_advanced':
+        await tutorialSystem.sendAdvancedTutorial(chatId);
+        break;
+      case 'tutorial_practice':
+        await tutorialSystem.sendPracticeTutorial(chatId);
+        break;
+      case 'tutorial_progress':
+        bot.sendMessage(chatId, tutorialSystem.getProgress(chatId), { parse_mode: 'Markdown' });
+        break;
+    }
+    bot.answerCallbackQuery(callbackQuery.id);
+    return;
+  }
+  
   switch (data) {
     case 'kpis':
       // Execute the KPIs command directly
@@ -711,6 +785,11 @@ bot.on('message', async (msg) => {
     const question = msg.text;
     
     try {
+      // Check if user is in tutorial practice mode
+      if (tutorialSystem.validatePracticeResponse(chatId, question)) {
+        return; // Tutorial system handled the response
+      }
+      
       // Send typing indicator
       bot.sendChatAction(chatId, 'typing');
       
