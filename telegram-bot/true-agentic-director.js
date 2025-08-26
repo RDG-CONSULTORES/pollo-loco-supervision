@@ -6,6 +6,7 @@
 const LLMManager = require('./llm-manager');
 const ElPolloLocoPromptEngine = require('./prompt-engine');
 const IntelligentQueryEngine = require('./intelligent-query-engine');
+const ElPolloLocoBusinessKnowledge = require('./business-knowledge');
 
 class TrueAgenticDirector {
   constructor(pool, knowledgeBase = null, intelligentSystem = null) {
@@ -14,6 +15,7 @@ class TrueAgenticDirector {
     // SISTEMAS DE INTELIGENCIA REAL
     this.llmManager = new LLMManager();
     this.promptEngine = new ElPolloLocoPromptEngine();
+    this.businessKnowledge = new ElPolloLocoBusinessKnowledge(); // ¡NUEVO!
     this.queryEngine = new IntelligentQueryEngine(
       this.llmManager, 
       this.pool, 
@@ -61,41 +63,59 @@ class TrueAgenticDirector {
       // Incrementar contador
       this.intelligenceMetrics.conversations_handled++;
       
+      // FASE 0: VERIFICAR COMANDOS FALCON AI PRIMERO
+      const falconCommand = this.checkFalconCommands(question);
+      if (falconCommand) {
+        console.log(`🦅 Comando Falcon detectado: ${falconCommand.type}`);
+        this.updateIntelligenceMetrics({confidence_score: 1.0, data_found: 1}, true);
+        return falconCommand.response;
+      }
+      
       // FASE 1: OBTENER CONTEXTO CONVERSACIONAL INTELIGENTE
       const conversationContext = this.getConversationContext(chatId);
       
-      // FASE 2: PROCESAMIENTO COMPLETAMENTE INTELIGENTE CON LLM
+      // FASE 2: VERIFICAR SI ES PREGUNTA SOBRE GRUPO CONOCIDO
+      const grupoDetected = this.detectGrupoQuestion(question);
+      if (grupoDetected) {
+        console.log(`🏢 Pregunta sobre grupo detectada: ${grupoDetected}`);
+        const grupoInfo = this.businessKnowledge.getGrupoInfo(grupoDetected);
+        if (grupoInfo) {
+          // Combinar conocimiento pre-cargado con datos dinámicos
+          const dynamicData = await this.queryEngine.processIntelligentQuery(question, conversationContext);
+          const falconResponse = this.generateHybridResponse(grupoInfo, dynamicData, question);
+          this.updateIntelligenceMetrics(dynamicData, true);
+          return falconResponse;
+        }
+      }
+      
+      // FASE 3: PROCESAMIENTO COMPLETAMENTE INTELIGENTE CON LLM
       const intelligentResult = await this.queryEngine.processIntelligentQuery(
         question, 
         conversationContext
       );
       
-      // FASE 3: ENRIQUECER RESPUESTA CON PERSONALIDAD DE ANA
-      const enrichedResponse = await this.enrichResponseWithPersonality(
-        intelligentResult, 
-        question, 
-        conversationContext
-      );
+      // FASE 4: GENERAR RESPUESTA ESTILO FALCON
+      const falconStyleResponse = this.formatToFalconStyle(intelligentResult, question);
       
-      // FASE 4: ACTUALIZAR MEMORIA CONVERSACIONAL
+      // FASE 5: ACTUALIZAR MEMORIA CONVERSACIONAL
       await this.updateConversationMemory(
         chatId, 
         question, 
-        enrichedResponse, 
+        falconStyleResponse, 
         intelligentResult
       );
       
-      // FASE 5: ACTUALIZAR MÉTRICAS
+      // FASE 6: ACTUALIZAR MÉTRICAS
       this.updateIntelligenceMetrics(intelligentResult, true);
       
-      console.log(`✅ ANA respondió inteligentemente:
+      console.log(`✅ ANA respondió estilo Falcon:
         🎯 Intent: ${intelligentResult.intent_detected?.primary_intent}
         📊 Confianza: ${intelligentResult.confidence_score}
         💾 Datos: ${intelligentResult.data_found} registros
         🤖 Proveedor: ${intelligentResult.llm_provider_used}
         ⏱️ Tiempo: ${intelligentResult.processing_time}ms`);
       
-      return enrichedResponse;
+      return falconStyleResponse;
       
     } catch (error) {
       console.error('❌ Error en procesamiento inteligente:', error);
@@ -506,6 +526,135 @@ Tuve un problema procesando: "${question}"
     }
     
     console.log(`🧠 ${conversationsOptimized} conversaciones optimizadas`);
+  }
+
+  // ==================== MÉTODOS FALCON AI ====================
+
+  // Verificar comandos tipo Falcon AI
+  checkFalconCommands(question) {
+    const lowerQ = question.toLowerCase().trim();
+
+    if (lowerQ === '/ranking' || lowerQ.includes('ranking') || lowerQ.includes('mejores grupos')) {
+      return {
+        type: 'ranking',
+        response: this.businessKnowledge.generateFalconResponse('ranking', 5)
+      };
+    }
+
+    if (lowerQ === '/areas_criticas' || lowerQ.includes('areas críticas') || lowerQ.includes('áreas críticas')) {
+      return {
+        type: 'areas_criticas',
+        response: this.businessKnowledge.generateFalconResponse('areas_criticas')
+      };
+    }
+
+    if (lowerQ === '/q1' || lowerQ === '/q2' || lowerQ === '/q3') {
+      const trimestre = lowerQ.replace('/', '').toUpperCase();
+      return {
+        type: 'trimestre',
+        response: this.businessKnowledge.generateFalconResponse('trimestre', trimestre)
+      };
+    }
+
+    if (lowerQ === '/general' || lowerQ === '/help' || lowerQ === '/start') {
+      return {
+        type: 'general',
+        response: this.businessKnowledge.generateFalconResponse('general')
+      };
+    }
+
+    return null;
+  }
+
+  // Detectar preguntas sobre grupos específicos
+  detectGrupoQuestion(question) {
+    const lowerQ = question.toLowerCase();
+    const grupoNames = this.businessKnowledge.getAllGrupoNames();
+    
+    for (const grupo of grupoNames) {
+      if (lowerQ.includes(grupo.toLowerCase()) || 
+          lowerQ.includes(grupo.toLowerCase().replace(' ', '_'))) {
+        return grupo;
+      }
+    }
+
+    // Detectar variaciones comunes
+    if (lowerQ.includes('tepeyac')) return 'TEPEYAC';
+    if (lowerQ.includes('ogas')) return 'OGAS';
+    if (lowerQ.includes('plog queretaro') || lowerQ.includes('queretaro')) return 'PLOG QUERETARO';
+
+    return null;
+  }
+
+  // Generar respuesta híbrida (conocimiento + datos dinámicos)
+  generateHybridResponse(grupoInfo, dynamicData, question) {
+    // Si tenemos datos dinámicos frescos, combinarlos
+    let currentPromedio = grupoInfo.promedio_historico;
+    
+    if (dynamicData && dynamicData.data_found > 0) {
+      // Extraer promedio actual de los datos dinámicos si está disponible
+      // (el LLM podría haber calculado un promedio actualizado)
+      const responseText = dynamicData.intelligent_response.toLowerCase();
+      const promedioMatch = responseText.match(/(\d+\.?\d*)%/);
+      if (promedioMatch) {
+        currentPromedio = parseFloat(promedioMatch[1]);
+      }
+    }
+
+    return `📊 ${grupoInfo.nombre} - ANÁLISIS GRUPO
+• Sucursales: ${grupoInfo.sucursales}
+• Promedio actual: ${currentPromedio}%
+• Ranking: #${grupoInfo.ranking} de ${grupoInfo.total_grupos} grupos
+• Estado: ${grupoInfo.estado}
+• Status: ${grupoInfo.status}
+
+🎯 /sucursales_${grupoInfo.nombre.toLowerCase().replace(' ', '_')} | /areas_criticas | /ranking`;
+  }
+
+  // Formatear respuesta a estilo Falcon
+  formatToFalconStyle(intelligentResult, question) {
+    // Si el LLM ya devolvió una respuesta en formato correcto, usarla
+    const response = intelligentResult.intelligent_response;
+    
+    // Si la respuesta ya tiene formato Falcon (empieza con emoji y tiene estructura), usarla
+    if (response.includes('📊') && response.includes('•') && response.includes('🎯')) {
+      return response;
+    }
+
+    // Si no, intentar reformatear la respuesta para ser más concisa
+    const lines = response.split('\n').filter(line => line.trim().length > 0);
+    
+    // Extraer datos específicos si es posible
+    let title = "📊 ANÁLISIS EMPRESARIAL";
+    let bullets = [];
+    let commands = "🎯 /ranking | /areas_criticas | /q3";
+
+    // Intentar extraer información estructurada
+    if (question.toLowerCase().includes('grupo')) {
+      title = "📊 ANÁLISIS GRUPO";
+    } else if (question.toLowerCase().includes('ranking') || question.toLowerCase().includes('mejores')) {
+      title = "🏆 RANKING GRUPOS";
+    } else if (question.toLowerCase().includes('area')) {
+      title = "🚨 ANÁLISIS ÁREAS";
+    }
+
+    // Si tenemos pocos datos, mostrar lo que pudimos obtener
+    if (intelligentResult.data_found === 0) {
+      return `${title}
+• Sin datos específicos disponibles
+• Intenta consultas más específicas
+
+🎯 /ranking | /areas_criticas | /help`;
+    }
+
+    // Para respuestas largas, truncar y mostrar datos esenciales
+    const truncatedLines = lines.slice(0, 4);
+    bullets = truncatedLines.map(line => `• ${line.replace(/^[•\-\*]\s*/, '')}`);
+
+    return `${title}
+${bullets.join('\n')}
+
+${commands}`;
   }
 }
 
