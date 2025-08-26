@@ -43,9 +43,16 @@ console.log('🔑 Token Debug at startup:');
 console.log(`   CLAUDE_API_KEY exists: ${CLAUDE_API_KEY ? 'YES' : 'NO'}`);
 console.log(`   Token length: ${CLAUDE_API_KEY ? CLAUDE_API_KEY.length : 0}`);
 console.log(`   Token starts correctly: ${CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') ? 'YES' : 'NO'}`);
+console.log(`   OPENAI_API_KEY exists: ${OPENAI_API_KEY ? 'YES' : 'NO'}`);
+console.log(`   OpenAI token length: ${OPENAI_API_KEY ? OPENAI_API_KEY.length : 0}`);
+console.log(`   OpenAI token starts correctly: ${OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-') ? 'YES' : 'NO'}`);
 if (CLAUDE_API_KEY) {
   console.log(`   Token first 20 chars: ${CLAUDE_API_KEY.substring(0, 20)}...`);
   console.log(`   Token last 10 chars: ...${CLAUDE_API_KEY.substring(CLAUDE_API_KEY.length - 10)}`);
+}
+if (OPENAI_API_KEY) {
+  console.log(`   OpenAI first 20 chars: ${OPENAI_API_KEY.substring(0, 20)}...`);
+  console.log(`   OpenAI last 10 chars: ...${OPENAI_API_KEY.substring(OPENAI_API_KEY.length - 10)}`);
 }
 
 if (!token) {
