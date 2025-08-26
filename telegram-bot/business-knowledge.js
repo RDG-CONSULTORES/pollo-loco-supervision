@@ -363,6 +363,7 @@ class ElPolloLocoBusinessKnowledge {
 🎯 /sucursales_tepeyac | /areas_criticas | /q3`;
       } catch (error) {
         console.error('❌ Error obteniendo datos TEPEYAC:', error);
+        return '⚠️ TEPEYAC - Error temporal obteniendo datos\n\n🔧 Intenta nuevamente en unos segundos\n\n🎯 /ranking | /areas_criticas';
       }
     }
 

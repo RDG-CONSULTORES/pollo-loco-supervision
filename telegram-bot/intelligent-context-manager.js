@@ -39,7 +39,7 @@ class IntelligentContextManager {
         contextData = JSON.parse(jsonText);
       } catch (parseError) {
         console.error('❌ Error parseando contexto:', parseError);
-        return this.getFallbackContext(question);
+        return this.getFallbackContext(question, chatId);
       }
       
       // Actualizar memoria conversacional
@@ -49,7 +49,7 @@ class IntelligentContextManager {
       
     } catch (error) {
       console.error('❌ Error analizando contexto:', error);
-      return this.getFallbackContext(question);
+      return this.getFallbackContext(question, chatId);
     }
   }
 
@@ -59,9 +59,19 @@ class IntelligentContextManager {
       `Usuario: "${h.question}" | Grupo detectado: ${h.detectedGroup || 'N/A'}`
     ).join('\n');
 
+    // Obtener perfil de usuario si existe
+    const conversation = this.conversations.get(chatId);
+    const userProfile = conversation?.userProfile || {};
+    const primaryGroup = userProfile.primaryGroup || null;
+
     return `Eres un analista experto de El Pollo Loco. Analiza esta pregunta en contexto conversacional.
 
 PREGUNTA ACTUAL: "${question}"
+
+PERFIL DE USUARIO:
+- Grupo principal configurado: ${primaryGroup || 'No configurado'}
+- Tipo de usuario: ${userProfile.userType || 'general'}
+- Intereses: ${userProfile.interests?.join(', ') || 'general'}
 
 HISTORIAL CONVERSACIONAL RECIENTE:
 ${recentHistory || 'Primera interacción'}
@@ -71,14 +81,22 @@ GRUPOS DISPONIBLES: ${this.businessContext.groups.join(', ')}
 ANÁLISIS REQUERIDO:
 1. ¿Qué grupo operativo específico menciona o implica?
 2. ¿Usa pronombres como "sus", "de ellos" que refieren al grupo anterior?
-3. ¿Qué tipo de información solicita exactamente?
-4. ¿Qué nivel de detalle necesita?
-5. ¿Es una consulta de seguimiento o nueva?
+3. Si la pregunta es ambigua ("¿cómo vamos?", "areas críticas"), usar el grupo principal configurado
+4. ¿Qué tipo de información solicita exactamente?
+5. ¿Qué nivel de detalle necesita?
+6. ¿Es una consulta de seguimiento o nueva?
+
+REGLAS DE DECISIÓN:
+- Si pregunta menciona grupo específico → usar ese grupo
+- Si pregunta usa contexto ("sus áreas") → usar grupo del historial reciente
+- Si pregunta es ambigua ("¿cómo vamos?") → usar grupo principal configurado
+- Solo usar grupos del historial si NO hay grupo principal configurado
 
 Responde SOLO en JSON válido:
 {
   "detectedGroup": "NOMBRE_EXACTO_GRUPO | null",
   "groupFromContext": "GRUPO_DEL_CONTEXTO_ANTERIOR | null", 
+  "primaryGroup": "${primaryGroup || 'null'}",
   "finalGroup": "GRUPO_DEFINITIVO_A_USAR",
   "queryType": "group_summary | areas_criticas | calificaciones | evolution | comprehensive",
   "confidence": 0.95,
@@ -203,8 +221,15 @@ Determina en JSON:
   }
 
   // Obtener contexto de fallback si la IA falla
-  getFallbackContext(question) {
+  getFallbackContext(question, chatId = null) {
     const lowerQ = question.toLowerCase();
+    
+    // Obtener grupo principal del perfil de usuario si está disponible
+    let primaryGroup = null;
+    if (chatId && this.conversations.has(chatId)) {
+      const conversation = this.conversations.get(chatId);
+      primaryGroup = conversation.userProfile?.primaryGroup || null;
+    }
     
     // Detectar grupo por palabras clave
     let detectedGroup = null;
@@ -227,18 +252,24 @@ Determina en JSON:
       queryType = 'comprehensive';
     }
     
+    // Determinar grupo final con prioridad al perfil configurado
+    let finalGroup = detectedGroup || primaryGroup || this.businessContext.lastMentionedGroup || 'TEPEYAC';
+    
     return {
       detectedGroup: detectedGroup,
       groupFromContext: this.businessContext.lastMentionedGroup,
-      finalGroup: detectedGroup || this.businessContext.lastMentionedGroup || 'TEPEYAC',
+      primaryGroup: primaryGroup,
+      finalGroup: finalGroup,
       queryType: queryType,
-      confidence: 0.7,
+      confidence: detectedGroup ? 0.9 : (primaryGroup ? 0.8 : 0.7),
       needsContext: true,
       isFollowUp: !detectedGroup && this.businessContext.lastMentionedGroup,
       specificRequests: this.extractSpecificRequests(lowerQ),
       responseStyle: 'falcon_structured',
       quarter: this.businessContext.currentQuarter,
-      reasoning: 'Análisis fallback por palabras clave'
+      reasoning: detectedGroup ? 'Grupo detectado por palabra clave' : 
+                 primaryGroup ? 'Usando grupo principal del perfil' : 
+                 'Fallback a grupo por defecto'
     };
   }
 
