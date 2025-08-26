@@ -1,10 +1,16 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
-// Load environment variables based on NODE_ENV
-if (process.env.NODE_ENV === 'production') {
-    require('dotenv').config({ path: '.env.production' });
-} else {
-    require('dotenv').config();
+// Load environment variables
+require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
+
+// In production, use hardcoded values as fallback
+if (process.env.NODE_ENV === 'production' && !process.env.TELEGRAM_BOT_TOKEN) {
+    const prodConfig = require('../config/production');
+    Object.keys(prodConfig).forEach(key => {
+        if (!process.env[key]) {
+            process.env[key] = prodConfig[key];
+        }
+    });
 }
 
 const token = process.env.TELEGRAM_BOT_TOKEN;

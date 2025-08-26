@@ -2,11 +2,17 @@ const express = require('express');
 const path = require('path');
 const cors = require('cors');
 const { Pool } = require('pg');
-// Load environment variables based on NODE_ENV
-if (process.env.NODE_ENV === 'production') {
-    require('dotenv').config({ path: '.env.production' });
-} else {
-    require('dotenv').config();
+// Load environment variables
+require('dotenv').config();
+
+// In production, use hardcoded values as fallback
+if (process.env.NODE_ENV === 'production' && !process.env.TELEGRAM_BOT_TOKEN) {
+    const prodConfig = require('./config/production');
+    Object.keys(prodConfig).forEach(key => {
+        if (!process.env[key]) {
+            process.env[key] = prodConfig[key];
+        }
+    });
 }
 
 const app = express();
