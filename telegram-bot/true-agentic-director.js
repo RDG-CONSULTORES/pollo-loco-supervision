@@ -7,6 +7,7 @@ const LLMManager = require('./llm-manager');
 const ElPolloLocoPromptEngine = require('./prompt-engine');
 const IntelligentQueryEngine = require('./intelligent-query-engine');
 const ElPolloLocoBusinessKnowledge = require('./business-knowledge');
+const ComprehensiveAnalyzer = require('./comprehensive-analyzer');
 
 class TrueAgenticDirector {
   constructor(pool, knowledgeBase = null, intelligentSystem = null) {
@@ -21,6 +22,9 @@ class TrueAgenticDirector {
       this.pool, 
       this.promptEngine
     );
+    
+    // SISTEMA DE ANÁLISIS COMPREHENSIVO
+    this.comprehensiveAnalyzer = new ComprehensiveAnalyzer(this.pool, this.llmManager);
     
     // MEMORIA CONVERSACIONAL INTELIGENTE
     this.conversationMemory = new Map();
@@ -74,7 +78,65 @@ class TrueAgenticDirector {
       // FASE 1: OBTENER CONTEXTO CONVERSACIONAL INTELIGENTE
       const conversationContext = this.getConversationContext(chatId);
       
-      // FASE 2: VERIFICAR SI ES PREGUNTA SOBRE GRUPO CONOCIDO
+      // FASE 2: DETECCIÓN INTELIGENTE AVANZADA
+      
+      // 2.0: Detectar consultas multi-dimensionales complejas (NUEVA PRIORIDAD MÁXIMA)
+      const comprehensiveQuery = this.detectComprehensiveQuery(question);
+      if (comprehensiveQuery) {
+        console.log(`🧠 Consulta comprehensiva detectada: ${comprehensiveQuery.type} - Grupo: ${comprehensiveQuery.grupo}`);
+        try {
+          const response = await this.comprehensiveAnalyzer.analyzeComprehensiveRequest(
+            question, 
+            comprehensiveQuery.grupo, 
+            comprehensiveQuery.quarter
+          );
+          this.updateIntelligenceMetrics({confidence_score: 0.98, data_found: 1, business_insights: true}, true);
+          return response;
+        } catch (error) {
+          console.error('❌ Error procesando análisis comprehensivo:', error);
+        }
+      }
+
+      // 2.1: Detectar consultas de evolución específicas
+      const evolutionQuery = this.detectEvolutionQuery(question);
+      if (evolutionQuery) {
+        console.log(`📈 Consulta de evolución detectada: ${evolutionQuery.grupo}`);
+        try {
+          const response = await this.businessKnowledge.formatEvolution(evolutionQuery.grupo, this.pool);
+          this.updateIntelligenceMetrics({confidence_score: 0.95, data_found: 1, business_insights: true}, true);
+          return response;
+        } catch (error) {
+          console.error('❌ Error procesando evolución:', error);
+        }
+      }
+
+      // 2.2: Detectar áreas por grupo específico
+      const areasByGroup = this.detectAreasByGroup(question);
+      if (areasByGroup) {
+        console.log(`🎯 Áreas por grupo detectada: ${areasByGroup.type} - ${areasByGroup.grupo}`);
+        try {
+          const response = await this.businessKnowledge[areasByGroup.action](areasByGroup.grupo, this.pool);
+          this.updateIntelligenceMetrics({confidence_score: 0.95, data_found: 1}, true);
+          return response;
+        } catch (error) {
+          console.error('❌ Error procesando áreas por grupo:', error);
+        }
+      }
+
+      // 2.3: Detectar áreas por sucursal específica
+      const areasBySucursal = this.detectSucursalAreas(question);
+      if (areasBySucursal) {
+        console.log(`🏪 Áreas por sucursal detectada: ${areasBySucursal.sucursal}`);
+        try {
+          const response = await this.businessKnowledge[areasBySucursal.action](areasBySucursal.sucursal, this.pool);
+          this.updateIntelligenceMetrics({confidence_score: 0.95, data_found: 1}, true);
+          return response;
+        } catch (error) {
+          console.error('❌ Error procesando áreas por sucursal:', error);
+        }
+      }
+
+      // 2.4: VERIFICAR SI ES PREGUNTA SOBRE GRUPO CONOCIDO (general)
       const grupoDetected = this.detectGrupoQuestion(question);
       if (grupoDetected) {
         console.log(`🏢 Pregunta sobre grupo detectada: ${grupoDetected}`);
@@ -534,6 +596,104 @@ Tuve un problema procesando: "${question}"
     console.log(`🧠 ${conversationsOptimized} conversaciones optimizadas`);
   }
 
+  // ==================== MÉTODOS DE DETECCIÓN AVANZADA ====================
+
+  // Detectar consultas multi-dimensionales complejas (PRIORIDAD MÁXIMA)
+  detectComprehensiveQuery(question) {
+    const lowerQ = question.toLowerCase();
+    
+    // Palabras clave que indican consulta comprehensiva
+    const comprehensiveIndicators = [
+      'dame cuales son las sucursales',
+      'cuales son sus calificaciones',
+      'cuales son sus areas',
+      'areas de oportunidad',
+      'sucursales supervisadas',
+      'trimestre de grupo',
+      'calificaciones y areas',
+      'supervisadas este trimestre'
+    ];
+    
+    // Verificar si la pregunta contiene múltiples indicadores
+    const matchingIndicators = comprehensiveIndicators.filter(indicator => 
+      lowerQ.includes(indicator)
+    ).length;
+    
+    // Si hay 2+ indicadores, es consulta comprehensiva
+    if (matchingIndicators >= 2 || 
+        (lowerQ.includes('sucursales') && lowerQ.includes('calificacion') && lowerQ.includes('area'))) {
+      
+      const grupo = this.detectGrupoQuestion(question) || 'TEPEYAC';
+      const quarter = this.detectQuarterFromQuestion(question) || 3;
+      
+      return {
+        type: 'comprehensive_analysis',
+        grupo: grupo,
+        quarter: quarter,
+        complexity: 'high',
+        components: {
+          sucursales: lowerQ.includes('sucursales'),
+          calificaciones: lowerQ.includes('calificacion'),
+          areas: lowerQ.includes('area') || lowerQ.includes('oportunidad'),
+          evolution: lowerQ.includes('evolucion') || lowerQ.includes('comparativ')
+        }
+      };
+    }
+    
+    return null;
+  }
+
+  // Detectar consultas de evolución específicas
+  detectEvolutionQuery(question) {
+    const lowerQ = question.toLowerCase();
+    
+    const evolutionKeywords = [
+      'evolucion', 'evolución', 'comparativo', 'trimestres pasados',
+      'subieron', 'bajaron', 'tendencia', 'historico', 'histórico',
+      'cambios', 'mejora', 'declive', 'progreso'
+    ];
+    
+    const hasEvolutionKeyword = evolutionKeywords.some(keyword => lowerQ.includes(keyword));
+    
+    if (hasEvolutionKeyword) {
+      const grupo = this.detectGrupoQuestion(question) || 'TEPEYAC';
+      
+      return {
+        type: 'evolution_analysis',
+        grupo: grupo,
+        timeframe: 'quarterly',
+        includesComparison: lowerQ.includes('comparativ') || lowerQ.includes('vs') || lowerQ.includes('versus')
+      };
+    }
+    
+    return null;
+  }
+
+  // Detectar trimestre específico en la pregunta
+  detectQuarterFromQuestion(question) {
+    const lowerQ = question.toLowerCase();
+    
+    if (lowerQ.includes('q1') || lowerQ.includes('primer trimestre') || lowerQ.includes('enero') || lowerQ.includes('febrero') || lowerQ.includes('marzo')) {
+      return 1;
+    }
+    if (lowerQ.includes('q2') || lowerQ.includes('segundo trimestre') || lowerQ.includes('abril') || lowerQ.includes('mayo') || lowerQ.includes('junio')) {
+      return 2;
+    }
+    if (lowerQ.includes('q3') || lowerQ.includes('tercer trimestre') || lowerQ.includes('julio') || lowerQ.includes('agosto') || lowerQ.includes('septiembre')) {
+      return 3;
+    }
+    if (lowerQ.includes('q4') || lowerQ.includes('cuarto trimestre') || lowerQ.includes('octubre') || lowerQ.includes('noviembre') || lowerQ.includes('diciembre')) {
+      return 4;
+    }
+    
+    // Si menciona "este trimestre", usar el actual
+    if (lowerQ.includes('este trimestre') || lowerQ.includes('trimestre actual')) {
+      return 3; // Q3 2025 actual
+    }
+    
+    return null;
+  }
+
   // ==================== MÉTODOS FALCON AI ====================
 
   // Verificar comandos tipo Falcon AI con datos REALES
@@ -551,6 +711,13 @@ Tuve un problema procesando: "${question}"
       return {
         type: 'areas_criticas',
         response: await this.businessKnowledge.generateFalconResponse('areas_criticas', this.pool)
+      };
+    }
+
+    if (lowerQ === '/top_areas' || lowerQ.includes('mejores areas') || lowerQ.includes('top indicadores')) {
+      return {
+        type: 'top_areas',
+        response: await this.businessKnowledge.generateFalconResponse('top_areas', this.pool)
       };
     }
 
@@ -576,10 +743,18 @@ Tuve un problema procesando: "${question}"
       };
     }
 
+    if (lowerQ === '/evolution' || lowerQ === '/evolution_tepeyac' || lowerQ.includes('evolution')) {
+      const grupo = this.detectGrupoQuestion(question) || 'TEPEYAC';
+      return {
+        type: 'evolution',
+        response: await this.businessKnowledge.generateFalconResponse('evolution', this.pool, grupo)
+      };
+    }
+
     return null;
   }
 
-  // Detectar preguntas sobre grupos específicos
+  // Detectar preguntas sobre grupos específicos + áreas
   detectGrupoQuestion(question) {
     const lowerQ = question.toLowerCase();
     const grupoNames = this.businessKnowledge.getAllGrupoNames();
@@ -596,6 +771,69 @@ Tuve un problema procesando: "${question}"
     if (lowerQ.includes('ogas')) return 'OGAS';
     if (lowerQ.includes('plog queretaro') || lowerQ.includes('queretaro')) return 'PLOG QUERETARO';
 
+    return null;
+  }
+
+  // Detectar comandos específicos de áreas por grupo
+  detectAreasByGroup(question) {
+    const lowerQ = question.toLowerCase();
+    const grupo = this.detectGrupoQuestion(question);
+    
+    if (!grupo) return null;
+    
+    // Detectar tipo de consulta
+    if (lowerQ.includes('areas criticas') || lowerQ.includes('áreas críticas') || 
+        lowerQ.includes('oportunidad') || lowerQ.includes('problemas') ||
+        lowerQ.includes('bottom') || lowerQ.includes('peores')) {
+      return {
+        type: 'areas_criticas_grupo',
+        grupo: grupo,
+        action: 'formatAreasCriticasGrupo'
+      };
+    }
+    
+    if (lowerQ.includes('mejores areas') || lowerQ.includes('top areas') ||
+        lowerQ.includes('mejores indicadores') || lowerQ.includes('fortalezas') ||
+        lowerQ.includes('top') || lowerQ.includes('excelencia')) {
+      return {
+        type: 'top_areas_grupo', 
+        grupo: grupo,
+        action: 'formatTopAreasGrupo'
+      };
+    }
+    
+    return null;
+  }
+
+  // Detectar consultas por sucursal específica
+  detectSucursalAreas(question) {
+    const lowerQ = question.toLowerCase();
+    
+    // Detectar nombres comunes de sucursales TEPEYAC
+    const sucursales = [
+      'pino suarez', 'madero', 'matamoros', 'santa catarina', 
+      'felix gomez', 'garcia', 'huasteca'
+    ];
+    
+    let sucursalDetected = null;
+    for (const sucursal of sucursales) {
+      if (lowerQ.includes(sucursal)) {
+        sucursalDetected = sucursal;
+        break;
+      }
+    }
+    
+    if (!sucursalDetected) return null;
+    
+    if (lowerQ.includes('areas criticas') || lowerQ.includes('áreas críticas') ||
+        lowerQ.includes('problemas') || lowerQ.includes('oportunidad')) {
+      return {
+        type: 'areas_criticas_sucursal',
+        sucursal: sucursalDetected,
+        action: 'formatAreasCriticasSucursal'
+      };
+    }
+    
     return null;
   }
 

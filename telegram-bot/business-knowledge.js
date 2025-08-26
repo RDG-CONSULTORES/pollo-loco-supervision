@@ -91,7 +91,7 @@ class ElPolloLocoBusinessKnowledge {
           ROUND(AVG(porcentaje), 2) as promedio_actual,
           COUNT(*) as evaluaciones
         FROM supervision_operativa_detalle 
-        WHERE fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'
+        WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025
           AND grupo_operativo IS NOT NULL
         GROUP BY grupo_operativo 
         ORDER BY promedio_actual DESC
@@ -104,7 +104,7 @@ class ElPolloLocoBusinessKnowledge {
           ROUND(AVG(porcentaje), 2) as promedio_area,
           COUNT(*) as evaluaciones
         FROM supervision_operativa_detalle 
-        WHERE fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'
+        WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025
           AND area_evaluacion IS NOT NULL
         GROUP BY area_evaluacion
         ORDER BY promedio_area ASC
@@ -319,8 +319,12 @@ class ElPolloLocoBusinessKnowledge {
         return await this.formatRanking(pool, param || 5);
       case 'areas_criticas':
         return await this.formatAreasCriticas(pool);
+      case 'top_areas':
+        return await this.formatTopAreas(pool);
       case 'trimestre':
         return await this.formatTrimestre(param, pool);
+      case 'evolution':
+        return await this.formatEvolution(param, pool);
       default:
         return await this.formatGeneral(pool);
     }
@@ -399,20 +403,221 @@ class ElPolloLocoBusinessKnowledge {
     return response;
   }
 
-  // Formatear áreas críticas con datos REALES
+  // Formatear áreas críticas con datos REALES y recomendaciones
   async formatAreasCriticas(pool) {
-    const areas = await this.getAreasCriticas(pool);
-    const data = await this.getSmartData(pool);
-    
-    let response = `🚨 ÁREAS CRÍTICAS - OPORTUNIDADES CAS (DATOS REALES)\n\n`;
-    
-    areas.slice(0, 5).forEach((area, index) => {
-      const criticEmoji = area.criticidad === 'ALTA' ? '🔴' : area.criticidad === 'MEDIA' ? '🟡' : '🟢';
-      response += `${index + 1}️⃣ ${area.area} ${criticEmoji}\n├── Promedio: ${area.promedio}%\n├── Criticidad: ${area.criticidad}\n└── Evaluaciones: ${area.evaluaciones}\n\n`;
-    });
+    try {
+      // Query para áreas críticas (bottom 5)
+      const areasQuery = `
+        SELECT 
+          area_evaluacion,
+          ROUND(AVG(porcentaje), 2) as promedio,
+          COUNT(*) as evaluaciones,
+          COUNT(DISTINCT grupo_operativo) as grupos
+        FROM supervision_operativa_detalle 
+        WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025
+          AND porcentaje IS NOT NULL
+          AND area_evaluacion IS NOT NULL
+          AND TRIM(area_evaluacion) != ''
+        GROUP BY area_evaluacion
+        HAVING COUNT(*) > 1000
+        ORDER BY promedio ASC
+        LIMIT 5
+      `;
+      
+      const result = await pool.query(areasQuery);
+      
+      let response = `🚨 ÁREAS DE OPORTUNIDAD CAS - PRIORIDAD MEJORA\n\n`;
+      
+      result.rows.forEach((area, index) => {
+        const priority = area.promedio < 75 ? '🔥 CRÍTICO' : area.promedio < 85 ? '⚠️ ALTO' : '📈 MEDIO';
+        const action = area.promedio < 75 ? 'Plan inmediato' : 'Capacitación';
+        
+        response += `${index + 1}️⃣ ${area.area_evaluacion.substring(0, 25)}...\n├── Promedio: ${area.promedio}% ${priority}\n├── ${action} requerido\n└── ${area.grupos} grupos afectados\n\n`;
+      });
 
-    response += `🎯 /ranking | /q3 | /top10\n\n📅 Actualizado: ${data.stats.ultima_actualizacion.substring(0, 10)}`;
-    return response;
+      response += `🎯 /top_areas | /ranking | /q3\n\n💡 Enfocar supervisiones próximas en estas áreas`;
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo áreas críticas:', error);
+      return '❌ Error obteniendo áreas de oportunidad. Intenta /ranking';
+    }
+  }
+
+  // Formatear áreas críticas por GRUPO específico
+  async formatAreasCriticasGrupo(grupoName, pool) {
+    try {
+      const areasQuery = `
+        SELECT 
+          area_evaluacion,
+          ROUND(AVG(porcentaje), 2) as promedio,
+          COUNT(*) as evaluaciones,
+          COUNT(DISTINCT location_name) as sucursales
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo = $1
+          AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+          AND porcentaje IS NOT NULL
+          AND area_evaluacion IS NOT NULL
+          AND TRIM(area_evaluacion) != ''
+        GROUP BY area_evaluacion
+        HAVING COUNT(*) > 20
+        ORDER BY promedio ASC
+        LIMIT 5
+      `;
+      
+      const result = await pool.query(areasQuery, [grupoName.toUpperCase()]);
+      
+      if (result.rows.length === 0) {
+        return `❌ No hay datos suficientes para ${grupoName}. Intenta /ranking`;
+      }
+      
+      let response = `🚨 ÁREAS CRÍTICAS ${grupoName.toUpperCase()} - FOCOS MEJORA\n\n`;
+      
+      result.rows.forEach((area, index) => {
+        const priority = area.promedio < 75 ? '🔥 CRÍTICO' : area.promedio < 85 ? '⚠️ ALTO' : '📈 MEDIO';
+        const action = area.promedio < 75 ? 'Acción inmediata' : 'Refuerzo';
+        
+        response += `${index + 1}️⃣ ${area.area_evaluacion.substring(0, 30)}\n├── ${area.promedio}% ${priority}\n├── ${action} en ${area.sucursales} sucursales\n└── ${area.evaluaciones} evaluaciones\n\n`;
+      });
+
+      response += `🎯 /top_areas_${grupoName.toLowerCase()} | /ranking | /sucursales_${grupoName.toLowerCase()}`;
+      return response;
+      
+    } catch (error) {
+      console.error(`❌ Error obteniendo áreas críticas ${grupoName}:`, error);
+      return `❌ Error obteniendo datos de ${grupoName}. Intenta /ranking`;
+    }
+  }
+
+  // Formatear TOP áreas por GRUPO específico  
+  async formatTopAreasGrupo(grupoName, pool) {
+    try {
+      const topQuery = `
+        SELECT 
+          area_evaluacion,
+          ROUND(AVG(porcentaje), 2) as promedio,
+          COUNT(*) as evaluaciones,
+          COUNT(DISTINCT location_name) as sucursales
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo = $1
+          AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+          AND porcentaje IS NOT NULL
+          AND area_evaluacion IS NOT NULL
+          AND TRIM(area_evaluacion) != ''
+        GROUP BY area_evaluacion
+        HAVING COUNT(*) > 20
+        ORDER BY promedio DESC
+        LIMIT 5
+      `;
+      
+      const result = await pool.query(topQuery, [grupoName.toUpperCase()]);
+      
+      if (result.rows.length === 0) {
+        return `❌ No hay datos suficientes para ${grupoName}. Intenta /ranking`;
+      }
+      
+      let response = `🏆 TOP ÁREAS ${grupoName.toUpperCase()} - FORTALEZAS\n\n`;
+      
+      result.rows.forEach((area, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}️⃣`;
+        const excellence = area.promedio >= 95 ? '⭐ EXCELENTE' : area.promedio >= 90 ? '✅ MUY BUENA' : '👍 BUENA';
+        
+        response += `${medal} ${area.area_evaluacion.substring(0, 30)}\n├── ${area.promedio}% ${excellence}\n├── Modelo para otras ${area.sucursales} sucursales\n└── ${area.evaluaciones} evaluaciones\n\n`;
+      });
+
+      response += `🎯 /areas_criticas_${grupoName.toLowerCase()} | /ranking | /sucursales_${grupoName.toLowerCase()}`;
+      return response;
+      
+    } catch (error) {
+      console.error(`❌ Error obteniendo top áreas ${grupoName}:`, error);
+      return `❌ Error obteniendo datos de ${grupoName}. Intenta /ranking`;
+    }
+  }
+
+  // Formatear áreas críticas por SUCURSAL específica
+  async formatAreasCriticasSucursal(sucursalName, pool) {
+    try {
+      const areasQuery = `
+        SELECT 
+          area_evaluacion,
+          ROUND(AVG(porcentaje), 2) as promedio,
+          COUNT(*) as evaluaciones,
+          grupo_operativo
+        FROM supervision_operativa_detalle 
+        WHERE location_name ILIKE $1
+          AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+          AND porcentaje IS NOT NULL
+          AND area_evaluacion IS NOT NULL
+          AND TRIM(area_evaluacion) != ''
+        GROUP BY area_evaluacion, grupo_operativo
+        HAVING COUNT(*) > 5
+        ORDER BY promedio ASC
+        LIMIT 5
+      `;
+      
+      const result = await pool.query(areasQuery, [`%${sucursalName}%`]);
+      
+      if (result.rows.length === 0) {
+        return `❌ Sucursal "${sucursalName}" no encontrada. Intenta /sucursales_tepeyac`;
+      }
+      
+      const grupo = result.rows[0].grupo_operativo;
+      let response = `🏪 ÁREAS CRÍTICAS - ${sucursalName.toUpperCase()}\n📍 Grupo: ${grupo}\n\n`;
+      
+      result.rows.forEach((area, index) => {
+        const priority = area.promedio < 75 ? '🔥 CRÍTICO' : area.promedio < 85 ? '⚠️ ALTO' : '📈 MEDIO';
+        const action = area.promedio < 75 ? 'Plan urgente' : 'Reforzar';
+        
+        response += `${index + 1}️⃣ ${area.area_evaluacion.substring(0, 30)}\n├── ${area.promedio}% ${priority}\n├── ${action} necesario\n└── ${area.evaluaciones} evaluaciones\n\n`;
+      });
+
+      response += `🎯 /areas_criticas_${grupo.toLowerCase().replace(' ', '_')} | /sucursales_${grupo.toLowerCase().replace(' ', '_')} | /ranking`;
+      return response;
+      
+    } catch (error) {
+      console.error(`❌ Error obteniendo áreas críticas sucursal ${sucursalName}:`, error);
+      return `❌ Error obteniendo datos de sucursal. Intenta /ranking`;
+    }
+  }
+
+  // Nuevo: Formatear TOP áreas (mejores indicadores)
+  async formatTopAreas(pool) {
+    try {
+      const topQuery = `
+        SELECT 
+          area_evaluacion,
+          ROUND(AVG(porcentaje), 2) as promedio,
+          COUNT(*) as evaluaciones,
+          COUNT(DISTINCT grupo_operativo) as grupos
+        FROM supervision_operativa_detalle 
+        WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025
+          AND porcentaje IS NOT NULL
+          AND area_evaluacion IS NOT NULL
+          AND TRIM(area_evaluacion) != ''
+        GROUP BY area_evaluacion
+        HAVING COUNT(*) > 1000
+        ORDER BY promedio DESC
+        LIMIT 5
+      `;
+      
+      const result = await pool.query(topQuery);
+      
+      let response = `🏆 TOP ÁREAS - EXCELENCIA OPERATIVA\n\n`;
+      
+      result.rows.forEach((area, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}️⃣`;
+        const excellence = area.promedio >= 95 ? '⭐ EXCELENTE' : '✅ MUY BUENA';
+        
+        response += `${medal} ${area.area_evaluacion.substring(0, 25)}...\n├── Promedio: ${area.promedio}% ${excellence}\n├── Replicar best practices\n└── ${area.grupos} grupos dominan\n\n`;
+      });
+
+      response += `🎯 /areas_criticas | /ranking | /q3\n\n💡 Replicar estas prácticas en otras áreas`;
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo top áreas:', error);
+      return '❌ Error obteniendo top áreas. Intenta /ranking';
+    }
   }
 
   // Formatear información trimestral con datos REALES
@@ -435,6 +640,69 @@ class ElPolloLocoBusinessKnowledge {
 🎯 /ranking | /areas_criticas | /top10`;
   }
 
+  // Formatear evolución trimestral con análisis completo
+  async formatEvolution(param, pool) {
+    try {
+      const EvolutionAnalyzer = require('./evolution-analyzer');
+      const analyzer = new EvolutionAnalyzer(pool);
+      
+      // Si no hay parámetro, usar TEPEYAC como ejemplo
+      const grupo = param?.toUpperCase() || 'TEPEYAC';
+      const evolutionData = await analyzer.analyzeGroupEvolution(grupo);
+      
+      if (!evolutionData.success) {
+        return `❌ Error analizando evolución de ${grupo}. Intenta /ranking`;
+      }
+      
+      const data = evolutionData.data;
+      let response = `📈 EVOLUCIÓN ${grupo} - ANÁLISIS COMPLETO 2025\n\n`;
+      
+      // Evolución trimestral
+      response += `📊 EVOLUCIÓN TRIMESTRAL:\n`;
+      data.quarterlyEvolution.forEach(q => {
+        const trendIcon = q.trend.includes('MEJORA') ? '✅' : q.trend.includes('CAÍDA') ? '🔴' : '➡️';
+        response += `${q.quarter}: ${q.promedio}% ${trendIcon}`;
+        if (q.cambioPorcentual) {
+          response += ` (${q.cambioPorcentual > 0 ? '+' : ''}${q.cambioPorcentual}%)`;
+        }
+        response += '\n';
+      });
+      
+      // Top 3 mejores evoluciones de sucursales
+      response += `\n🏆 SUCURSALES CON MEJOR EVOLUCIÓN:\n`;
+      const topEvolutions = data.branchEvolution
+        .filter(b => b.cambioPorcentual > 0)
+        .sort((a, b) => b.cambioPorcentual - a.cambioPorcentual)
+        .slice(0, 3);
+      
+      topEvolutions.forEach((branch, i) => {
+        const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉';
+        response += `${medal} ${branch.sucursal}: +${branch.cambioPorcentual}% ${branch.trend}\n`;
+      });
+      
+      // Alertas críticas
+      if (data.insights.alerts.length > 0) {
+        response += `\n🚨 ALERTAS CRÍTICAS:\n`;
+        data.insights.alerts.slice(0, 2).forEach(alert => {
+          response += `• ${alert.message}\n`;
+        });
+      }
+      
+      // Predicción Q4
+      if (data.insights.predictions.expectedAverage) {
+        response += `\n🔮 PREDICCIÓN Q4: ${data.insights.predictions.expectedAverage}%\n`;
+      }
+      
+      response += `\n🎯 /detalle_evolution_${grupo.toLowerCase()} | /plan_mejora_q4 | /areas_criticas`;
+      
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Error formateando evolución:', error);
+      return '❌ Error analizando evolución. Intenta /ranking';
+    }
+  }
+
   // Respuesta general estilo Falcon con datos REALES
   async formatGeneral(pool) {
     const stats = await this.getGeneralStats(pool);
@@ -450,7 +718,8 @@ El Pollo Loco CAS - Datos Actualizados Diariamente
 
 🎯 COMANDOS DISPONIBLES:
 • /ranking o /top10 - Top grupos operativos
-• /areas_criticas - Oportunidades CAS
+• /top_areas - Mejores áreas/indicadores
+• /areas_criticas - Áreas de oportunidad
 • /q1 /q2 /q3 - Análisis trimestral
 
 📅 Última actualización: ${stats.ultima_actualizacion.substring(0, 16)}
