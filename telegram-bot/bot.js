@@ -577,9 +577,17 @@ function generateValidatedResponse(question, context) {
 
 
 
-// Comando /start
+// Comando /start with deduplication
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
+  const messageId = `${chatId}_start_${msg.message_id}`;
+  
+  // Deduplication for /start
+  if (messageCache.has(messageId)) {
+    console.log(`🔄 Duplicate /start ignored: ${messageId}`);
+    return;
+  }
+  messageCache.set(messageId, true);
   const welcomeMessage = `🍗 **EPL Estandarización Operativa**
 
 ¡Bienvenido al sistema de supervisión operativa inteligente!
@@ -1079,14 +1087,13 @@ bot.on('message', async (msg) => {
       // Send typing indicator
       bot.sendChatAction(chatId, 'typing');
       
-      // Log API key availability for debugging
-      console.log(`🔍 Claude API Key available: ${CLAUDE_API_KEY ? 'YES' : 'NO'}`);
-      console.log(`🔍 Token starts with sk-ant: ${CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') ? 'YES' : 'NO'}`);
+      console.log(`🚀 PROCESSING QUESTION: "${question}"`);
       
-      // Use Claude AI for intelligent responses
+      // Use INTELLIGENT SYSTEM for responses
       const response = await askAI(question);
       
-      bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+      // Send without markdown to avoid parsing errors for now
+      bot.sendMessage(chatId, response);
       
       // Log for analysis
       console.log(`AI Query processed: "${question}"`);

@@ -54,11 +54,12 @@ class IntelligentSupervisionSystem {
   }
 
   detectAdvancedIntent(lower) {
-    // Areas de oportunidad
-    if (lower.includes('oportunidad') || lower.includes('oportunidades')) {
+    // Areas de oportunidad - enhanced detection
+    if (lower.includes('oportunidad') || lower.includes('oportunidades') || lower.includes('mejorar') || lower.includes('áreas a mejorar')) {
       if (lower.includes('grupo')) return 'group_opportunities';
-      if (lower.includes('sucursal')) return 'sucursal_opportunities'; 
-      return 'general_opportunities';
+      if (lower.includes('sucursal')) return 'sucursal_opportunities';
+      // If entity is grupo but no explicit 'grupo' word, still treat as group
+      return 'group_opportunities'; // Default to group opportunities
     }
     
     // Comparativos
@@ -93,12 +94,15 @@ class IntelligentSupervisionSystem {
   }
 
   detectEntity(lower) {
-    // Detect specific grupo operativo
+    // PRIORITY: Detect grupo operativo FIRST (more important than sucursal)
     for (const grupo of this.gruposOperativos) {
-      if (lower.includes(grupo.toLowerCase()) || 
-          (grupo === 'TEPEYAC' && lower.includes('tepeyac')) ||
+      const grupoLower = grupo.toLowerCase();
+      if (lower.includes(grupoLower) || 
+          (grupo === 'TEPEYAC' && (lower.includes('tepeyac') || lower.includes('grupo tepeyac'))) ||
           (grupo === 'OGAS' && lower.includes('ogas')) ||
-          (grupo === 'TEC' && lower.includes('tec'))) {
+          (grupo === 'TEC' && lower.includes('tec')) ||
+          (grupo === 'PLOG QUERETARO' && (lower.includes('queretaro') || lower.includes('querétaro')))) {
+        console.log(`🎯 DETECTED GRUPO OPERATIVO: ${grupo}`);
         return { type: 'grupo', name: grupo };
       }
     }
@@ -197,7 +201,17 @@ class IntelligentSupervisionSystem {
   // Get areas de oportunidad for a grupo operativo in specific trimester
   async getGroupOpportunities(grupoName, trimester = 'Q3', limit = 5) {
     try {
+      // Handle 'all' trimester case
+      if (trimester === 'all') {
+        trimester = this.getCurrentTrimester();
+      }
+      
       const period = this.trimesters[trimester];
+      if (!period) {
+        console.log(`⚠️ Invalid trimester: ${trimester}, using current`);
+        trimester = this.getCurrentTrimester();
+        period = this.trimesters[trimester];
+      }
       
       const query = `
         SELECT 
