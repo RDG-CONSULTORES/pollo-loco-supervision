@@ -3,6 +3,7 @@ const axios = require('axios');
 const { Pool } = require('pg');
 const SupervisionAI = require('./ai-intelligence');
 const TutorialSystem = require('./tutorial-system');
+const RealSupervisionIntelligence = require('./real-data-intelligence');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -23,8 +24,9 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// Initialize AI engine
+// Initialize AI engines
 const aiEngine = new SupervisionAI(pool);
+const realDataEngine = new RealSupervisionIntelligence(pool);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -146,37 +148,59 @@ async function queryDatabase(question) {
 
 async function askAI(question, context = null) {
   try {
-    // Get database context if not provided
-    if (!context) {
-      context = await queryDatabase(question);
+    console.log(`🧠 Processing question with Real Data Intelligence: "${question}"`);
+    
+    // Use Real Data Intelligence for analysis
+    const analysis = await realDataEngine.analyzeQuestion(question);
+    
+    // Get specific real data based on analysis
+    let realData = null;
+    
+    if (analysis.intent === 'opportunities') {
+      const entity = analysis.entity;
+      const sucursalName = entity.type === 'sucursal' ? entity.name : null;
+      realData = await realDataEngine.getOpportunityAreas(sucursalName, analysis.quantity);
+      console.log('📊 Real opportunity data retrieved:', realData.areas.length, 'areas');
+    } else if (analysis.intent === 'ranking') {
+      realData = await realDataEngine.getTopPerformers(analysis.quantity, analysis.timeframe);
+      console.log('🏆 Real ranking data retrieved:', realData.length, 'entries');
+    } else {
+      // Get general context
+      realData = await queryDatabase(question);
     }
     
-    // Try Claude API first
-    if (CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') && CLAUDE_API_KEY.length > 50) {
-      try {
-        console.log('🎯 Attempting Claude API...');
-        return await callClaudeAPI(question, context);
-      } catch (claudeError) {
-        console.log('⚠️ Claude failed, trying OpenAI...');
-      }
+    // Validate data exists
+    const validationError = realDataEngine.validateResponse(realData);
+    if (validationError) {
+      return validationError;
     }
     
-    // Try OpenAI API as primary or fallback
+    // Try OpenAI API with real data
     if (OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-')) {
       try {
-        console.log('🎯 Attempting OpenAI API...');
-        return await callOpenAI(question, context);
+        console.log('🎯 Attempting OpenAI API with real data...');
+        const aiResponse = await callOpenAI(question, realData);
+        
+        // ANTI-HALLUCINATION: Validate AI response
+        if (realDataEngine.validateIndicators(aiResponse)) {
+          console.log('✅ AI response validated - no hallucination detected');
+          return aiResponse;
+        } else {
+          console.log('⚠️ HALLUCINATION DETECTED in AI response - using real data fallback');
+          return await generateRealDataResponse(question, realData, analysis);
+        }
       } catch (openaiError) {
-        console.log('⚠️ OpenAI failed, using pattern matching...');
+        console.log('⚠️ OpenAI failed, using real data pattern matching...');
       }
     }
     
-    // Fallback to enhanced pattern matching
-    console.log('🔄 Using enhanced pattern matching...');
-    return generateStructuredResponse(question, context);
+    // Fallback to real data structured response
+    console.log('🔄 Using real data structured response...');
+    return await generateRealDataResponse(question, realData, analysis);
+    
   } catch (error) {
     console.error('AI Error:', error);
-    return "🤖 Error al procesar tu pregunta. Intenta usar comandos específicos como /kpis o /grupos.";
+    return "🤖 Error al procesar tu pregunta. Los datos podrían no estar disponibles para el período especificado.";
   }
 }
 
@@ -218,21 +242,26 @@ async function callClaudeAPI(question, context) {
     console.error('   Data:', error.response?.data);
     console.error('   Message:', error.message);
     console.log('🔄 Falling back to pattern matching...');
-    return generateStructuredResponse(question, context);
+    return "🤖 Error de conexión con Claude AI. Intentando con sistema de datos reales...";
   }
 }
 
 // OpenAI API Integration  
 async function callOpenAI(question, context) {
+  console.log('🚀 Starting OpenAI API call...');
+  console.log(`📝 Question: "${question}"`);
+  console.log(`🔑 Using OpenAI token: ${OPENAI_API_KEY ? OPENAI_API_KEY.substring(0, 20) + '...' + OPENAI_API_KEY.substring(OPENAI_API_KEY.length - 10) : 'NO TOKEN'}`);
+  
   try {
     const prompt = createIntelligentPrompt(question, context);
+    console.log(`📄 OpenAI Prompt length: ${prompt.length} characters`);
     
     const response = await axios.post('https://api.openai.com/v1/chat/completions', {
       model: 'gpt-3.5-turbo',
       messages: [
         {
           role: 'system', 
-          content: 'Eres un experto analista de datos de supervisión operativa para El Pollo Loco. Responde en español, conciso y profesional.'
+          content: 'Eres un experto analista de El Pollo Loco CAS. SOLO usa datos reales proporcionados. NUNCA inventes datos. Si no tienes información específica, dilo claramente.'
         },
         {
           role: 'user',
@@ -240,7 +269,7 @@ async function callOpenAI(question, context) {
         }
       ],
       max_tokens: 600,
-      temperature: 0.3
+      temperature: 0.1
     }, {
       headers: {
         'Authorization': `Bearer ${OPENAI_API_KEY}`,
@@ -248,166 +277,129 @@ async function callOpenAI(question, context) {
       }
     });
 
+    console.log('✅ OpenAI API response received successfully!');
+    console.log(`📏 OpenAI Response length: ${response.data.choices[0].message.content.length} characters`);
+    
     return response.data.choices[0].message.content;
   } catch (error) {
-    console.error('OpenAI API error:', error.response?.data || error.message);
-    return generateStructuredResponse(question, context);
+    console.error('❌ OpenAI API ERROR:');
+    console.error('   Status:', error.response?.status);
+    console.error('   Data:', error.response?.data);
+    console.error('   Message:', error.message);
+    console.log('🔄 Falling back to real data response...');
+    return "🤖 Error de conexión con AI. Los datos podrían no estar disponibles temporalmente.";
   }
 }
 
 function createIntelligentPrompt(question, context) {
-  let prompt = `Eres un analista experto de El Pollo Loco CAS. Responde específicamente lo que pregunta el usuario.
+  // Build context with ONLY real data
+  const realContext = {
+    available_indicators: [
+      'Marinado', 'Cuartos Fríos', 'Área Cocina', 'Hornos', 'Freidoras',
+      'Baños Empleados', 'Lavado Manos', 'Servicio', 'Almacén', 'Higiene'
+    ],
+    date_range: 'Mar 12, 2025 - Aug 22, 2025 (135 supervisiones)',
+    real_sucursales: [
+      'Gómez Morin', 'Rómulo Garza', 'Lázaro Cárdenas', 'Plaza 1500', 'Vasconcelos',
+      'Aztlan', 'Chapultepec', 'Gonzalitos', 'Lincoln', 'Pueblito', 'Escobedo'
+    ]
+  };
+
+  let prompt = `SISTEMA DE SUPERVISIÓN EL POLLO LOCO CAS
+Eres experto analista. SOLO usa datos reales proporcionados. NUNCA inventes.
 
 PREGUNTA: "${question}"
 
-DATOS REALES DE SUPERVISIÓN:
+CONTEXTO REAL:
+${JSON.stringify(realContext, null, 2)}
+
+DATOS DE CONSULTA:
 ${JSON.stringify(context, null, 2)}
 
-INSTRUCCIONES:
-- Responde exactamente lo que pide (si dice "top 5", muestra 5)
-- Usa los datos reales proporcionados
-- Formato: emoji + título + lista numerada + insight
-- Máximo 600 caracteres, español profesional
-- Para rankings usa: 🥇🥈🥉 + números
+REGLAS ESTRICTAS:
+1. Si dice "top 5" → muestra EXACTAMENTE 5
+2. Solo sucursales reales de la lista
+3. Solo fechas 2025 (Mar-Aug)
+4. Solo indicadores que existen en DB
+5. Si no hay datos → "No disponible en período especificado"
+6. NUNCA menciones "atención cliente" ni "inventario"
 
-Ejemplo si pide "top 5 grupos":
-🏆 TOP 5 GRUPOS OPERATIVOS
+FORMATO:
+🎯 [TÍTULO]
+[Lista numerada con datos exactos]
+💡 [Insight basado solo en datos reales]
 
-🥇 [Nombre]: [%] ([supervisiones] supervisiones)
-🥈 [Nombre]: [%] ([supervisiones] supervisiones)
-...
-
-💡 Insight: [observación basada en datos]`;
+Máximo 500 caracteres.`;
 
   return prompt;
 }
 
-function generateStructuredResponse(question, context) {
-  const lowerQuestion = question.toLowerCase();
-  
-  // Enhanced responses based on actual data
-  if (context && Object.keys(context).length > 0) {
-    let response = '';
+async function generateRealDataResponse(question, realData, analysis) {
+  try {
+    console.log('🎯 Generating response with REAL data only');
     
-    // Handle trimestre + top grupos query
-    if ((lowerQuestion.includes('trimestre') || lowerQuestion.includes('actual')) && 
-        (lowerQuestion.includes('grupo') || lowerQuestion.includes('top'))) {
-      
-      if (context.grupos && context.grupos.length > 0) {
-        const topGroups = context.grupos.slice(0, 5);
-        response = `📊 **Top 5 Grupos Operativos - Trimestre Actual**\n\n`;
-        
-        topGroups.forEach((grupo, index) => {
-          const emoji = index < 3 ? ['🥇', '🥈', '🥉'][index] : '🏆';
-          response += `${emoji} **${grupo.grupo_operativo}**\n`;
-          response += `   • Promedio: ${grupo.promedio}%\n`;
-          response += `   • Supervisiones: ${grupo.supervisiones}\n`;
-          response += `   • Sucursales: ${grupo.sucursales}\n\n`;
-        });
-        
-        if (context.kpis) {
-          response += `📈 **Resumen General**:\n`;
-          response += `• Total supervisiones: ${context.kpis.total_supervisiones}\n`;
-          response += `• Promedio global: ${context.kpis.promedio_general}%\n`;
-        }
-        
-        return response;
+    if (analysis.intent === 'opportunities') {
+      if (!realData.areas || realData.areas.length === 0) {
+        return `❌ No se encontraron áreas de oportunidad${realData.sucursal ? ` para ${realData.sucursal}` : ''} en el período especificado.`;
       }
-    }
-    
-    // Handle specific queries with real data
-    if (lowerQuestion.includes('promedio') && context.kpis) {
-      response = `🎯 **Promedio General**: ${context.kpis.promedio_general}%\n\n`;
-      response += `📊 **Estadísticas Completas**:\n`;
-      response += `• Total supervisiones: ${context.kpis.total_supervisiones}\n`;
-      response += `• Sucursales evaluadas: ${context.kpis.total_sucursales}\n`;
-      response += `• Estados con presencia: ${context.kpis.total_estados}\n`;
-      response += `• Calificación máxima: ${context.kpis.max_calificacion}%\n`;
-      response += `• Calificación mínima: ${context.kpis.min_calificacion}%\n`;
-      return response;
-    }
-    
-    if ((lowerQuestion.includes('mejor') || lowerQuestion.includes('top')) && context.grupos) {
-      const topGroups = context.grupos.slice(0, lowerQuestion.includes('5') ? 5 : 3);
-      response = `🏆 **Mejores Grupos Operativos**:\n\n`;
-      topGroups.forEach((grupo, index) => {
-        const emoji = ['🥇', '🥈', '🥉'][index] || '🏆';
-        response += `${emoji} **${grupo.grupo_operativo}**: ${grupo.promedio}% (${grupo.supervisiones} supervisiones)\n`;
+      
+      let response = `🎯 **ÁREAS DE OPORTUNIDAD${realData.sucursal ? ` - ${realData.sucursal.toUpperCase()}` : ''}**\n\n`;
+      
+      realData.areas.forEach((area, index) => {
+        response += `${index + 1}. **${area.indicator.toUpperCase()}**: ${area.promedio}%\n`;
       });
+      
+      if (realData.fechas) {
+        response += `\n📅 Período: ${new Date(realData.fechas.desde).toLocaleDateString('es-MX')} - ${new Date(realData.fechas.hasta).toLocaleDateString('es-MX')}`;
+      }
+      
       return response;
     }
     
-    if (lowerQuestion.includes('crítico') && context.critical) {
-      response = `🚨 **Indicadores Críticos (<70%)**:\n\n`;
-      const criticalItems = context.critical.slice(0, 5);
-      criticalItems.forEach((item, index) => {
-        response += `${index + 1}. **${item.indicador}** - ${item.promedio}%\n`;
-        response += `   📍 ${item.sucursal} (${item.grupo_operativo})\n`;
-        response += `   🗺️ ${item.estado}\n\n`;
+    if (analysis.intent === 'ranking' && Array.isArray(realData)) {
+      if (realData.length === 0) {
+        return `❌ No se encontraron datos de ranking para el período especificado.`;
+      }
+      
+      let response = `🏆 **TOP ${Math.min(realData.length, analysis.quantity)} SUCURSALES - TRIMESTRE ACTUAL**\n\n`;
+      
+      realData.slice(0, analysis.quantity).forEach((item, index) => {
+        const emoji = index < 3 ? ['🥇', '🥈', '🥉'][index] : '🏆';
+        response += `${emoji} **${item.location_name}**: ${parseFloat(item.promedio).toFixed(1)}%\n`;
+        response += `   📊 ${item.supervisiones} supervisiones\n`;
+        response += `   📅 Última: ${new Date(item.ultima_supervision).toLocaleDateString('es-MX')}\n\n`;
       });
+      
       return response;
     }
     
-    if (lowerQuestion.includes('estado') && context.estados) {
-      const topEstados = context.estados.slice(0, 5);
-      response = `📍 **Top Estados por Desempeño**:\n\n`;
-      topEstados.forEach((estado, index) => {
-        const emoji = ['🥇', '🥈', '🥉'][index] || '📍';
-        response += `${emoji} **${estado.estado}**: ${estado.promedio}%\n`;
-        response += `   • ${estado.supervisiones} supervisiones\n`;
-        response += `   • ${estado.sucursales} sucursales\n\n`;
-      });
-      return response;
-    }
+    // General case - use existing context but validate it's real
+    return generateValidatedResponse(question, realData);
     
-    // If we have data but no specific match, provide a summary
-    if (context.kpis || context.grupos) {
-      return generateIntelligentSummary(context, question);
-    }
+  } catch (error) {
+    console.error('❌ Real data response error:', error);
+    return "🤖 Error al generar respuesta con datos reales. Intenta un comando específico como /kpis.";
   }
-  
-  // Fallback to static responses
-  return generateStaticResponse(lowerQuestion);
 }
 
-function generateIntelligentSummary(data, question) {
-  let summary = `🤖 **Análisis Inteligente**\n\n`;
-  
-  if (data.kpis) {
-    summary += `📊 **KPIs Principales**:\n`;
-    summary += `• Promedio general: ${data.kpis.promedio_general}%\n`;
-    summary += `• Total supervisiones: ${data.kpis.total_supervisiones}\n\n`;
+function generateValidatedResponse(question, context) {
+  // Only use data that actually exists in our API responses
+  if (context && typeof context === 'object') {
+    if (context.promedio_general) {
+      return `📊 **Promedio General**: ${context.promedio_general}%\n` +
+             `👥 **Total Supervisiones**: ${context.total_supervisiones}\n` +
+             `🏢 **Sucursales Evaluadas**: ${context.total_sucursales}`;
+    }
   }
   
-  if (data.grupos && data.grupos.length > 0) {
-    summary += `🏆 **Mejores Grupos**:\n`;
-    data.grupos.slice(0, 3).forEach((g, i) => {
-      summary += `${i + 1}. ${g.grupo_operativo}: ${g.promedio}%\n`;
-    });
-    summary += `\n`;
-  }
-  
-  summary += `💡 **Sugerencia**: Pregúntame algo más específico como:\n`;
-  summary += `• "¿Cuáles son los top 5 grupos del trimestre actual?"\n`;
-  summary += `• "¿Qué sucursales tienen problemas críticos?"\n`;
-  summary += `• "¿Cuál es el desempeño por estado?"\n`;
-  
-  return summary;
+  return "🤖 Para obtener información específica, usa comandos como:\n" +
+         "• /kpis - Indicadores principales\n" +
+         "• /grupos - Info por grupos\n" +
+         "• /estados - Info por estados";
 }
 
-function generateStaticResponse(lowerQuestion) {
-  // Keep existing static responses as fallback
-  if (lowerQuestion.includes('promedio') || lowerQuestion.includes('general')) {
-    return `🎯 **Promedio General**: 89.54%\n\n📊 Basado en 135 supervisiones en 79 sucursales.\nUsa /kpis para más detalles.`;
-  }
-  
-  if (lowerQuestion.includes('mejor') || lowerQuestion.includes('top')) {
-    return `🏆 **Mejores Grupos**:\n• OGAS: 97.6%\n• PLOG QUERÉTARO: 97.0%\n• TEC: 93.1%\n\nUsa /top10 para ranking completo.`;
-  }
-  
-  // Default response
-  return `🤖 Puedo ayudarte con información sobre:\n\n📊 **/kpis** - Indicadores principales\n🏢 **/grupos** - Análisis por grupo\n📍 **/estados** - Análisis por estado\n🚨 **/criticas** - Indicadores críticos\n🏆 **/top10** - Mejores sucursales\n\n¿Sobre qué te gustaría saber más?`;
-}
+
+
 
 // Comando /start
 bot.onText(/\/start/, (msg) => {
@@ -925,10 +917,27 @@ bot.on('message', async (msg) => {
     } catch (error) {
       console.error('AI Agent error:', error);
       
-      // Fallback to simple response system
+      // Fallback to basic response with real data
       try {
         const context = await queryDatabase(question);
-        const response = generateStructuredResponse(question, context);
+        let response = '🤖 No se pudo procesar tu pregunta con IA, pero aquí tienes algunos datos relevantes:\n\n';
+        
+        if (context && context.kpis) {
+          response += `📊 **KPIs Generales**:\n`;
+          response += `• Promedio general: ${context.kpis.promedio_general}%\n`;
+          response += `• Total supervisiones: ${context.kpis.total_supervisiones}\n\n`;
+        }
+        
+        if (context && context.grupos && context.grupos.length > 0) {
+          response += `🏆 **Top 3 Grupos**:\n`;
+          context.grupos.slice(0, 3).forEach((grupo, index) => {
+            const emoji = ['🥇', '🥈', '🥉'][index];
+            response += `${emoji} ${grupo.grupo_operativo}: ${grupo.promedio}%\n`;
+          });
+        }
+        
+        response += '\n💡 Intenta usar comandos específicos como /kpis, /grupos, /estados para obtener información más detallada.';
+        
         bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
       } catch (fallbackError) {
         bot.sendMessage(chatId, '🤖 Error al procesar tu pregunta. Intenta usar comandos específicos como /kpis.');
