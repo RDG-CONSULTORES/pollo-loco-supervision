@@ -477,6 +477,22 @@ class AgenticDirector {
   }
 
   generateSucursalesResponse(data, originalQuestion) {
+    // PRIMERO: Buscar en conocimiento hardcoded
+    const sucursalesConocidas = this.knowledgeBase.getSucursalesByGrupo(data.grupo);
+    
+    if (sucursalesConocidas && sucursalesConocidas.length > 0 && !data.found) {
+      // Tenemos conocimiento hardcoded pero no datos de supervisión
+      return `🏪 **Sucursales del Grupo ${data.grupo.toUpperCase()}**
+
+Conozco las ${sucursalesConocidas.length} sucursales de ${data.grupo}:
+
+${sucursalesConocidas.map((suc, i) => `${i + 1}. **${suc}**`).join('\n')}
+
+💡 **Nota:** Estas son todas las sucursales del grupo, aunque puede que algunas no tengan supervisiones registradas en el trimestre actual.
+
+¿Te gustaría saber el desempeño de alguna sucursal específica? 🤔`;
+    }
+    
     if (!data.found) {
       return `🤔 Disculpa, pero no pude encontrar datos específicos de supervisión para el grupo **${data.grupo}** en 2025.
 

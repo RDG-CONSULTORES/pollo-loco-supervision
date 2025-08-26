@@ -5,6 +5,50 @@ class IntelligentKnowledgeBase {
   constructor(pool) {
     this.pool = pool;
     
+    // GRUPOS Y SUCURSALES - Conocimiento esencial hardcoded
+    this.gruposSucursales = {
+      'TEPEYAC': [
+        'PINO SUAREZ', 'MATAMOROS', 'SANTA CATARINA', 'FELIX U GOMEZ', 
+        'GARCIA', '6 Garcia', '11 Garcia', 'Escobedo Norte', 
+        'Treviño', 'Valle Verde'
+      ],
+      'OGAS': [
+        'Juan Carrasco', 'Ave Arturo B', 'OGAS Lincoln', 'OGAS Chapultepec',
+        'OGAS San Nicolas', 'OGAS Anahuac', 'OGAS Sendero', 'OGAS Cumbres'
+      ],
+      'TEC': [
+        'TEC Garza Sada', 'TEC Valle', 'TEC Centro', 'TEC Campus',
+        'Valle Alto', 'Carretera Nacional', 'Vista Hermosa'
+      ],
+      'PLOG QUERETARO': [
+        'Querétaro Centro', 'Querétaro Norte', 'Querétaro Sur',
+        'Corregidora', 'El Marqués'
+      ],
+      'EFM': [
+        'EFM Gonzalitos', 'EFM Las Torres', 'EFM San Jeronimo', 
+        'EFM Mitras', 'EFM Universidad'
+      ],
+      'EXPO': [
+        'EXPO Guadalupe', 'EXPO Centro', 'EXPO Sendero', 'EXPO Cumbres',
+        'EXPO San Nicolas', 'EXPO Apodaca', 'EXPO Escobedo', 'EXPO Santa',
+        'EXPO Juarez', 'EXPO Contry', 'EXPO Linda Vista'
+      ],
+      'GRUPO SALTILLO': [
+        'Saltillo Centro', 'Saltillo Norte', 'Saltillo Boulevard'
+      ],
+      'CRR': [
+        'CRR Monterrey', 'CRR San Pedro', 'CRR Constitución'
+      ],
+      'PLOG NUEVO LEON': [
+        'Ruiz Cortines', 'Miguel Aleman', 'Solidaridad', 
+        'Las Puentes', 'Metroplex', 'Citadel'
+      ],
+      'GRUPO MATAMOROS': [
+        'Matamoros Centro', 'Matamoros Norte', 'Matamoros Sur',
+        'Matamoros Sendero', 'Matamoros Gran Plaza'
+      ]
+    };
+    
     // COMPLETE REAL DATA CONTEXT - Updated from actual database analysis
     this.businessContext = {
       // Company structure
@@ -93,6 +137,30 @@ class IntelligentKnowledgeBase {
         crisis: "intervención urgente con soporte corporativo"
       }
     };
+  }
+  
+  // Get sucursales for a specific grupo
+  getSucursalesByGrupo(grupoName) {
+    const upperName = grupoName.toUpperCase();
+    
+    // Direct lookup
+    if (this.gruposSucursales[upperName]) {
+      return this.gruposSucursales[upperName];
+    }
+    
+    // Try partial match
+    for (const [grupo, sucursales] of Object.entries(this.gruposSucursales)) {
+      if (grupo.includes(upperName) || upperName.includes(grupo)) {
+        return sucursales;
+      }
+    }
+    
+    return [];
+  }
+  
+  // Get all grupos with their sucursales
+  getAllGruposSucursales() {
+    return this.gruposSucursales;
   }
   
   // Get contextual intelligence about a grupo
