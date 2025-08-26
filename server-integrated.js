@@ -352,7 +352,7 @@ app.listen(PORT, async () => {
         console.log('🤖 Starting Telegram Bot...');
         
         // Import and store bot globally for webhook access
-        global.telegramBot = require('./telegram-bot/bot.js');
+        global.telegramBot = require('./telegram-bot/bot-simple.js');
         
         // Set webhook in production
         if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL) {
