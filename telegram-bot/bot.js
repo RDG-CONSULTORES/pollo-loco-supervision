@@ -5,6 +5,7 @@ const SupervisionAI = require('./ai-intelligence');
 const TutorialSystem = require('./tutorial-system');
 const RealSupervisionIntelligence = require('./real-data-intelligence');
 const IntelligentSupervisionSystem = require('./intelligent-supervision-system');
+const IntelligentKnowledgeBase = require('./intelligent-knowledge-base');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -29,6 +30,7 @@ const pool = new Pool({
 const aiEngine = new SupervisionAI(pool);
 const realDataEngine = new RealSupervisionIntelligence(pool);
 const intelligentSystem = new IntelligentSupervisionSystem(pool);
+const knowledgeBase = new IntelligentKnowledgeBase(pool);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -164,32 +166,96 @@ async function askAI(question, context = null) {
         intelligentData = await intelligentSystem.getGroupOpportunities(
           grupoName, analysis.trimester, analysis.quantity
         );
+        // ENHANCED: Add business context and intelligence
+        intelligentData.businessContext = knowledgeBase.getGrupoIntelligence(grupoName);
+        intelligentData.comparativeContext = knowledgeBase.generateComparativeContext(grupoName);
         console.log(`📊 Group opportunities retrieved for ${grupoName}:`, intelligentData.opportunities.length);
         break;
         
       case 'sucursal_opportunities':
         const sucursalName = analysis.entity.name;
         intelligentData = await intelligentSystem.getSucursalOpportunities(sucursalName, analysis.quantity);
+        // ENHANCED: Add area intelligence for opportunity context
+        if (intelligentData.opportunities) {
+          intelligentData.opportunities = intelligentData.opportunities.map(opp => ({
+            ...opp,
+            areaIntelligence: knowledgeBase.getAreaIntelligence(opp.area),
+            performanceInsight: knowledgeBase.getPerformanceInsights(opp.porcentaje)
+          }));
+        }
         console.log(`🏪 Sucursal opportunities retrieved for ${sucursalName}:`, intelligentData.opportunities.length);
         break;
         
       case 'quarterly_comparison':
-        const grupo = analysis.entity.name || 'TEPEYAC'; // Default to TEPEYAC if not specified
+        const grupo = analysis.entity.name || 'TEPEYAC';
         const current = analysis.trimester === 'all' ? intelligentSystem.getCurrentTrimester() : analysis.trimester;
         const previous = intelligentSystem.getPreviousTrimester();
         intelligentData = await intelligentSystem.getQuarterlyComparison(grupo, current, previous);
+        // ENHANCED: Add quarterly intelligence and business context
+        intelligentData.quarterlyIntelligence = knowledgeBase.getQuarterlyIntelligence(current);
+        intelligentData.businessContext = knowledgeBase.getGrupoIntelligence(grupo);
         console.log(`📈 Quarterly comparison retrieved for ${grupo}`);
         break;
         
       case 'group_ranking':
       case 'general_ranking':
         intelligentData = await intelligentSystem.getTopGrupos(analysis.trimester, analysis.quantity);
+        // ENHANCED: Add business context for each grupo in ranking
+        if (intelligentData.ranking) {
+          intelligentData.ranking = intelligentData.ranking.map(grupo => ({
+            ...grupo,
+            businessIntelligence: knowledgeBase.getGrupoIntelligence(grupo.grupo),
+            performanceInsight: knowledgeBase.getPerformanceInsights(grupo.promedio)
+          }));
+        }
+        intelligentData.quarterlyContext = knowledgeBase.getQuarterlyIntelligence(analysis.trimester);
         console.log(`🏆 Ranking retrieved:`, intelligentData.ranking.length, 'grupos');
         break;
         
+      // ENHANCED: Advanced business intelligence intents
+      case 'critical_performance_analysis':
+      case 'excellent_performance_analysis':
+      case 'benchmark_analysis':
+      case 'position_analysis':
+      case 'distribution_analysis':
+        intelligentData = await intelligentSystem.getTopGrupos(analysis.trimester, 20); // Get all grupos for analysis
+        if (intelligentData.ranking) {
+          intelligentData.ranking = intelligentData.ranking.map(grupo => ({
+            ...grupo,
+            businessIntelligence: knowledgeBase.getGrupoIntelligence(grupo.grupo),
+            performanceInsight: knowledgeBase.getPerformanceInsights(grupo.promedio)
+          }));
+          
+          // Filter based on specific analysis type
+          if (analysis.intent === 'critical_performance_analysis') {
+            intelligentData.ranking = intelligentData.ranking.filter(g => g.performanceInsight?.level === 'critical');
+          } else if (analysis.intent === 'excellent_performance_analysis') {
+            intelligentData.ranking = intelligentData.ranking.filter(g => g.performanceInsight?.level === 'excellent');
+          }
+        }
+        intelligentData.quarterlyContext = knowledgeBase.getQuarterlyIntelligence(analysis.trimester);
+        intelligentData.analysisType = analysis.intent;
+        console.log(`📈 Advanced analysis retrieved for intent: ${analysis.intent}`);
+        break;
+        
+      case 'trend_analysis':
+      case 'competitive_analysis':
+        // Get quarterly comparison for trend analysis
+        const trendGrupo = analysis.entity.name || 'OGAS'; // Default to top performer
+        const currentQ = analysis.trimester === 'all' ? intelligentSystem.getCurrentTrimester() : analysis.trimester;
+        const previousQ = intelligentSystem.getPreviousTrimester();
+        intelligentData = await intelligentSystem.getQuarterlyComparison(trendGrupo, currentQ, previousQ);
+        intelligentData.businessContext = knowledgeBase.getGrupoIntelligence(trendGrupo);
+        intelligentData.quarterlyIntelligence = knowledgeBase.getQuarterlyIntelligence(currentQ);
+        intelligentData.comparativeContext = knowledgeBase.generateComparativeContext(trendGrupo);
+        intelligentData.analysisType = analysis.intent;
+        console.log(`📊 Trend/competitive analysis retrieved for ${trendGrupo}`);
+        break;
+        
       default:
-        // For other intents, use general context
+        // For other intents, use general context with quarterly intelligence
         intelligentData = await queryDatabase(question);
+        intelligentData.quarterlyContext = knowledgeBase.getQuarterlyIntelligence(intelligentSystem.getCurrentTrimester());
         console.log(`🔍 General data retrieved for intent: ${analysis.intent}`);
     }
     
@@ -318,44 +384,58 @@ async function callOpenAI(question, context) {
 }
 
 function createIntelligentPrompt(question, context) {
-  // Build context with ONLY real data
-  const realContext = {
+  // ENHANCED: Build context with business intelligence and real data
+  const enhancedContext = {
     available_indicators: [
       'Marinado', 'Cuartos Fríos', 'Área Cocina', 'Hornos', 'Freidoras',
       'Baños Empleados', 'Lavado Manos', 'Servicio', 'Almacén', 'Higiene'
     ],
-    date_range: 'Mar 12, 2025 - Aug 22, 2025 (135 supervisiones)',
-    real_sucursales: [
-      'Gómez Morin', 'Rómulo Garza', 'Lázaro Cárdenas', 'Plaza 1500', 'Vasconcelos',
-      'Aztlan', 'Chapultepec', 'Gonzalitos', 'Lincoln', 'Pueblito', 'Escobedo'
-    ]
+    date_range: 'Q1-Q3 2025 (135 supervisiones)',
+    real_grupos_operativos: [
+      'OGAS', 'PLOG QUERETARO', 'TEPEYAC', 'TEC', 'EXPO', 'GRUPO MATAMOROS',
+      'PLOG LAGUNA', 'EFM', 'RAP', 'GRUPO SALTILLO'
+    ],
+    performance_benchmarks: {
+      excellent: '95%+', good: '85-94%', improvement: '70-84%', critical: '<70%'
+    },
+    quarterly_periods: {
+      Q1: 'Ene-Mar 2025', Q2: 'Abr-Jun 2025', Q3: 'Jul-Sep 2025 (actual)'
+    }
   };
 
-  let prompt = `SISTEMA DE SUPERVISIÓN EL POLLO LOCO CAS
-Eres experto analista. SOLO usa datos reales proporcionados. NUNCA inventes.
+  let prompt = `SISTEMA DE SUPERVISIÓN EL POLLO LOCO CAS - ANÁLISIS INTELIGENTE
+Eres el EXPERTO ANALISTA más inteligente de El Pollo Loco. Tienes conocimiento COMPLETO del negocio.
 
 PREGUNTA: "${question}"
 
-CONTEXTO REAL:
-${JSON.stringify(realContext, null, 2)}
+CONTEXTO EMPRESARIAL:
+${JSON.stringify(enhancedContext, null, 2)}
 
-DATOS DE CONSULTA:
+DATOS DE ANÁLISIS:
 ${JSON.stringify(context, null, 2)}
 
-REGLAS ESTRICTAS:
-1. Si dice "top 5" → muestra EXACTAMENTE 5
-2. Solo sucursales reales de la lista
-3. Solo fechas 2025 (Mar-Aug)
-4. Solo indicadores que existen en DB
-5. Si no hay datos → "No disponible en período especificado"
-6. NUNCA menciones "atención cliente" ni "inventario"
+INTELIGENCIA DE NEGOCIO DISPONIBLE:
+- Conoces TODOS los 20 grupos operativos y su ranking real
+- Entiendes las 29 áreas de evaluación y cuáles son críticas
+- Comprendes los benchmarks de desempeño y niveles críticos
+- Sabes el contexto trimestral y tendencias por período
 
-FORMATO:
-🎯 [TÍTULO]
-[Lista numerada con datos exactos]
-💡 [Insight basado solo en datos reales]
+REGLAS DE INTELIGENCIA EXTREMA:
+1. Si dice "top 5" → muestra EXACTAMENTE 5 con contexto empresarial
+2. Usa businessContext y comparativeContext para insights avanzados
+3. Menciona posición en ranking corporativo cuando sea relevante
+4. Incluye benchmarks de performance y nivel de criticidad
+5. Proporciona contexto trimestral inteligente
+6. NUNCA inventes datos - solo usa datos reales proporcionados
+7. Siempre incluye insights empresariales basados en performance real
 
-Máximo 500 caracteres.`;
+FORMATO INTELIGENTE:
+🎯 [TÍTULO CON CONTEXTO EMPRESARIAL]
+[Lista numerada con datos exactos + contexto de negocio]
+📊 [Posición/Ranking/Benchmark cuando aplique]
+💡 [Insight empresarial profundo basado en datos reales]
+
+Máximo 800 caracteres para respuestas complejas.`;
 
   return prompt;
 }
@@ -378,6 +458,22 @@ async function generateIntelligentResponse(question, intelligentData, analysis) 
       case 'general_ranking':
         return generateRankingResponse(intelligentData, analysis);
         
+      // ENHANCED: Advanced business intelligence responses
+      case 'critical_performance_analysis':
+        return generateCriticalAnalysisResponse(intelligentData, analysis);
+        
+      case 'excellent_performance_analysis':
+        return generateExcellentAnalysisResponse(intelligentData, analysis);
+        
+      case 'benchmark_analysis':
+      case 'position_analysis':
+      case 'distribution_analysis':
+        return generateAdvancedAnalysisResponse(intelligentData, analysis);
+        
+      case 'trend_analysis':
+      case 'competitive_analysis':
+        return generateTrendAnalysisResponse(intelligentData, analysis);
+        
       default:
         return generateGeneralIntelligentResponse(intelligentData, analysis);
     }
@@ -393,7 +489,15 @@ function generateGroupOpportunitiesResponse(data, analysis) {
   }
   
   let response = `🎯 **ÁREAS DE OPORTUNIDAD - ${data.grupo.toUpperCase()}**\n`;
-  response += `📅 **Período**: ${data.trimester}\n\n`;
+  response += `📅 **Período**: ${data.trimester}\n`;
+  
+  // ENHANCED: Add business context intelligence
+  if (data.businessContext) {
+    const ctx = data.businessContext;
+    response += `📊 **Posición**: #${ctx.position_in_ranking} de 20 grupos (Percentil ${ctx.percentile})\n`;
+    response += `⚡ **Promedio General**: ${ctx.promedio}% - ${ctx.status.toUpperCase()}\n`;
+    response += `🏢 **Tamaño**: ${ctx.sucursales} sucursales, ${ctx.supervisiones} supervisiones\n\n`;
+  }
   
   data.opportunities.forEach((opp, index) => {
     const emoji = index === 0 ? '🔴' : index === 1 ? '🟡' : '🟠';
@@ -403,10 +507,27 @@ function generateGroupOpportunitiesResponse(data, analysis) {
     response += `   📋 Evaluaciones: ${opp.evaluaciones}\n\n`;
   });
   
-  // Add intelligent insight
+  // ENHANCED: Add intelligent business insights
   const worstArea = data.opportunities[0];
-  response += `💡 **Insight**: El área más crítica es **${worstArea.area}** con ${worstArea.promedio}%. `;
-  response += `Requiere atención inmediata para mejorar el desempeño del grupo.`;
+  if (data.businessContext) {
+    const ctx = data.businessContext;
+    response += `💡 **Análisis Inteligente**:\n`;
+    response += `• **Área crítica**: ${worstArea.area} (${worstArea.promedio}%)\n`;
+    response += `• **Contexto empresarial**: ${ctx.performance_context}\n`;
+    response += `• **Recomendación**: ${ctx.recommendation}\n`;
+    
+    // Add competitive context if available
+    if (data.comparativeContext && data.comparativeContext.competitive_context) {
+      const competitors = data.comparativeContext.competitive_context.slice(0, 2);
+      response += `• **Competencia directa**: `;
+      competitors.forEach(comp => {
+        response += `${comp.name} (${comp.gap > 0 ? '+' : ''}${comp.gap}%) `;
+      });
+    }
+  } else {
+    response += `💡 **Insight**: El área más crítica es **${worstArea.area}** con ${worstArea.promedio}%. `;
+    response += `Requiere atención inmediata para mejorar el desempeño del grupo.`;
+  }
   
   return response;
 }
@@ -484,30 +605,102 @@ function generateRankingResponse(data, analysis) {
   }
   
   let response = `🏆 **RANKING GRUPOS OPERATIVOS**\n`;
-  response += `📅 **Período**: ${data.trimester}\n\n`;
+  response += `📅 **Período**: ${data.trimester}\n`;
+  
+  // ENHANCED: Add quarterly context intelligence
+  if (data.quarterlyContext) {
+    const qCtx = data.quarterlyContext;
+    response += `📊 **Contexto Trimestral**: ${qCtx.supervisiones} supervisiones, ${qCtx.coverage} cobertura\n`;
+    response += `⚡ **Promedio General**: ${qCtx.promedio}% - Nivel ${qCtx.benchmark}\n\n`;
+  }
   
   data.ranking.forEach(grupo => {
     const medal = grupo.position === 1 ? '🥇' : grupo.position === 2 ? '🥈' : grupo.position === 3 ? '🥉' : '🏆';
     response += `${medal} **${grupo.position}°. ${grupo.grupo}**\n`;
-    response += `   📊 Promedio: ${grupo.promedio}%\n`;
-    response += `   🏪 ${grupo.sucursales} sucursales (${grupo.supervisiones} supervisiones)\n\n`;
+    response += `   📊 Promedio: ${grupo.promedio}%`;
+    
+    // ENHANCED: Add performance classification from business intelligence
+    if (grupo.performanceInsight) {
+      const perf = grupo.performanceInsight;
+      response += ` (${perf.level.toUpperCase()})\n`;
+      response += `   🎯 ${perf.benchmark}\n`;
+    } else {
+      response += `\n`;
+    }
+    
+    // ENHANCED: Add business intelligence context
+    if (grupo.businessIntelligence) {
+      const bCtx = grupo.businessIntelligence;
+      response += `   🏢 ${grupo.sucursales} sucursales (${bCtx.trend})\n`;
+      response += `   📈 Percentil ${bCtx.percentile} corporativo\n\n`;
+    } else {
+      response += `   🏪 ${grupo.sucursales} sucursales (${grupo.supervisiones} supervisiones)\n\n`;
+    }
   });
   
-  // Intelligent insights
+  // ENHANCED: Intelligent business insights
   const leader = data.ranking[0];
   const gap = parseFloat(leader.promedio) - parseFloat(data.ranking[1]?.promedio || 0);
-  response += `💡 **Insight**: **${leader.grupo}** lidera con ${gap.toFixed(1)} puntos de ventaja. `;
-  response += `Promedio de liderazgo: ${leader.promedio}%`;
+  response += `💡 **Análisis Empresarial**:\n`;
+  response += `• **Líder**: ${leader.grupo} con ${gap.toFixed(1)} puntos de ventaja (${leader.promedio}%)\n`;
+  
+  if (leader.businessIntelligence) {
+    response += `• **Contexto**: ${leader.businessIntelligence.performance_context}\n`;
+    response += `• **Estrategia**: ${leader.businessIntelligence.recommendation}`;
+  }
+  
+  // Add performance distribution insight
+  const excellent = data.ranking.filter(g => g.performanceInsight?.level === 'excellent').length;
+  const critical = data.ranking.filter(g => g.performanceInsight?.level === 'critical').length;
+  
+  if (excellent > 0 || critical > 0) {
+    response += `\n• **Distribución**: ${excellent} excelentes, ${critical} críticos de ${data.ranking.length} grupos`;
+  }
   
   return response;
 }
 
 function generateGeneralIntelligentResponse(data, analysis) {
-  return "🤖 Pregunta procesada por sistema inteligente. Para mejores resultados, especifica:\n" +
-         "• Grupo operativo (TEPEYAC, OGAS, TEC, etc.)\n" +
-         "• Sucursal específica\n" +
-         "• Trimestre (Q1, Q2, Q3, Q4)\n" +
-         "• Tipo de análisis (oportunidades, comparativo, ranking)";
+  // ENHANCED: Generate intelligent response based on available data and context
+  let response = `🧠 **ANÁLISIS INTELIGENTE - EL POLLO LOCO CAS**\n\n`;
+  
+  // Add quarterly context if available
+  if (data && data.quarterlyContext) {
+    const qCtx = data.quarterlyContext;
+    response += `📊 **Contexto Actual (${qCtx.period})**:\n`;
+    response += `• Actividad: ${qCtx.activity_level} (${qCtx.supervisiones} supervisiones)\n`;
+    response += `• Cobertura: ${qCtx.coverage}\n`;
+    response += `• Desempeño general: ${qCtx.benchmark} (${qCtx.promedio}%)\n\n`;
+  }
+  
+  // Add available business intelligence
+  response += `🎯 **Sistema Inteligente Disponible**:\n`;
+  response += `• **20 Grupos Operativos** con ranking completo\n`;
+  response += `• **29 Áreas de Evaluación** con criticidad identificada\n`;
+  response += `• **Análisis Trimestral** Q1-Q4 2025\n`;
+  response += `• **Benchmarks Empresariales** y contexto competitivo\n\n`;
+  
+  // Add specific query examples based on detected intent
+  response += `💡 **Consultas Inteligentes que puedes hacer**:\n`;
+  
+  if (analysis.entity && analysis.entity.type === 'grupo') {
+    response += `• "¿Cuáles son las áreas de oportunidad de ${analysis.entity.name}?"\n`;
+    response += `• "¿Cómo se compara ${analysis.entity.name} con otros grupos?"\n`;
+  } else {
+    response += `• "¿Cuáles son las áreas de oportunidad del grupo OGAS?"\n`;
+    response += `• "Dame el top 5 de grupos en Q3"\n`;
+  }
+  
+  response += `• "¿Cómo cambió TEPEYAC entre Q2 y Q3?"\n`;
+  response += `• "¿Qué grupos están en nivel crítico?"\n`;
+  response += `• "¿Cuáles son los grupos con mejor desempeño?"\n\n`;
+  
+  response += `🔧 **Para consultas específicas, menciona**:\n`;
+  response += `• Grupo: TEPEYAC, OGAS, TEC, EXPO, etc.\n`;
+  response += `• Trimestre: Q1, Q2, Q3, Q4\n`;
+  response += `• Tipo: oportunidades, ranking, comparativo`;
+  
+  return response;
 }
 
 async function generateRealDataResponse(question, realData, analysis) {
@@ -1137,6 +1330,159 @@ bot.on('error', (error) => {
 bot.on('polling_error', (error) => {
   console.error('Polling error:', error);
 });
+
+// ENHANCED: Advanced business intelligence response functions
+
+function generateCriticalAnalysisResponse(data, analysis) {
+  if (!data.ranking || data.ranking.length === 0) {
+    return `📊 **ANÁLISIS DE GRUPOS CRÍTICOS**\n❌ No se encontraron grupos en nivel crítico en ${data.trimester}.`;
+  }
+  
+  let response = `🚨 **ANÁLISIS DE GRUPOS CRÍTICOS - ${data.trimester}**\n\n`;
+  
+  if (data.quarterlyContext) {
+    response += `📊 **Contexto**: ${data.quarterlyContext.supervisiones} supervisiones, promedio general ${data.quarterlyContext.promedio}%\n\n`;
+  }
+  
+  response += `🔴 **Grupos en Situación Crítica (<70%)**:\n`;
+  data.ranking.forEach((grupo, index) => {
+    response += `${index + 1}. **${grupo.grupo}** - ${grupo.promedio}%\n`;
+    if (grupo.businessIntelligence) {
+      response += `   📍 Posición: #${grupo.businessIntelligence.position_in_ranking} de 20\n`;
+      response += `   🏢 ${grupo.sucursales} sucursales (${grupo.businessIntelligence.trend})\n`;
+      response += `   ⚠️ ${grupo.businessIntelligence.performance_context}\n\n`;
+    }
+  });
+  
+  response += `💡 **Análisis Empresarial**:\n`;
+  response += `• **Grupos críticos**: ${data.ranking.length} requieren intervención inmediata\n`;
+  response += `• **Impacto**: Riesgo operativo significativo en la red\n`;
+  response += `• **Acción requerida**: Plan de mejora urgente con soporte corporativo`;
+  
+  return response;
+}
+
+function generateExcellentAnalysisResponse(data, analysis) {
+  if (!data.ranking || data.ranking.length === 0) {
+    return `📊 **ANÁLISIS DE GRUPOS EXCELENTES**\n❌ No se encontraron grupos en nivel excelente en ${data.trimester}.`;
+  }
+  
+  let response = `🏆 **GRUPOS DE EXCELENCIA - ${data.trimester}**\n\n`;
+  
+  if (data.quarterlyContext) {
+    response += `📊 **Contexto**: ${data.quarterlyContext.supervisiones} supervisiones, promedio general ${data.quarterlyContext.promedio}%\n\n`;
+  }
+  
+  response += `🥇 **Grupos de Elite (95%+)**:\n`;
+  data.ranking.forEach((grupo, index) => {
+    response += `${index + 1}. **${grupo.grupo}** - ${grupo.promedio}%\n`;
+    if (grupo.businessIntelligence) {
+      response += `   📍 Posición: #${grupo.businessIntelligence.position_in_ranking} de 20 (Percentil ${grupo.businessIntelligence.percentile})\n`;
+      response += `   🏢 ${grupo.sucursales} sucursales (${grupo.businessIntelligence.trend})\n`;
+      response += `   ⭐ ${grupo.businessIntelligence.performance_context}\n\n`;
+    }
+  });
+  
+  response += `💡 **Análisis de Liderazgo**:\n`;
+  response += `• **Grupos excelentes**: ${data.ranking.length} lideran los estándares de calidad\n`;
+  response += `• **Best practices**: Modelos a replicar en otros grupos\n`;
+  response += `• **Estrategia**: ${data.ranking[0]?.businessIntelligence?.recommendation || 'Mantener y documentar prácticas'}`;
+  
+  return response;
+}
+
+function generateAdvancedAnalysisResponse(data, analysis) {
+  if (!data.ranking || data.ranking.length === 0) {
+    return `📊 **ANÁLISIS AVANZADO**\n❌ No se encontraron datos para el análisis en ${data.trimester}.`;
+  }
+  
+  let response = `📈 **ANÁLISIS EMPRESARIAL AVANZADO - ${data.trimester}**\n\n`;
+  
+  // Performance distribution
+  const excellent = data.ranking.filter(g => g.performanceInsight?.level === 'excellent').length;
+  const good = data.ranking.filter(g => g.performanceInsight?.level === 'good').length;
+  const improvement = data.ranking.filter(g => g.performanceInsight?.level === 'improvement').length;
+  const critical = data.ranking.filter(g => g.performanceInsight?.level === 'critical').length;
+  
+  response += `📊 **Distribución de Desempeño**:\n`;
+  response += `🥇 Excelente (95%+): ${excellent} grupos\n`;
+  response += `🏆 Bueno (85-94%): ${good} grupos\n`;
+  response += `⚠️ Mejora (70-84%): ${improvement} grupos\n`;
+  response += `🚨 Crítico (<70%): ${critical} grupos\n\n`;
+  
+  // Quartile analysis
+  const sortedScores = data.ranking.map(g => parseFloat(g.promedio)).sort((a, b) => b - a);
+  const q1 = sortedScores[Math.floor(sortedScores.length * 0.25)];
+  const median = sortedScores[Math.floor(sortedScores.length * 0.5)];
+  const q3 = sortedScores[Math.floor(sortedScores.length * 0.75)];
+  
+  response += `📈 **Análisis Estadístico**:\n`;
+  response += `• Q1 (Top 25%): ${q1}%+\n`;
+  response += `• Mediana: ${median}%\n`;
+  response += `• Q3 (Bottom 25%): ${q3}%\n\n`;
+  
+  if (data.quarterlyContext) {
+    response += `📊 **Contexto Trimestral**:\n`;
+    response += `• Actividad: ${data.quarterlyContext.activity_level}\n`;
+    response += `• Benchmark general: ${data.quarterlyContext.benchmark}\n\n`;
+  }
+  
+  response += `💡 **Insights Empresariales**:\n`;
+  response += `• **Concentración**: ${((excellent + good) / data.ranking.length * 100).toFixed(0)}% en niveles adecuados\n`;
+  response += `• **Riesgo**: ${((improvement + critical) / data.ranking.length * 100).toFixed(0)}% requiere atención\n`;
+  response += `• **Variabilidad**: Rango de ${Math.min(...sortedScores).toFixed(1)}% a ${Math.max(...sortedScores).toFixed(1)}%`;
+  
+  return response;
+}
+
+function generateTrendAnalysisResponse(data, analysis) {
+  if (!data.comparison) {
+    return `📊 **ANÁLISIS DE TENDENCIAS**\n❌ No se encontraron datos comparativos para el análisis.`;
+  }
+  
+  let response = `📈 **ANÁLISIS DE TENDENCIAS Y COMPETITIVIDAD**\n\n`;
+  
+  const comp = data.comparison;
+  const change = parseFloat(comp.change.points);
+  const trendEmoji = change > 0 ? '📈' : change < 0 ? '📉' : '➡️';
+  
+  response += `🎯 **Grupo**: ${data.grupo}\n`;
+  if (data.businessContext) {
+    response += `📍 **Posición Actual**: #${data.businessContext.position_in_ranking} de 20 (Percentil ${data.businessContext.percentile})\n`;
+    response += `⚡ **Status**: ${data.businessContext.status.toUpperCase()}\n\n`;
+  }
+  
+  response += `${trendEmoji} **Evolución Trimestral**:\n`;
+  response += `• **${comp.previous.trimester}**: ${comp.previous.promedio}%\n`;
+  response += `• **${comp.current.trimester}**: ${comp.current.promedio}%\n`;
+  response += `• **Cambio**: ${comp.change.points} puntos (${comp.change.trend})\n`;
+  response += `• **Variación**: ${comp.change.percentage}%\n\n`;
+  
+  if (data.comparativeContext?.competitive_context) {
+    response += `🏆 **Contexto Competitivo**:\n`;
+    data.comparativeContext.competitive_context.slice(0, 3).forEach(competitor => {
+      const position = competitor.status === 'superior' ? '▲' : '▼';
+      response += `• ${competitor.name}: ${position} ${Math.abs(parseFloat(competitor.gap))} puntos\n`;
+    });
+    response += `\n`;
+  }
+  
+  response += `💡 **Análisis Inteligente**:\n`;
+  if (data.businessContext) {
+    response += `• **Contexto**: ${data.businessContext.performance_context}\n`;
+    response += `• **Recomendación**: ${data.businessContext.recommendation}\n`;
+  }
+  
+  if (change > 2) {
+    response += `• **Tendencia**: Mejora significativa (+${change} puntos)`;
+  } else if (change < -2) {
+    response += `• **Tendencia**: Declive preocupante (${change} puntos)`;
+  } else {
+    response += `• **Tendencia**: Desempeño estable`;
+  }
+  
+  return response;
+}
 
 console.log('✅ Bot is running! Send /start to begin.');
 

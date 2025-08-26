@@ -54,12 +54,37 @@ class IntelligentSupervisionSystem {
   }
 
   detectAdvancedIntent(lower) {
+    // ENHANCED: Advanced business question detection
+    
     // Areas de oportunidad - enhanced detection
     if (lower.includes('oportunidad') || lower.includes('oportunidades') || lower.includes('mejorar') || lower.includes('áreas a mejorar')) {
       if (lower.includes('grupo')) return 'group_opportunities';
       if (lower.includes('sucursal')) return 'sucursal_opportunities';
       // If entity is grupo but no explicit 'grupo' word, still treat as group
       return 'group_opportunities'; // Default to group opportunities
+    }
+    
+    // ENHANCED: Performance level analysis
+    if (lower.includes('crítico') || lower.includes('critico') || lower.includes('críticos')) {
+      return 'critical_performance_analysis';
+    }
+    
+    if (lower.includes('excelente') || lower.includes('excelentes') || lower.includes('líderes') || lower.includes('lideres')) {
+      return 'excellent_performance_analysis';
+    }
+    
+    // ENHANCED: Business intelligence queries
+    if (lower.includes('benchmarks') || lower.includes('benchmark') || lower.includes('estándares') || lower.includes('estandares')) {
+      return 'benchmark_analysis';
+    }
+    
+    if (lower.includes('tendencia') || lower.includes('tendencias') || lower.includes('evolución') || lower.includes('evolucion')) {
+      return 'trend_analysis';
+    }
+    
+    // ENHANCED: Competitive analysis
+    if (lower.includes('competencia') || lower.includes('competitivo') || lower.includes('versus otros')) {
+      return 'competitive_analysis';
     }
     
     // Comparativos
@@ -77,6 +102,15 @@ class IntelligentSupervisionSystem {
       return 'general_ranking';
     }
     
+    // ENHANCED: Business context queries
+    if (lower.includes('percentil') || lower.includes('posición') || lower.includes('posicion') || lower.includes('lugar')) {
+      return 'position_analysis';
+    }
+    
+    if (lower.includes('distribución') || lower.includes('distribucion') || lower.includes('segmentación')) {
+      return 'distribution_analysis';
+    }
+    
     // Calificaciones específicas
     if (lower.includes('calificación') || lower.includes('calificacion')) {
       if (lower.includes('global') || lower.includes('general')) return 'global_score';
@@ -85,8 +119,9 @@ class IntelligentSupervisionSystem {
       return 'general_score';
     }
     
-    // Análisis por área específica
+    // ENHANCED: Context-aware area analysis
     if (this.areasEvaluacion.some(area => lower.includes(area.toLowerCase().substring(0, 6)))) {
+      if (lower.includes('críticas') || lower.includes('problemas')) return 'critical_areas_analysis';
       return 'area_specific_analysis';
     }
     
