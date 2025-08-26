@@ -138,11 +138,15 @@ class UltraIntelligenceEngine {
       SELECT 
         gs.*,
         -- Areas más fuertes (top 3)
-        (SELECT array_agg(area_evaluacion ORDER BY promedio_area DESC LIMIT 3) 
-         FROM grupo_areas ga WHERE ga.grupo_operativo = gs.grupo_operativo) as areas_fuertes,
+        (SELECT array_agg(area_evaluacion) 
+         FROM (SELECT area_evaluacion FROM grupo_areas ga 
+               WHERE ga.grupo_operativo = gs.grupo_operativo 
+               ORDER BY promedio_area DESC LIMIT 3) AS top_areas) as areas_fuertes,
         -- Areas de oportunidad (bottom 3)
-        (SELECT array_agg(area_evaluacion ORDER BY promedio_area ASC LIMIT 3) 
-         FROM grupo_areas ga WHERE ga.grupo_operativo = gs.grupo_operativo) as areas_oportunidad
+        (SELECT array_agg(area_evaluacion) 
+         FROM (SELECT area_evaluacion FROM grupo_areas ga 
+               WHERE ga.grupo_operativo = gs.grupo_operativo 
+               ORDER BY promedio_area ASC LIMIT 3) AS bottom_areas) as areas_oportunidad
       FROM grupo_stats gs
       ORDER BY gs.promedio_general DESC;
     `;
