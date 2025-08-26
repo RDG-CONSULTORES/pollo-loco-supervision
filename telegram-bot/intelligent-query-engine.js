@@ -153,7 +153,16 @@ Responde EXACTAMENTE en este formato JSON:
 
     try {
       const response = await this.llm.generate(intentPrompt);
-      const intentData = JSON.parse(response.response);
+      
+      // Limpiar respuesta de markdown
+      let jsonText = response.response.trim();
+      if (jsonText.includes('```json')) {
+        jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+      } else if (jsonText.includes('```')) {
+        jsonText = jsonText.split('```')[1].split('```')[0].trim();
+      }
+      
+      const intentData = JSON.parse(jsonText);
       
       // Validate and enrich intent data
       intentData.processing_timestamp = new Date().toISOString();

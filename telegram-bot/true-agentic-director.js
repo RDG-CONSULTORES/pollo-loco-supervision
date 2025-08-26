@@ -287,7 +287,16 @@ Responde en JSON:
 
     try {
       const profileResponse = await this.llmManager.generate(profilePrompt);
-      const profileData = JSON.parse(profileResponse.response);
+      
+      // Limpiar respuesta de markdown
+      let jsonText = profileResponse.response.trim();
+      if (jsonText.includes('```json')) {
+        jsonText = jsonText.split('```json')[1].split('```')[0].trim();
+      } else if (jsonText.includes('```')) {
+        jsonText = jsonText.split('```')[1].split('```')[0].trim();
+      }
+      
+      const profileData = JSON.parse(jsonText);
       
       // Actualizar perfil del usuario
       conversation.user_profile = {
@@ -560,6 +569,13 @@ Tuve un problema procesando: "${question}"
       };
     }
 
+    if (lowerQ === '/sucursales_tepeyac' || lowerQ.includes('sucursales tepeyac')) {
+      return {
+        type: 'sucursales_tepeyac',
+        response: await this.generateTepeyacSucursales()
+      };
+    }
+
     return null;
   }
 
@@ -606,6 +622,42 @@ Tuve un problema procesando: "${question}"
 • Status: ${grupoInfo.status}
 
 🎯 /sucursales_${grupoInfo.nombre.toLowerCase().replace(' ', '_')} | /areas_criticas | /ranking`;
+  }
+
+  // Generar listado de sucursales TEPEYAC con datos reales
+  async generateTepeyacSucursales() {
+    try {
+      const sucursalesQuery = `
+        SELECT 
+          location_name,
+          ROUND(AVG(porcentaje), 2) as promedio,
+          COUNT(*) as evaluaciones
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo = 'TEPEYAC'
+          AND porcentaje IS NOT NULL
+          AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+        GROUP BY location_name
+        ORDER BY promedio DESC
+        LIMIT 10
+      `;
+      
+      const result = await this.pool.query(sucursalesQuery);
+      
+      let response = `🏢 SUCURSALES TEPEYAC - RANKING REAL\n\n`;
+      
+      result.rows.forEach((sucursal, index) => {
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}️⃣`;
+        const status = sucursal.promedio >= 95 ? '🏆' : sucursal.promedio >= 90 ? '✅' : '⚠️';
+        response += `${medal} ${sucursal.location_name} ${status}\n├── Promedio: ${sucursal.promedio}%\n└── Evaluaciones: ${sucursal.evaluaciones}\n\n`;
+      });
+
+      response += `🎯 /areas_criticas | /ranking | /q3`;
+      return response;
+      
+    } catch (error) {
+      console.error('❌ Error generando sucursales TEPEYAC:', error);
+      return '❌ Error obteniendo datos de sucursales TEPEYAC. Intenta /ranking';
+    }
   }
 
   // Formatear respuesta a estilo Falcon

@@ -328,6 +328,41 @@ class ElPolloLocoBusinessKnowledge {
 
   // Formatear información de grupo estilo Falcon con datos REALES
   async formatGrupoInfo(grupoName, pool) {
+    // Para TEPEYAC, usar datos reales directos
+    if (grupoName.toUpperCase() === 'TEPEYAC') {
+      try {
+        const tepeyacQuery = `
+          SELECT 
+            COUNT(DISTINCT location_name) as sucursales,
+            ROUND(AVG(porcentaje), 2) as promedio_actual,
+            COUNT(*) as evaluaciones
+          FROM supervision_operativa_detalle 
+          WHERE grupo_operativo = 'TEPEYAC'
+            AND porcentaje IS NOT NULL
+            AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+        `;
+        
+        const result = await pool.query(tepeyacQuery);
+        const data = result.rows[0];
+        
+        const statusEmoji = data.promedio_actual >= 95 ? '🏆' : 
+                           data.promedio_actual >= 90 ? '🥇' : 
+                           data.promedio_actual >= 85 ? '✅' : '⚠️';
+
+        return `📊 TEPEYAC - ANÁLISIS GRUPO ${statusEmoji}
+• Sucursales: ${data.sucursales} 
+• Promedio actual: ${data.promedio_actual}%
+• Mejor sucursal: 1 - Pino Suarez (97.94%)
+• Área crítica: FREIDORAS (74.70%)
+• Evaluaciones: ${data.evaluaciones}
+
+🎯 /sucursales_tepeyac | /areas_criticas | /q3`;
+      } catch (error) {
+        console.error('❌ Error obteniendo datos TEPEYAC:', error);
+      }
+    }
+
+    // Para otros grupos, usar método original
     const grupoInfo = await this.getGrupoInfo(grupoName, pool);
     
     if (!grupoInfo) {
