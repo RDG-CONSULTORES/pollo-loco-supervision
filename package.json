@@ -1,7 +1,7 @@
 {
   "name": "pollo-loco-supervision",
-  "version": "1.0.0",
-  "description": "El Pollo Loco CAS - Sistema de Supervisión Operativa con Telegram Bot y Mini Web App",
+  "version": "2.0.0",
+  "description": "El Pollo Loco CAS - Sistema de Supervisión Operativa con Telegram Bot LLM-powered y Mini Web App",
   "main": "server-integrated.js",
   "scripts": {
     "start": "NODE_ENV=production node server-integrated.js",
@@ -37,7 +37,9 @@
     "helmet": "^7.1.0",
     "node-telegram-bot-api": "^0.66.0",
     "axios": "^1.6.2",
-    "canvas": "^2.11.2"
+    "canvas": "^2.11.2",
+    "openai": "^5.15.0",
+    "@anthropic-ai/sdk": "^0.60.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
