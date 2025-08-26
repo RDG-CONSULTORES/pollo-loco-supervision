@@ -1,5 +1,8 @@
 const TelegramBot = require('node-telegram-bot-api');
 const axios = require('axios');
+const { Pool } = require('pg');
+const SupervisionAI = require('./ai-intelligence');
+
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
@@ -12,6 +15,15 @@ if (process.env.NODE_ENV === 'production' && !process.env.TELEGRAM_BOT_TOKEN) {
         }
     });
 }
+
+// Initialize database pool for AI
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+});
+
+// Initialize AI engine
+const aiEngine = new SupervisionAI(pool);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -43,21 +55,65 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_POLLING === 'tru
 
 console.log('🤖 EPL Estandarización Operativa Bot started!');
 
-// AI Agent Functions
+// AI Agent Functions - Enhanced Intelligence
 async function queryDatabase(question) {
   try {
-    // First, try to get relevant data based on the question
-    let apiEndpoint = '/kpis';
-    if (question.toLowerCase().includes('grupo')) {
-      apiEndpoint = '/grupos';
-    } else if (question.toLowerCase().includes('estado')) {
-      apiEndpoint = '/estados';
-    } else if (question.toLowerCase().includes('crítico') || question.toLowerCase().includes('problema')) {
-      apiEndpoint = '/kpis/critical';
+    const lowerQuestion = question.toLowerCase();
+    let data = {};
+    
+    // Analyze question for multiple data needs
+    const needsGroups = lowerQuestion.includes('grupo') || lowerQuestion.includes('top') || lowerQuestion.includes('mejor');
+    const needsEstados = lowerQuestion.includes('estado') || lowerQuestion.includes('región');
+    const needsCritical = lowerQuestion.includes('crítico') || lowerQuestion.includes('problema') || lowerQuestion.includes('bajo');
+    const needsKPIs = lowerQuestion.includes('promedio') || lowerQuestion.includes('general') || lowerQuestion.includes('kpi');
+    const needsTrimestre = lowerQuestion.includes('trimestre') || lowerQuestion.includes('actual') || lowerQuestion.includes('periodo');
+    const needsRanking = lowerQuestion.includes('ranking') || lowerQuestion.includes('top') || lowerQuestion.includes('mejores');
+    
+    // Fetch all relevant data
+    const promises = [];
+    
+    if (needsKPIs || !needsGroups && !needsEstados && !needsCritical) {
+      promises.push(
+        axios.get(`${API_BASE_URL}/kpis`)
+          .then(res => { data.kpis = res.data; })
+          .catch(err => console.error('KPIs error:', err))
+      );
     }
     
-    const response = await axios.get(`${API_BASE_URL}${apiEndpoint}`);
-    return response.data;
+    if (needsGroups || needsRanking) {
+      promises.push(
+        axios.get(`${API_BASE_URL}/grupos`)
+          .then(res => { data.grupos = res.data; })
+          .catch(err => console.error('Grupos error:', err))
+      );
+    }
+    
+    if (needsEstados) {
+      promises.push(
+        axios.get(`${API_BASE_URL}/estados`)
+          .then(res => { data.estados = res.data; })
+          .catch(err => console.error('Estados error:', err))
+      );
+    }
+    
+    if (needsCritical) {
+      promises.push(
+        axios.get(`${API_BASE_URL}/kpis/critical`)
+          .then(res => { data.critical = res.data; })
+          .catch(err => console.error('Critical error:', err))
+      );
+    }
+    
+    if (needsRanking) {
+      promises.push(
+        axios.get(`${API_BASE_URL}/grupos/ranking?limit=10`)
+          .then(res => { data.ranking = res.data.top || res.data; })
+          .catch(err => console.error('Ranking error:', err))
+      );
+    }
+    
+    await Promise.all(promises);
+    return data;
   } catch (error) {
     console.error('Error querying database:', error);
     return null;
@@ -126,24 +182,124 @@ Por favor responde de manera útil y específica basándote en los datos disponi
 function generateStructuredResponse(question, context) {
   const lowerQuestion = question.toLowerCase();
   
+  // Enhanced responses based on actual data
+  if (context && Object.keys(context).length > 0) {
+    let response = '';
+    
+    // Handle trimestre + top grupos query
+    if ((lowerQuestion.includes('trimestre') || lowerQuestion.includes('actual')) && 
+        (lowerQuestion.includes('grupo') || lowerQuestion.includes('top'))) {
+      
+      if (context.grupos && context.grupos.length > 0) {
+        const topGroups = context.grupos.slice(0, 5);
+        response = `📊 **Top 5 Grupos Operativos - Trimestre Actual**\n\n`;
+        
+        topGroups.forEach((grupo, index) => {
+          const emoji = index < 3 ? ['🥇', '🥈', '🥉'][index] : '🏆';
+          response += `${emoji} **${grupo.grupo_operativo}**\n`;
+          response += `   • Promedio: ${grupo.promedio}%\n`;
+          response += `   • Supervisiones: ${grupo.supervisiones}\n`;
+          response += `   • Sucursales: ${grupo.sucursales}\n\n`;
+        });
+        
+        if (context.kpis) {
+          response += `📈 **Resumen General**:\n`;
+          response += `• Total supervisiones: ${context.kpis.total_supervisiones}\n`;
+          response += `• Promedio global: ${context.kpis.promedio_general}%\n`;
+        }
+        
+        return response;
+      }
+    }
+    
+    // Handle specific queries with real data
+    if (lowerQuestion.includes('promedio') && context.kpis) {
+      response = `🎯 **Promedio General**: ${context.kpis.promedio_general}%\n\n`;
+      response += `📊 **Estadísticas Completas**:\n`;
+      response += `• Total supervisiones: ${context.kpis.total_supervisiones}\n`;
+      response += `• Sucursales evaluadas: ${context.kpis.total_sucursales}\n`;
+      response += `• Estados con presencia: ${context.kpis.total_estados}\n`;
+      response += `• Calificación máxima: ${context.kpis.max_calificacion}%\n`;
+      response += `• Calificación mínima: ${context.kpis.min_calificacion}%\n`;
+      return response;
+    }
+    
+    if ((lowerQuestion.includes('mejor') || lowerQuestion.includes('top')) && context.grupos) {
+      const topGroups = context.grupos.slice(0, lowerQuestion.includes('5') ? 5 : 3);
+      response = `🏆 **Mejores Grupos Operativos**:\n\n`;
+      topGroups.forEach((grupo, index) => {
+        const emoji = ['🥇', '🥈', '🥉'][index] || '🏆';
+        response += `${emoji} **${grupo.grupo_operativo}**: ${grupo.promedio}% (${grupo.supervisiones} supervisiones)\n`;
+      });
+      return response;
+    }
+    
+    if (lowerQuestion.includes('crítico') && context.critical) {
+      response = `🚨 **Indicadores Críticos (<70%)**:\n\n`;
+      const criticalItems = context.critical.slice(0, 5);
+      criticalItems.forEach((item, index) => {
+        response += `${index + 1}. **${item.indicador}** - ${item.promedio}%\n`;
+        response += `   📍 ${item.sucursal} (${item.grupo_operativo})\n`;
+        response += `   🗺️ ${item.estado}\n\n`;
+      });
+      return response;
+    }
+    
+    if (lowerQuestion.includes('estado') && context.estados) {
+      const topEstados = context.estados.slice(0, 5);
+      response = `📍 **Top Estados por Desempeño**:\n\n`;
+      topEstados.forEach((estado, index) => {
+        const emoji = ['🥇', '🥈', '🥉'][index] || '📍';
+        response += `${emoji} **${estado.estado}**: ${estado.promedio}%\n`;
+        response += `   • ${estado.supervisiones} supervisiones\n`;
+        response += `   • ${estado.sucursales} sucursales\n\n`;
+      });
+      return response;
+    }
+    
+    // If we have data but no specific match, provide a summary
+    if (context.kpis || context.grupos) {
+      return generateIntelligentSummary(context, question);
+    }
+  }
+  
+  // Fallback to static responses
+  return generateStaticResponse(lowerQuestion);
+}
+
+function generateIntelligentSummary(data, question) {
+  let summary = `🤖 **Análisis Inteligente**\n\n`;
+  
+  if (data.kpis) {
+    summary += `📊 **KPIs Principales**:\n`;
+    summary += `• Promedio general: ${data.kpis.promedio_general}%\n`;
+    summary += `• Total supervisiones: ${data.kpis.total_supervisiones}\n\n`;
+  }
+  
+  if (data.grupos && data.grupos.length > 0) {
+    summary += `🏆 **Mejores Grupos**:\n`;
+    data.grupos.slice(0, 3).forEach((g, i) => {
+      summary += `${i + 1}. ${g.grupo_operativo}: ${g.promedio}%\n`;
+    });
+    summary += `\n`;
+  }
+  
+  summary += `💡 **Sugerencia**: Pregúntame algo más específico como:\n`;
+  summary += `• "¿Cuáles son los top 5 grupos del trimestre actual?"\n`;
+  summary += `• "¿Qué sucursales tienen problemas críticos?"\n`;
+  summary += `• "¿Cuál es el desempeño por estado?"\n`;
+  
+  return summary;
+}
+
+function generateStaticResponse(lowerQuestion) {
+  // Keep existing static responses as fallback
   if (lowerQuestion.includes('promedio') || lowerQuestion.includes('general')) {
     return `🎯 **Promedio General**: 89.54%\n\n📊 Basado en 135 supervisiones en 79 sucursales.\nUsa /kpis para más detalles.`;
   }
   
   if (lowerQuestion.includes('mejor') || lowerQuestion.includes('top')) {
     return `🏆 **Mejores Grupos**:\n• OGAS: 97.6%\n• PLOG QUERÉTARO: 97.0%\n• TEC: 93.1%\n\nUsa /top10 para ranking completo.`;
-  }
-  
-  if (lowerQuestion.includes('crítico') || lowerQuestion.includes('problema') || lowerQuestion.includes('bajo')) {
-    return `🚨 **Áreas Críticas**:\n• FREIDORAS: 70.1%\n• EXTERIOR SUCURSAL: 71.4%\n\nUsa /criticas para análisis detallado.`;
-  }
-  
-  if (lowerQuestion.includes('estado') || lowerQuestion.includes('región')) {
-    return `📍 **Cobertura**: 9 estados evaluados\n\nUsa /estados [nombre] para datos específicos por estado.`;
-  }
-  
-  if (lowerQuestion.includes('sucursal')) {
-    return `🏪 **Sucursales**: 79 evaluadas en total\n\nUsa /top10 para las mejores o /grupos para análisis por grupo operativo.`;
   }
   
   // Default response
@@ -155,15 +311,22 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   const welcomeMessage = `🍗 **EPL Estandarización Operativa**
 
-¡Bienvenido al sistema de supervisión operativa!
+¡Bienvenido al sistema de supervisión operativa inteligente!
 
 🎯 **Funcionalidades principales:**
 • Dashboard interactivo con 5 diseños
-• Análisis de 135 supervisiones
-• AI Agent para consultas en lenguaje natural
-• 79 sucursales evaluadas en 9 estados
+• Análisis en tiempo real de supervisiones
+• 🧠 **AI Avanzado** con comprensión contextual
+• Base de datos con 561,868 registros
 
-🤖 **Pregúntame cualquier cosa** sobre los datos o usa los comandos rápidos:`;
+🤖 **Ejemplos de preguntas inteligentes:**
+• "¿Cuáles son los top 5 grupos del trimestre actual?"
+• "Compara el desempeño de grupos vs estados"
+• "¿Qué sucursales tienen problemas críticos?"
+• "Dame recomendaciones para mejorar"
+• "¿Cómo está el promedio de esta semana?"
+
+💡 **Simplemente escribe tu pregunta** o usa los comandos:`;
   
   const keyboard = {
     reply_markup: {
@@ -548,13 +711,27 @@ bot.on('message', async (msg) => {
     const question = msg.text;
     
     try {
-      bot.sendMessage(chatId, '🤖 Analizando tu pregunta...');
+      // Send typing indicator
+      bot.sendChatAction(chatId, 'typing');
       
-      const response = await askAI(question);
+      // Use new AI engine for intelligent responses
+      const response = await aiEngine.analyzeAndRespond(question);
+      
       bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+      
+      // Log for analysis
+      console.log(`AI Query processed: "${question}"`);
     } catch (error) {
       console.error('AI Agent error:', error);
-      bot.sendMessage(chatId, '🤖 Error al procesar tu pregunta. Intenta usar comandos específicos como /kpis.');
+      
+      // Fallback to simple response system
+      try {
+        const context = await queryDatabase(question);
+        const response = generateStructuredResponse(question, context);
+        bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
+      } catch (fallbackError) {
+        bot.sendMessage(chatId, '🤖 Error al procesar tu pregunta. Intenta usar comandos específicos como /kpis.');
+      }
     }
   }
 });
