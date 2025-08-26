@@ -43,6 +43,10 @@ console.log('🔑 Token Debug at startup:');
 console.log(`   CLAUDE_API_KEY exists: ${CLAUDE_API_KEY ? 'YES' : 'NO'}`);
 console.log(`   Token length: ${CLAUDE_API_KEY ? CLAUDE_API_KEY.length : 0}`);
 console.log(`   Token starts correctly: ${CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') ? 'YES' : 'NO'}`);
+if (CLAUDE_API_KEY) {
+  console.log(`   Token first 20 chars: ${CLAUDE_API_KEY.substring(0, 20)}...`);
+  console.log(`   Token last 10 chars: ...${CLAUDE_API_KEY.substring(CLAUDE_API_KEY.length - 10)}`);
+}
 
 if (!token) {
   console.error('❌ Bot token is required! Please set TELEGRAM_BOT_TOKEN in .env file');
@@ -157,8 +161,13 @@ async function askAI(question, context = null) {
 
 // Claude API Integration
 async function callClaudeAPI(question, context) {
+  console.log('🚀 Starting Claude API call...');
+  console.log(`📝 Question: "${question}"`);
+  console.log(`🔑 Using token: ${CLAUDE_API_KEY ? CLAUDE_API_KEY.substring(0, 20) + '...' + CLAUDE_API_KEY.substring(CLAUDE_API_KEY.length - 10) : 'NO TOKEN'}`);
+  
   try {
     const prompt = createIntelligentPrompt(question, context);
+    console.log(`📄 Prompt length: ${prompt.length} characters`);
     
     const response = await axios.post('https://api.anthropic.com/v1/messages', {
       model: 'claude-3-haiku-20240307',
@@ -177,9 +186,17 @@ async function callClaudeAPI(question, context) {
       }
     });
 
+    console.log('✅ Claude API response received successfully!');
+    console.log(`📏 Response length: ${response.data.content[0].text.length} characters`);
+    
     return response.data.content[0].text;
   } catch (error) {
-    console.error('Claude API error:', error.response?.data || error.message);
+    console.error('❌ Claude API ERROR:');
+    console.error('   Status:', error.response?.status);
+    console.error('   Headers:', error.response?.headers);
+    console.error('   Data:', error.response?.data);
+    console.error('   Message:', error.message);
+    console.log('🔄 Falling back to pattern matching...');
     return generateStructuredResponse(question, context);
   }
 }
