@@ -14,7 +14,11 @@ if (process.env.NODE_ENV === 'production' && !process.env.TELEGRAM_BOT_TOKEN) {
 }
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
-const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:3001/api';
+// In production, use relative paths for same-server API calls
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+    ? 'http://localhost:10000/api'  // Internal port in Render
+    : (process.env.API_BASE_URL || 'http://localhost:3001/api');
+    
 const WEBAPP_URL = process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000';
 
 // AI Configuration
