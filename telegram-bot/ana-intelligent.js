@@ -101,6 +101,9 @@ ${Object.entries(this.databaseSchema.columns).map(([col, desc]) => `- ${col}: ${
 GRUPOS OPERATIVOS DISPONIBLES:
 ${this.databaseSchema.grupos_disponibles.join(', ')}
 
+EJEMPLO SQL PARA RANKING:
+SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 5;
+
 CONTEXTO DE NEGOCIO:
 - Año actual: ${this.databaseSchema.year}
 - Trimestre actual: Q${this.databaseSchema.current_quarter}
@@ -115,11 +118,12 @@ CAPACIDADES ULTRA INTELIGENTES:
 5. RESPONDES en formato Falcon (emoji + bullets + métricas + comandos)
 
 INSTRUCCIONES DE RESPUESTA:
-- Si necesitas datos específicos → responde con "SQL:" seguido del query
+- Si necesitas datos específicos → responde INMEDIATAMENTE con "SQL:" seguido del query
 - Si puedes responder directamente → da respuesta Falcon completa
 - Si es pregunta de configuración → maneja el flujo conversacional
-- SIEMPRE usa el contexto previo de la conversación
-- SIEMPRE confirma el grupo correcto antes de buscar datos
+- NUNCA pidas confirmación, eres experta y sabes qué hacer
+- Para "ranking" o "grupos" → genera SQL inmediatamente
+- Para preguntas específicas de grupo → usa ese grupo en SQL
 
 FORMATO FALCON REQUERIDO:
 🎯 TÍTULO - CONTEXTO
@@ -184,11 +188,33 @@ ANALIZA estos datos como Ana y da una respuesta Falcon completa con insights emp
         return analysisResponse.choices[0].message.content;
         
       } catch (sqlError) {
-        console.error('❌ Error ejecutando SQL:', sqlError);
-        return `⚠️ Error obteniendo datos específicos
+        console.error('❌ Error ejecutando SQL:', sqlError.message);
+        console.error('Query fallido:', sqlQuery);
         
-🔧 Intenta reformular tu pregunta o usa:
-🎯 /ranking | /areas_criticas | /grupos`;
+        // Retry con query básico
+        try {
+          const basicQuery = `SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 5`;
+          const retryResult = await this.pool.query(basicQuery);
+          
+          // Format basic results
+          const basicData = retryResult.rows;
+          let response = `🏆 RANKING Q3 2025 - TOP ${basicData.length}\n\n`;
+          basicData.forEach((row, i) => {
+            const stars = row.promedio >= 95 ? '⭐⭐⭐' : row.promedio >= 90 ? '⭐⭐' : '⭐';
+            response += `• ${i+1}. ${row.grupo_operativo} - ${row.promedio}% ${stars}\n`;
+          });
+          response += `\n🎯 /areas | /grupos | /stats`;
+          return response;
+          
+        } catch (retryError) {
+          console.error('❌ Error en retry básico:', retryError.message);
+          return `⚠️ Error temporal de base de datos
+
+🔧 Sistema está verificando conexión
+📊 Intenta en unos segundos: /ranking
+
+🎯 /stats | /areas | /grupos`;
+        }
       }
     }
     
