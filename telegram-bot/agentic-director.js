@@ -47,8 +47,19 @@ class AgenticDirector {
       console.log('🚀 INICIANDO SISTEMA ULTRA INTELIGENTE ANA...');
       this.isTraining = true;
       
+      // Set a 30 second timeout for training
+      const trainingTimeout = setTimeout(() => {
+        if (this.isTraining) {
+          console.log('⏱️ Timeout de entrenamiento - activando modo AGENTIC');
+          this.isTraining = false;
+          this.trainingComplete = false;
+        }
+      }, 30000); // 30 segundos máximo
+      
       // Train Ana with complete database knowledge with proper error handling
       const trainingResult = await this.ultraIntelligence.executeCompleteTraining();
+      
+      clearTimeout(trainingTimeout);
       
       if (trainingResult) {
         this.trainingComplete = true;
@@ -71,9 +82,19 @@ class AgenticDirector {
   async processUserQuestion(question, chatId) {
     console.log(`🧠 ANA ULTRA INTELIGENTE procesando: "${question}"`);
     
-    // Wait for training if still in progress
+    // Wait maximum 5 seconds for training
     if (this.isTraining) {
-      return "🧠 Un momento... Ana se está entrenando para conocer al 120% toda la base de datos. Esto solo toma unos segundos...";
+      console.log('⏳ Esperando entrenamiento... máximo 5 segundos');
+      let waitTime = 0;
+      while (this.isTraining && waitTime < 5000) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        waitTime += 100;
+      }
+      
+      if (this.isTraining) {
+        console.log('⏱️ Timeout esperando entrenamiento - usando AGENTIC fallback');
+        this.isTraining = false; // Force stop training flag
+      }
     }
     
     // Use DYNAMIC QUERY ENGINE for unlimited database queries
