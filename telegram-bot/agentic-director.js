@@ -76,6 +76,28 @@ class AgenticDirector {
       };
     }
     
+    // DETECCIÓN DE ESTADO/UBICACIÓN
+    if (lower.includes('estado') || lower.includes('donde esta') || lower.includes('ubicación') || lower.includes('ubicacion')) {
+      const grupoDetected = this.extractGrupoName(lower);
+      return {
+        type: 'grupo_location',
+        grupo: grupoDetected,
+        wants_location: true,
+        context: 'location_inquiry'
+      };
+    }
+    
+    // DETECCIÓN DE CALIFICACIONES/DESEMPEÑO
+    if (lower.includes('calificacion') || lower.includes('calificación') || lower.includes('desempeño') || lower.includes('desempeno')) {
+      const grupoDetected = this.extractGrupoName(lower);
+      return {
+        type: 'grupo_performance',
+        grupo: grupoDetected,
+        wants_scores: true,
+        context: 'performance_inquiry'
+      };
+    }
+    
     return {
       type: 'general_inquiry',
       context: 'needs_clarification'
@@ -83,16 +105,57 @@ class AgenticDirector {
   }
   
   extractGrupoName(text) {
-    const grupos = ['TEPEYAC', 'OGAS', 'TEC', 'EXPO', 'PLOG QUERETARO', 'GRUPO MATAMOROS'];
+    // TODOS LOS 20 GRUPOS OPERATIVOS de la base de conocimiento
+    const grupos = [
+      'OGAS', 'PLOG QUERETARO', 'EPL SO', 'TEC', 'TEPEYAC', 'GRUPO MATAMOROS',
+      'PLOG LAGUNA', 'EFM', 'RAP', 'GRUPO RIO BRAVO', 'PLOG NUEVO LEON',
+      'GRUPO PIEDRAS NEGRAS', 'GRUPO CANTERA ROSA (MORELIA)', 'EXPO',
+      'OCHTER TAMPICO', 'GRUPO SABINAS HIDALGO', 'GRUPO CENTRITO', 'CRR',
+      'GRUPO NUEVO LAREDO (RUELAS)', 'GRUPO SALTILLO'
+    ];
+    
+    // Búsqueda exacta primero
     for (const grupo of grupos) {
       if (text.includes(grupo.toLowerCase()) || text.includes(grupo)) {
         return grupo;
       }
     }
-    // Detecciones específicas
-    if (text.includes('tepeyac')) return 'TEPEYAC';
-    if (text.includes('ogas')) return 'OGAS';
-    if (text.includes('tec')) return 'TEC';
+    
+    // Detecciones específicas por palabras clave
+    const lower = text.toLowerCase();
+    
+    // Grupos con nombres únicos
+    if (lower.includes('ogas')) return 'OGAS';
+    if (lower.includes('tepeyac')) return 'TEPEYAC';
+    if (lower.includes('tec') && !lower.includes('ochter')) return 'TEC';
+    if (lower.includes('expo')) return 'EXPO';
+    if (lower.includes('efm')) return 'EFM';
+    if (lower.includes('rap') && !lower.includes('rap') === false) return 'RAP';
+    if (lower.includes('crr')) return 'CRR';
+    
+    // Grupos con "PLOG"
+    if (lower.includes('queretaro') || lower.includes('querétaro')) return 'PLOG QUERETARO';
+    if (lower.includes('laguna')) return 'PLOG LAGUNA';
+    if (lower.includes('nuevo leon') || lower.includes('nuevo león')) return 'PLOG NUEVO LEON';
+    
+    // Grupos con "GRUPO"
+    if (lower.includes('matamoros') && lower.includes('grupo')) return 'GRUPO MATAMOROS';
+    if (lower.includes('saltillo')) return 'GRUPO SALTILLO';
+    if (lower.includes('centrito')) return 'GRUPO CENTRITO';
+    if (lower.includes('rio bravo')) return 'GRUPO RIO BRAVO';
+    if (lower.includes('piedras negras')) return 'GRUPO PIEDRAS NEGRAS';
+    if (lower.includes('nuevo laredo') || lower.includes('ruelas')) return 'GRUPO NUEVO LAREDO (RUELAS)';
+    if (lower.includes('sabinas hidalgo')) return 'GRUPO SABINAS HIDALGO';
+    if (lower.includes('cantera rosa') || lower.includes('morelia')) return 'GRUPO CANTERA ROSA (MORELIA)';
+    
+    // Grupos con nombres únicos adicionales
+    if (lower.includes('ochter') || lower.includes('tampico')) return 'OCHTER TAMPICO';
+    if (lower.includes('epl so')) return 'EPL SO';
+    
+    // Fallback - palabras sueltas comunes
+    if (lower.includes('matamoros') && !lower.includes('grupo')) return 'GRUPO MATAMOROS';
+    
+    console.log(`⚠️ No se detectó grupo en: "${text}"`);
     return null;
   }
   
@@ -112,6 +175,12 @@ class AgenticDirector {
         
       case 'ranking_grupos':
         return await this.getRankingData(intent.quantity);
+        
+      case 'grupo_location':
+        return await this.getGrupoLocation(intent.grupo);
+        
+      case 'grupo_performance':
+        return await this.getGrupoPerformance(intent.grupo);
         
       default:
         return { message: 'Necesito más contexto para ayudarte mejor' };
@@ -198,6 +267,97 @@ class AgenticDirector {
     return await this.intelligentSystem.getTopGrupos('Q3', quantity);
   }
 
+  async getGrupoLocation(grupoName) {
+    if (!grupoName) {
+      return { 
+        found: false, 
+        message: 'No especificaste qué grupo te interesa. ¿Cuál grupo buscas?' 
+      };
+    }
+
+    try {
+      console.log(`📍 Buscando ubicación del grupo: ${grupoName}`);
+      
+      const query = `
+        SELECT DISTINCT 
+          grupo_operativo,
+          estado,
+          COUNT(DISTINCT sucursal_clean) as sucursales_count,
+          AVG(porcentaje) as promedio_general
+        FROM supervision_operativa_detalle
+        WHERE UPPER(grupo_operativo) = UPPER($1)
+          AND fecha_supervision >= '2025-01-01'
+          AND porcentaje IS NOT NULL
+        GROUP BY grupo_operativo, estado
+        ORDER BY estado;
+      `;
+      
+      const result = await this.pool.query(query, [grupoName]);
+      
+      if (result.rows.length === 0) {
+        return {
+          found: false,
+          grupo: grupoName,
+          message: `No encontré datos de ubicación para el grupo ${grupoName}`
+        };
+      }
+      
+      return {
+        found: true,
+        grupo: grupoName,
+        estados: result.rows.map(row => ({
+          estado: row.estado,
+          sucursales: parseInt(row.sucursales_count),
+          promedio: parseFloat(row.promedio_general).toFixed(2)
+        })),
+        total_estados: result.rows.length
+      };
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo ubicación:', error);
+      return {
+        found: false,
+        error: error.message,
+        grupo: grupoName
+      };
+    }
+  }
+
+  async getGrupoPerformance(grupoName) {
+    if (!grupoName) {
+      return { 
+        found: false, 
+        message: 'No especificaste qué grupo te interesa. ¿Cuál grupo quieres analizar?' 
+      };
+    }
+
+    try {
+      console.log(`📊 Analizando desempeño del grupo: ${grupoName}`);
+      
+      // Obtener datos de oportunidades (que incluye contexto de negocio)
+      const opportunities = await this.intelligentSystem.getGroupOpportunities(grupoName, 'Q3', 3);
+      
+      // Obtener contexto de negocio
+      const businessContext = this.knowledgeBase.getGrupoIntelligence(grupoName);
+      
+      return {
+        found: true,
+        grupo: grupoName,
+        opportunities: opportunities.opportunities || [],
+        businessContext: businessContext,
+        performance_data: opportunities
+      };
+      
+    } catch (error) {
+      console.error('❌ Error obteniendo desempeño:', error);
+      return {
+        found: false,
+        error: error.message,
+        grupo: grupoName
+      };
+    }
+  }
+
   async generateNaturalResponse(intent, data, originalQuestion) {
     switch (intent.type) {
       case 'sucursales_by_grupo':
@@ -208,6 +368,12 @@ class AgenticDirector {
         
       case 'ranking_grupos':
         return this.generateRankingResponse(data);
+        
+      case 'grupo_location':
+        return this.generateLocationResponse(data, originalQuestion);
+        
+      case 'grupo_performance':
+        return this.generatePerformanceResponse(data, originalQuestion);
         
       default:
         return this.generateHelpResponse(originalQuestion);
@@ -332,6 +498,86 @@ Esto podría significar que:
     return response;
   }
 
+  generateLocationResponse(data, originalQuestion) {
+    if (!data.found) {
+      return `🤔 No pude encontrar información de ubicación para **${data.grupo}**.
+
+Esto podría ser porque:
+• El nombre no está exactamente como está en la base de datos
+• No hay datos de supervisión recientes para este grupo
+• ¿Te refieres a otro grupo similar?
+
+Los grupos que tengo con más información son: OGAS, TEPEYAC, TEC, EXPO, EFM, CRR, GRUPO SALTILLO 😊`;
+    }
+
+    let response = `📍 **Ubicación del Grupo ${data.grupo.toUpperCase()}**\n\n`;
+    response += `¡Perfecto! Te muestro dónde opera **${data.grupo}**:\n\n`;
+    
+    data.estados.forEach((estado, index) => {
+      response += `**${index + 1}. ${estado.estado}**\n`;
+      response += `   🏪 ${estado.sucursales} sucursales\n`;
+      response += `   📊 Promedio: ${estado.promedio}%\n\n`;
+    });
+    
+    response += `💡 **Mi análisis:** ${data.grupo} opera en ${data.total_estados} estado${data.total_estados > 1 ? 's' : ''} `;
+    
+    if (data.total_estados === 1) {
+      response += `concentrando toda su operación en ${data.estados[0].estado}.`;
+    } else {
+      const mejorEstado = data.estados.reduce((prev, current) => 
+        parseFloat(prev.promedio) > parseFloat(current.promedio) ? prev : current
+      );
+      response += `siendo ${mejorEstado.estado} su mejor desempeño con ${mejorEstado.promedio}%.`;
+    }
+    
+    response += `\n\n¿Te gustaría que analice el desempeño específico de algún estado o veamos qué sucursales tiene ${data.grupo}? 🤔`;
+    
+    return response;
+  }
+
+  generatePerformanceResponse(data, originalQuestion) {
+    if (!data.found) {
+      return `🤔 No pude obtener el análisis de desempeño para **${data.grupo}**.
+
+¿Te refieres a alguno de estos grupos?
+• OGAS (nuestro líder)
+• TEPEYAC (grupo grande)
+• TEC (rendimiento sólido)
+• EXPO, EFM, CRR, GRUPO SALTILLO
+
+¡Pregúntame por cualquiera! 😊`;
+    }
+
+    let response = `📊 **Desempeño del Grupo ${data.grupo.toUpperCase()}**\n\n`;
+    
+    if (data.businessContext) {
+      const ctx = data.businessContext;
+      response += `🎯 **Posición en el ranking:** #${ctx.position_in_ranking} de 20 grupos\n`;
+      response += `⭐ **Percentil:** ${ctx.percentile} (${ctx.status.toUpperCase()})\n`;
+      response += `📈 **Promedio general:** ${ctx.promedio}%\n`;
+      response += `🏢 **Red:** ${ctx.sucursales} sucursales, ${ctx.supervisiones} supervisiones\n\n`;
+      
+      response += `💼 **Contexto empresarial:** ${ctx.performance_context}\n\n`;
+    }
+    
+    if (data.opportunities && data.opportunities.length > 0) {
+      response += `🎯 **Sus principales oportunidades:**\n`;
+      data.opportunities.slice(0, 3).forEach((opp, index) => {
+        const emoji = index === 0 ? '🔴' : index === 1 ? '🟡' : '🟠';
+        response += `${emoji} **${opp.area}**: ${opp.promedio}%\n`;
+      });
+      response += `\n`;
+    }
+    
+    if (data.businessContext) {
+      response += `💡 **Mi recomendación:** ${data.businessContext.recommendation}\n\n`;
+    }
+    
+    response += `¿Te interesa que profundice en algún área específica o comparemos ${data.grupo} con otros grupos? 🚀`;
+    
+    return response;
+  }
+
   generateHelpResponse(originalQuestion) {
     return `🤔 **¡Hola! Soy Ana, tu analista experta de El Pollo Loco**
 
@@ -341,8 +587,13 @@ No estoy segura de entender exactamente lo que necesitas con: "${originalQuestio
 • "¿Cuáles son las sucursales de TEPEYAC y cómo han evolucionado?"
 • "¿Qué oportunidades de mejora tiene OGAS?"  
 • "¿Dame el top 5 de grupos este trimestre?"
+• "¿El grupo EFM dónde está ubicado?"
+• "¿Cuáles son las calificaciones del grupo CRR?"
 
-¡Pregúntame lo que necesites! Conozco todos los grupos, sucursales, y su desempeño 😊`;
+**Grupos que conozco muy bien:**
+OGAS, TEPEYAC, TEC, EXPO, EFM, CRR, GRUPO SALTILLO, PLOG QUERETARO, RAP, y muchos más...
+
+¡Pregúntame lo que necesites! 😊`;
   }
 
   saveConversationMemory(chatId, question, response, intent) {
