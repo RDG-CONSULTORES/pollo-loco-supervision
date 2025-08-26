@@ -4,6 +4,7 @@ const { Pool } = require('pg');
 const SupervisionAI = require('./ai-intelligence');
 const TutorialSystem = require('./tutorial-system');
 const RealSupervisionIntelligence = require('./real-data-intelligence');
+const IntelligentSupervisionSystem = require('./intelligent-supervision-system');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -27,6 +28,7 @@ const pool = new Pool({
 // Initialize AI engines
 const aiEngine = new SupervisionAI(pool);
 const realDataEngine = new RealSupervisionIntelligence(pool);
+const intelligentSystem = new IntelligentSupervisionSystem(pool);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -148,59 +150,83 @@ async function queryDatabase(question) {
 
 async function askAI(question, context = null) {
   try {
-    console.log(`🧠 Processing question with Real Data Intelligence: "${question}"`);
+    console.log(`🧠 Processing with INTELLIGENT SUPERVISION SYSTEM: "${question}"`);
     
-    // Use Real Data Intelligence for analysis
-    const analysis = await realDataEngine.analyzeQuestion(question);
+    // Use Intelligent Supervision System for advanced analysis
+    const analysis = await intelligentSystem.analyzeIntelligentQuestion(question);
     
-    // Get specific real data based on analysis
-    let realData = null;
+    let intelligentData = null;
     
-    if (analysis.intent === 'opportunities') {
-      const entity = analysis.entity;
-      const sucursalName = entity.type === 'sucursal' ? entity.name : null;
-      realData = await realDataEngine.getOpportunityAreas(sucursalName, analysis.quantity);
-      console.log('📊 Real opportunity data retrieved:', realData.areas.length, 'areas');
-    } else if (analysis.intent === 'ranking') {
-      realData = await realDataEngine.getTopPerformers(analysis.quantity, analysis.timeframe);
-      console.log('🏆 Real ranking data retrieved:', realData.length, 'entries');
-    } else {
-      // Get general context
-      realData = await queryDatabase(question);
+    // Route to specific intelligent methods based on intent
+    switch (analysis.intent) {
+      case 'group_opportunities':
+        const grupoName = analysis.entity.name;
+        intelligentData = await intelligentSystem.getGroupOpportunities(
+          grupoName, analysis.trimester, analysis.quantity
+        );
+        console.log(`📊 Group opportunities retrieved for ${grupoName}:`, intelligentData.opportunities.length);
+        break;
+        
+      case 'sucursal_opportunities':
+        const sucursalName = analysis.entity.name;
+        intelligentData = await intelligentSystem.getSucursalOpportunities(sucursalName, analysis.quantity);
+        console.log(`🏪 Sucursal opportunities retrieved for ${sucursalName}:`, intelligentData.opportunities.length);
+        break;
+        
+      case 'quarterly_comparison':
+        const grupo = analysis.entity.name || 'TEPEYAC'; // Default to TEPEYAC if not specified
+        const current = analysis.trimester === 'all' ? intelligentSystem.getCurrentTrimester() : analysis.trimester;
+        const previous = intelligentSystem.getPreviousTrimester();
+        intelligentData = await intelligentSystem.getQuarterlyComparison(grupo, current, previous);
+        console.log(`📈 Quarterly comparison retrieved for ${grupo}`);
+        break;
+        
+      case 'group_ranking':
+      case 'general_ranking':
+        intelligentData = await intelligentSystem.getTopGrupos(analysis.trimester, analysis.quantity);
+        console.log(`🏆 Ranking retrieved:`, intelligentData.ranking.length, 'grupos');
+        break;
+        
+      default:
+        // For other intents, use general context
+        intelligentData = await queryDatabase(question);
+        console.log(`🔍 General data retrieved for intent: ${analysis.intent}`);
     }
     
-    // Validate data exists
-    const validationError = realDataEngine.validateResponse(realData);
-    if (validationError) {
-      return validationError;
+    // Validate entity exists if specified
+    if (analysis.entity.name && analysis.entity.type !== 'general') {
+      const entityExists = await intelligentSystem.validateEntity(analysis.entity.type, analysis.entity.name);
+      if (!entityExists) {
+        return `❌ No se encontró ${analysis.entity.type} "${analysis.entity.name}". Verifica el nombre e intenta nuevamente.`;
+      }
     }
     
-    // Try OpenAI API with real data
+    // Try OpenAI API with intelligent data
     if (OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-')) {
       try {
-        console.log('🎯 Attempting OpenAI API with real data...');
-        const aiResponse = await callOpenAI(question, realData);
+        console.log('🎯 Attempting OpenAI API with intelligent data...');
+        const aiResponse = await callOpenAI(question, intelligentData);
         
         // ANTI-HALLUCINATION: Validate AI response
         if (realDataEngine.validateIndicators(aiResponse)) {
           console.log('✅ AI response validated - no hallucination detected');
           return aiResponse;
         } else {
-          console.log('⚠️ HALLUCINATION DETECTED in AI response - using real data fallback');
-          return await generateRealDataResponse(question, realData, analysis);
+          console.log('⚠️ HALLUCINATION DETECTED in AI response - using intelligent fallback');
+          return await generateIntelligentResponse(question, intelligentData, analysis);
         }
       } catch (openaiError) {
-        console.log('⚠️ OpenAI failed, using real data pattern matching...');
+        console.log('⚠️ OpenAI failed, using intelligent structured response...');
       }
     }
     
-    // Fallback to real data structured response
-    console.log('🔄 Using real data structured response...');
-    return await generateRealDataResponse(question, realData, analysis);
+    // Fallback to intelligent structured response
+    console.log('🔄 Using intelligent structured response...');
+    return await generateIntelligentResponse(question, intelligentData, analysis);
     
   } catch (error) {
-    console.error('AI Error:', error);
-    return "🤖 Error al procesar tu pregunta. Los datos podrían no estar disponibles para el período especificado.";
+    console.error('🚨 Intelligent System Error:', error);
+    return "🤖 Error en el sistema inteligente. Los datos podrían no estar disponibles para el período especificado.";
   }
 }
 
@@ -332,6 +358,156 @@ FORMATO:
 Máximo 500 caracteres.`;
 
   return prompt;
+}
+
+async function generateIntelligentResponse(question, intelligentData, analysis) {
+  try {
+    console.log(`🎯 Generating INTELLIGENT response for intent: ${analysis.intent}`);
+    
+    switch (analysis.intent) {
+      case 'group_opportunities':
+        return generateGroupOpportunitiesResponse(intelligentData, analysis);
+        
+      case 'sucursal_opportunities':
+        return generateSucursalOpportunitiesResponse(intelligentData, analysis);
+        
+      case 'quarterly_comparison':
+        return generateQuarterlyComparisonResponse(intelligentData, analysis);
+        
+      case 'group_ranking':
+      case 'general_ranking':
+        return generateRankingResponse(intelligentData, analysis);
+        
+      default:
+        return generateGeneralIntelligentResponse(intelligentData, analysis);
+    }
+  } catch (error) {
+    console.error('❌ Intelligent response generation error:', error);
+    return "🤖 Error al generar respuesta inteligente. Intenta reformular tu pregunta.";
+  }
+}
+
+function generateGroupOpportunitiesResponse(data, analysis) {
+  if (!data.opportunities || data.opportunities.length === 0) {
+    return `❌ No se encontraron áreas de oportunidad para el grupo **${data.grupo}** en ${data.trimester}.`;
+  }
+  
+  let response = `🎯 **ÁREAS DE OPORTUNIDAD - ${data.grupo.toUpperCase()}**\n`;
+  response += `📅 **Período**: ${data.trimester}\n\n`;
+  
+  data.opportunities.forEach((opp, index) => {
+    const emoji = index === 0 ? '🔴' : index === 1 ? '🟡' : '🟠';
+    response += `${emoji} **${index + 1}. ${opp.area}**\n`;
+    response += `   📊 Promedio: ${opp.promedio}%\n`;
+    response += `   📈 Rango: ${opp.rango}\n`;
+    response += `   📋 Evaluaciones: ${opp.evaluaciones}\n\n`;
+  });
+  
+  // Add intelligent insight
+  const worstArea = data.opportunities[0];
+  response += `💡 **Insight**: El área más crítica es **${worstArea.area}** con ${worstArea.promedio}%. `;
+  response += `Requiere atención inmediata para mejorar el desempeño del grupo.`;
+  
+  return response;
+}
+
+function generateSucursalOpportunitiesResponse(data, analysis) {
+  if (!data.opportunities || data.opportunities.length === 0) {
+    return `❌ No se encontraron datos de supervisión reciente para **${data.sucursal}**.`;
+  }
+  
+  const fechaSupervision = new Date(data.fecha_supervision).toLocaleDateString('es-MX', {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+  
+  let response = `🏪 **ÁREAS DE OPORTUNIDAD - ${data.sucursal.toUpperCase()}**\n`;
+  response += `🏢 **Grupo**: ${data.grupo}\n`;
+  response += `📍 **Estado**: ${data.estado}\n`;
+  response += `📅 **Última Supervisión**: ${fechaSupervision}\n\n`;
+  
+  data.opportunities.forEach((opp, index) => {
+    const emoji = index === 0 ? '🔴' : index === 1 ? '🟡' : index === 2 ? '🟠' : '⚪';
+    response += `${emoji} **${index + 1}. ${opp.area}**: ${opp.porcentaje}%\n`;
+  });
+  
+  // Add intelligent recommendations
+  const criticalCount = data.opportunities.filter(o => parseFloat(o.porcentaje) < 70).length;
+  response += `\n💡 **Análisis**: ${criticalCount} áreas requieren atención inmediata (< 70%). `;
+  response += `Priorizar intervención en **${data.opportunities[0].area}**.`;
+  
+  return response;
+}
+
+function generateQuarterlyComparisonResponse(data, analysis) {
+  if (!data.comparison || !data.comparison.current) {
+    return `❌ No se encontraron datos suficientes para comparar trimestres del grupo **${data.grupo}**.`;
+  }
+  
+  const comp = data.comparison;
+  const trendEmoji = comp.change.trend === 'mejora' ? '📈' : comp.change.trend === 'declive' ? '📉' : '➡️';
+  
+  let response = `📊 **COMPARATIVO TRIMESTRAL - ${data.grupo.toUpperCase()}**\n\n`;
+  
+  response += `🗓️ **${comp.current.trimester}**:\n`;
+  response += `   📊 Promedio: ${comp.current.promedio}%\n`;
+  response += `   🏪 Sucursales: ${comp.current.sucursales}\n`;
+  response += `   📋 Supervisiones: ${comp.current.supervisiones}\n\n`;
+  
+  response += `🗓️ **${comp.previous.trimester}**:\n`;
+  response += `   📊 Promedio: ${comp.previous.promedio}%\n`;
+  response += `   🏪 Sucursales: ${comp.previous.sucursales}\n`;
+  response += `   📋 Supervisiones: ${comp.previous.supervisiones}\n\n`;
+  
+  response += `${trendEmoji} **CAMBIO**: ${comp.change.points > 0 ? '+' : ''}${comp.change.points} puntos `;
+  response += `(${comp.change.percentage > 0 ? '+' : ''}${comp.change.percentage}%)\n`;
+  
+  // Intelligent analysis
+  const changeValue = parseFloat(comp.change.points);
+  if (changeValue > 2) {
+    response += `\n🎉 **Excelente mejora!** El grupo muestra una tendencia muy positiva.`;
+  } else if (changeValue > 0) {
+    response += `\n✅ **Mejora moderada.** El grupo mantiene una tendencia positiva.`;
+  } else if (changeValue < -2) {
+    response += `\n🚨 **Declive significativo.** Requiere análisis de causas y plan de acción inmediato.`;
+  } else if (changeValue < 0) {
+    response += `\n⚠️ **Ligero declive.** Monitorear de cerca y identificar áreas de mejora.`;
+  } else {
+    response += `\n➡️ **Desempeño estable.** Mantener estrategias actuales.`;
+  }
+  
+  return response;
+}
+
+function generateRankingResponse(data, analysis) {
+  if (!data.ranking || data.ranking.length === 0) {
+    return `❌ No se encontraron datos de ranking para ${data.trimester}.`;
+  }
+  
+  let response = `🏆 **RANKING GRUPOS OPERATIVOS**\n`;
+  response += `📅 **Período**: ${data.trimester}\n\n`;
+  
+  data.ranking.forEach(grupo => {
+    const medal = grupo.position === 1 ? '🥇' : grupo.position === 2 ? '🥈' : grupo.position === 3 ? '🥉' : '🏆';
+    response += `${medal} **${grupo.position}°. ${grupo.grupo}**\n`;
+    response += `   📊 Promedio: ${grupo.promedio}%\n`;
+    response += `   🏪 ${grupo.sucursales} sucursales (${grupo.supervisiones} supervisiones)\n\n`;
+  });
+  
+  // Intelligent insights
+  const leader = data.ranking[0];
+  const gap = parseFloat(leader.promedio) - parseFloat(data.ranking[1]?.promedio || 0);
+  response += `💡 **Insight**: **${leader.grupo}** lidera con ${gap.toFixed(1)} puntos de ventaja. `;
+  response += `Promedio de liderazgo: ${leader.promedio}%`;
+  
+  return response;
+}
+
+function generateGeneralIntelligentResponse(data, analysis) {
+  return "🤖 Pregunta procesada por sistema inteligente. Para mejores resultados, especifica:\n" +
+         "• Grupo operativo (TEPEYAC, OGAS, TEC, etc.)\n" +
+         "• Sucursal específica\n" +
+         "• Trimestre (Q1, Q2, Q3, Q4)\n" +
+         "• Tipo de análisis (oportunidades, comparativo, ranking)";
 }
 
 async function generateRealDataResponse(question, realData, analysis) {
