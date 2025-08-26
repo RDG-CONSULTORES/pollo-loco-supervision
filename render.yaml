@@ -11,10 +11,10 @@ services:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 3000
+        value: 10000
       - key: TELEGRAM_BOT_TOKEN
         value: 8341799056:AAFvMMPzuplDDsOM07m5ANI5WVCATchBPeY
       - key: RENDER_EXTERNAL_URL
         value: https://pollo-loco-supervision.onrender.com
       - key: START_BOT
-        value: true
+        value: "true"
