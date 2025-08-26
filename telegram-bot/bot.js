@@ -6,7 +6,9 @@ const TutorialSystem = require('./tutorial-system');
 const RealSupervisionIntelligence = require('./real-data-intelligence');
 const IntelligentSupervisionSystem = require('./intelligent-supervision-system');
 const IntelligentKnowledgeBase = require('./intelligent-knowledge-base');
-const AgenticDirector = require('./agentic-director');
+
+// REEMPLAZADO: Sistema fake por sistema verdaderamente inteligente
+const TrueAgenticDirector = require('./true-agentic-director');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -33,8 +35,8 @@ const realDataEngine = new RealSupervisionIntelligence(pool);
 const intelligentSystem = new IntelligentSupervisionSystem(pool);
 const knowledgeBase = new IntelligentKnowledgeBase(pool);
 
-// AGENTIC SYSTEM - CONVERSATIONAL AI
-const agenticDirector = new AgenticDirector(pool, knowledgeBase, intelligentSystem);
+// AGENTIC SYSTEM - CONVERSATIONAL AI VERDADERAMENTE INTELIGENTE
+const trueAgenticDirector = new TrueAgenticDirector(pool, knowledgeBase, intelligentSystem);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -168,7 +170,7 @@ async function askAI(question, context = null, chatId = null) {
     // PRIORIDAD 1: USAR ANA ULTRA INTELIGENTE (120% conocimiento)
     if (chatId) {
       console.log(`🚀 Delegando a ANA ULTRA INTELIGENTE para chat ${chatId}`);
-      const anaResponse = await agenticDirector.processUserQuestion(question, chatId);
+      const anaResponse = await trueAgenticDirector.processUserQuestion(question, chatId);
       
       if (anaResponse && anaResponse.length > 10) {
         console.log(`✅ ANA ULTRA INTELIGENTE generó respuesta completa`);
@@ -869,7 +871,7 @@ bot.onText(/\/ana/, async (msg) => {
   const chatId = msg.chat.id;
   
   try {
-    const status = agenticDirector.getIntelligenceStatus();
+    const status = trueAgenticDirector.getIntelligenceStatus();
     const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
     
     const anaStatus = `🧠 **ANA - ANALISTA ULTRA INTELIGENTE**
@@ -918,7 +920,7 @@ bot.onText(/\/retrain/, async (msg) => {
   try {
     bot.sendMessage(chatId, '🔄 **Iniciando reentrenamiento completo de Ana...**\n\nEsto puede tomar unos momentos...');
     
-    const newStatus = await agenticDirector.forceRetraining();
+    const newStatus = await trueAgenticDirector.forceRetraining();
     
     const retrainMessage = `✅ **Reentrenamiento completado!**
 
@@ -1248,7 +1250,7 @@ bot.on('callback_query', async (callbackQuery) => {
     case 'ana_status':
       // Show Ana Ultra Intelligence status
       try {
-        const status = agenticDirector.getIntelligenceStatus();
+        const status = trueAgenticDirector.getIntelligenceStatus();
         const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
         
         const statusMessage = `🧠 **ANA - ESTADO ULTRA INTELIGENTE**

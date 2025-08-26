@@ -1,7 +1,7 @@
 {
   "name": "pollo-loco-telegram-bot",
-  "version": "1.0.0",
-  "description": "Telegram Bot for El Pollo Loco Supervision Dashboard",
+  "version": "2.0.0",
+  "description": "Telegram Bot for El Pollo Loco Supervision Dashboard - TRULY INTELLIGENT with LLM integration",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js",
@@ -11,9 +11,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "node-telegram-bot-api": "^0.66.0",
+    "@anthropic-ai/sdk": "^0.60.0",
     "axios": "^1.6.2",
     "dotenv": "^16.3.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "openai": "^5.15.0",
     "pg": "^8.11.3"
   },
   "devDependencies": {
