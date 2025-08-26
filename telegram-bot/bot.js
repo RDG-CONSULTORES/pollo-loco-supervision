@@ -66,6 +66,9 @@ const bot = new TelegramBot(token, { polling: false });
 // Initialize tutorial system AFTER bot is created
 const tutorialSystem = new TutorialSystem(bot, aiEngine);
 
+// Message deduplication cache
+const messageCache = new Map();
+
 // Only start polling in development or if explicitly enabled
 if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_POLLING === 'true') {
     bot.startPolling();
@@ -148,17 +151,28 @@ async function askAI(question, context = null) {
       context = await queryDatabase(question);
     }
     
-    // Use real Claude API if available
-    if (CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-')) {
-      return await callClaudeAPI(question, context);
+    // Try Claude API first
+    if (CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') && CLAUDE_API_KEY.length > 50) {
+      try {
+        console.log('🎯 Attempting Claude API...');
+        return await callClaudeAPI(question, context);
+      } catch (claudeError) {
+        console.log('⚠️ Claude failed, trying OpenAI...');
+      }
     }
     
-    // Use real OpenAI API if available  
+    // Try OpenAI API as primary or fallback
     if (OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-')) {
-      return await callOpenAI(question, context);
+      try {
+        console.log('🎯 Attempting OpenAI API...');
+        return await callOpenAI(question, context);
+      } catch (openaiError) {
+        console.log('⚠️ OpenAI failed, using pattern matching...');
+      }
     }
     
     // Fallback to enhanced pattern matching
+    console.log('🔄 Using enhanced pattern matching...');
     return generateStructuredResponse(question, context);
   } catch (error) {
     console.error('AI Error:', error);
@@ -870,9 +884,23 @@ bot.on('message', async (msg) => {
   if (msg.text && !msg.text.startsWith('/') && msg.chat.type !== 'group') {
     const chatId = msg.chat.id;
     const question = msg.text;
+    const messageId = `${chatId}_${msg.message_id}`;
     
-    console.log(`📨 New message received: "${question}"`);
-    console.log(`🔍 About to check Claude API availability...`);
+    // Deduplication check
+    if (messageCache.has(messageId)) {
+      console.log(`🔄 Duplicate message ignored: ${messageId}`);
+      return;
+    }
+    messageCache.set(messageId, true);
+    
+    // Clean old cache entries (keep last 100)
+    if (messageCache.size > 100) {
+      const firstKey = messageCache.keys().next().value;
+      messageCache.delete(firstKey);
+    }
+    
+    console.log(`📨 New message received: "${question}" (ID: ${messageId})`);
+    console.log(`🔍 About to check AI API availability...`);
     
     try {
       // Check if user is in tutorial practice mode
