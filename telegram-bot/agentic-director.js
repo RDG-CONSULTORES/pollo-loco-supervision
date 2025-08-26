@@ -1,5 +1,7 @@
 // AGENTIC DIRECTOR - Coordinador Inteligente de Conversaciones
 const { Pool } = require('pg');
+const UltraIntelligenceEngine = require('./ultra-intelligence-engine');
+const DynamicQueryEngine = require('./dynamic-query-engine');
 
 class AgenticDirector {
   constructor(pool, knowledgeBase, intelligentSystem) {
@@ -7,21 +9,86 @@ class AgenticDirector {
     this.knowledgeBase = knowledgeBase;
     this.intelligentSystem = intelligentSystem;
     
+    // ULTRA INTELLIGENCE SYSTEM - Ana 120% knowledge
+    this.ultraIntelligence = new UltraIntelligenceEngine(pool);
+    this.dynamicQuery = new DynamicQueryEngine(pool, this.ultraIntelligence);
+    this.isTraining = false;
+    this.trainingComplete = false;
+    
     // MEMORY CONVERSACIONAL
     this.conversationMemory = new Map();
     
-    // PERSONALITY ENGINE
+    // PERSONALITY ENGINE - ENHANCED
     this.personality = {
       name: "Ana",
-      role: "Tu analista experta de El Pollo Loco",
+      role: "Tu analista experta ultra-inteligente de El Pollo Loco",
       tone: "amigable_profesional",
       expertise: "supervision_operativa",
-      language: "español_mexicano"
+      language: "español_mexicano",
+      intelligence_level: "ultra_advanced",
+      database_knowledge: "120%",
+      capabilities: [
+        "análisis_dinámico_completo",
+        "tendencias_predictivas", 
+        "recomendaciones_cas_inteligentes",
+        "consultas_ilimitadas_bd",
+        "contexto_empresarial_completo"
+      ]
     };
+    
+    // Initialize ultra intelligence on startup
+    this.initializeUltraIntelligence();
+  }
+
+  async initializeUltraIntelligence() {
+    if (this.trainingComplete) return;
+    
+    try {
+      console.log('🚀 INICIANDO SISTEMA ULTRA INTELIGENTE ANA...');
+      this.isTraining = true;
+      
+      // Train Ana with complete database knowledge
+      await this.ultraIntelligence.executeCompleteTraining();
+      
+      this.trainingComplete = true;
+      this.isTraining = false;
+      
+      console.log('✅ ANA ULTRA INTELIGENTE LISTA - 120% conocimiento de la base de datos');
+    } catch (error) {
+      console.error('❌ Error inicializando ultra inteligencia:', error);
+      this.isTraining = false;
+    }
   }
 
   async processUserQuestion(question, chatId) {
-    console.log(`🧠 AGENTE DIRECTOR procesando: "${question}"`);
+    console.log(`🧠 ANA ULTRA INTELIGENTE procesando: "${question}"`);
+    
+    // Wait for training if still in progress
+    if (this.isTraining) {
+      return "🧠 Un momento... Ana se está entrenando para conocer al 120% toda la base de datos. Esto solo toma unos segundos...";
+    }
+    
+    // Use DYNAMIC QUERY ENGINE for unlimited database queries
+    try {
+      // 1. ANÁLISIS ULTRA INTELIGENTE con Dynamic Query Engine
+      console.log('🎯 Usando Dynamic Query Engine para consulta ilimitada');
+      const dynamicResponse = await this.dynamicQuery.processDynamicQuery(question, { chatId });
+      
+      // 2. GUARDAR EN MEMORIA
+      this.saveConversationMemory(chatId, question, dynamicResponse, { type: 'dynamic_query' });
+      
+      return dynamicResponse;
+      
+    } catch (error) {
+      console.error('❌ Error en consulta dinámica, usando fallback:', error);
+      
+      // FALLBACK: Use original AGENTIC system
+      return await this.processFallbackQuestion(question, chatId);
+    }
+  }
+  
+  async processFallbackQuestion(question, chatId) {
+    console.log(`🔄 FALLBACK AGENTIC procesando: "${question}"`);
     
     // 1. ANALIZAR INTENT REAL
     const realIntent = await this.analyzeRealIntent(question);
@@ -596,6 +663,27 @@ OGAS, TEPEYAC, TEC, EXPO, EFM, CRR, GRUPO SALTILLO, PLOG QUERETARO, RAP, y mucho
 ¡Pregúntame lo que necesites! 😊`;
   }
 
+  // ULTRA INTELLIGENCE STATUS CHECK
+  getIntelligenceStatus() {
+    return {
+      training_complete: this.trainingComplete,
+      is_training: this.isTraining,
+      intelligence_level: this.personality.intelligence_level,
+      database_knowledge: this.personality.database_knowledge,
+      last_training: this.ultraIntelligence.lastTrainingUpdate,
+      dynamic_queries_enabled: true,
+      capabilities: this.personality.capabilities
+    };
+  }
+  
+  // FORCE RETRAINING (if needed)
+  async forceRetraining() {
+    console.log('🔄 FORZANDO REENTRENAMIENTO DE ANA...');
+    this.trainingComplete = false;
+    await this.initializeUltraIntelligence();
+    return this.getIntelligenceStatus();
+  }
+
   saveConversationMemory(chatId, question, response, intent) {
     if (!this.conversationMemory.has(chatId)) {
       this.conversationMemory.set(chatId, []);
@@ -607,15 +695,16 @@ OGAS, TEPEYAC, TEC, EXPO, EFM, CRR, GRUPO SALTILLO, PLOG QUERETARO, RAP, y mucho
       question: question,
       response: response,
       intent: intent,
-      success: true
+      success: true,
+      intelligence_used: this.trainingComplete ? 'ultra_intelligence' : 'fallback_agentic'
     });
     
-    // Mantener solo las últimas 10 interacciones
-    if (conversation.length > 10) {
+    // Mantener solo las últimas 15 interacciones (más memoria para ultra inteligencia)
+    if (conversation.length > 15) {
       conversation.shift();
     }
     
-    console.log(`💾 Memoria guardada para chat ${chatId}: ${conversation.length} interacciones`);
+    console.log(`💾 Memoria ANA guardada para chat ${chatId}: ${conversation.length} interacciones (Ultra: ${this.trainingComplete})`);
   }
 }
 

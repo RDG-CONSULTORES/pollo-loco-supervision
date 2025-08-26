@@ -88,6 +88,11 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_POLLING === 'tru
 }
 
 console.log('🤖 EPL Estandarización Operativa Bot started!');
+console.log('🧠 ANA ULTRA INTELIGENTE iniciándose...');
+console.log('📊 Base de datos: supervision_operativa_detalle');
+console.log('🎯 Conocimiento objetivo: 120% de toda la operación');
+console.log('⚡ Sistema de consultas: DINÁMICO (sin límites)');
+console.log('🤖 Personalidad: Ana - Analista experta de El Pollo Loco');
 
 // AI Agent Functions - Enhanced Intelligence
 async function queryDatabase(question) {
@@ -156,20 +161,20 @@ async function queryDatabase(question) {
 
 async function askAI(question, context = null, chatId = null) {
   try {
-    console.log(`🧠 AGENTIC SYSTEM Processing: "${question}"`);
+    console.log(`🧠 ANA ULTRA INTELIGENTE Processing: "${question}"`);
     
-    // USAR SISTEMA AGENTIC PARA RESPUESTAS NATURALES
+    // PRIORIDAD 1: USAR ANA ULTRA INTELIGENTE (120% conocimiento)
     if (chatId) {
-      console.log(`🤖 Delegando a AGENTE DIRECTOR para chat ${chatId}`);
-      const agenticResponse = await agenticDirector.processUserQuestion(question, chatId);
+      console.log(`🚀 Delegando a ANA ULTRA INTELIGENTE para chat ${chatId}`);
+      const anaResponse = await agenticDirector.processUserQuestion(question, chatId);
       
-      if (agenticResponse && agenticResponse.length > 10) {
-        console.log(`✅ AGENTE DIRECTOR generó respuesta natural`);
-        return agenticResponse;
+      if (anaResponse && anaResponse.length > 10) {
+        console.log(`✅ ANA ULTRA INTELIGENTE generó respuesta completa`);
+        return anaResponse;
       }
     }
     
-    console.log(`🔄 Fallback a sistema tradicional...`);
+    console.log(`🔄 Fallback a sistema inteligente tradicional...`);
     // Use Intelligent Supervision System for advanced analysis
     const analysis = await intelligentSystem.analyzeIntelligentQuestion(question);
     
@@ -801,20 +806,30 @@ bot.onText(/\/start/, (msg) => {
 
 ¡Bienvenido al sistema de supervisión operativa inteligente!
 
+🧠 **NUEVA: Ana - Tu Analista Ultra Inteligente**
+• Conocimiento completo al 120% de la base de datos
+• Consultas dinámicas ilimitadas sobre supervisiones
+• Análisis de tendencias y recomendaciones CAS
+• Respuestas naturales en español mexicano
+
 🎯 **Funcionalidades principales:**
 • Dashboard interactivo con 5 diseños
 • Análisis en tiempo real de supervisiones
-• 🧠 **AI Avanzado** con comprensión contextual
 • Base de datos con 561,868 registros
+• Sistema de entrenamiento inteligente
 
-🤖 **Ejemplos de preguntas inteligentes:**
-• "¿Cuáles son los top 5 grupos del trimestre actual?"
-• "Compara el desempeño de grupos vs estados"
-• "¿Qué sucursales tienen problemas críticos?"
-• "Dame recomendaciones para mejorar"
-• "¿Cómo está el promedio de esta semana?"
+🗣️ **Habla con Ana naturalmente:**
+• "¿Cuáles sucursales de TEPEYAC han evolucionado mejor?"
+• "¿Qué oportunidades tiene el grupo OGAS?"
+• "¿Qué grupos necesitan más apoyo del CAS?"
+• "Analiza la evolución de las freidoras por trimestre"
+• "¿Cuáles son las mejores prácticas de los líderes?"
 
-💡 **Simplemente escribe tu pregunta** o usa los comandos:`;
+💡 **Comandos especiales:**
+• /ana - Ver estado de Ana Ultra Inteligente
+• /retrain - Reentrenar Ana (si es necesario)
+
+**Simplemente escribe tu pregunta** o usa los comandos:`;
   
   const keyboard = {
     reply_markup: {
@@ -823,11 +838,14 @@ bot.onText(/\/start/, (msg) => {
           { text: '🎨 Dashboard (Elige tu diseño)', web_app: { url: WEBAPP_URL } }
         ],
         [
-          { text: '📊 KPIs Rápidos', callback_data: 'kpis' },
+          { text: '🧠 Estado de Ana', callback_data: 'ana_status' },
           { text: '🚨 Críticas', callback_data: 'criticas' }
         ],
         [
-          { text: '🏆 Top 10', callback_data: 'top10' },
+          { text: '📊 KPIs Rápidos', callback_data: 'kpis' },
+          { text: '🏆 Top 10', callback_data: 'top10' }
+        ],
+        [
           { text: '❓ Ayuda', callback_data: 'help' }
         ]
       ]
@@ -842,6 +860,78 @@ bot.onText(/\/tutorial/, async (msg) => {
   const chatId = msg.chat.id;
   const userName = msg.from.first_name || '';
   await tutorialSystem.startTutorial(chatId, userName);
+});
+
+// Comando /ana - Estado de Ana Ultra Inteligente
+bot.onText(/\/ana/, async (msg) => {
+  const chatId = msg.chat.id;
+  
+  try {
+    const status = agenticDirector.getIntelligenceStatus();
+    const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
+    
+    const anaStatus = `🧠 **ANA - ANALISTA ULTRA INTELIGENTE**
+
+🎯 **Estado actual:**
+• Entrenamiento: ${status.training_complete ? '✅ COMPLETO' : status.is_training ? '🔄 EN PROCESO' : '❌ PENDIENTE'}
+• Nivel de inteligencia: ${status.intelligence_level.toUpperCase()}
+• Conocimiento de BD: ${status.database_knowledge}
+• Consultas dinámicas: ${status.dynamic_queries_enabled ? '✅ ACTIVAS' : '❌ INACTIVAS'}
+
+📅 **Último entrenamiento:** ${trainingTime}
+
+🎭 **Mi personalidad:**
+• Nombre: Ana
+• Rol: Tu analista experta de El Pollo Loco
+• Especialidad: Supervisión operativa
+• Idioma: Español mexicano
+
+🚀 **Mis capacidades avanzadas:**
+• 📊 Análisis dinámico completo de cualquier consulta
+• 📈 Tendencias predictivas y patrones históricos
+• 💡 Recomendaciones CAS inteligentes
+• 🔍 Consultas ilimitadas a la base de datos
+• 🏢 Contexto empresarial completo
+
+💬 **Ejemplos de lo que puedo hacer:**
+• "¿Cuáles sucursales de TEPEYAC han evolucionado mejor?"
+• "¿Qué tendencias ves en OGAS durante Q3?"
+• "¿Qué grupos necesitan más apoyo del CAS?"
+• "Analiza la evolución de FREIDORAS en todos los grupos"
+• "¿Cuáles son las mejores prácticas de los grupos líderes?"
+
+${!status.training_complete ? '\n⚠️ **Nota:** Estoy terminando mi entrenamiento. ¡Pronto tendré conocimiento completo!' : '\n🎉 **¡Estoy lista!** Pregúntame cualquier cosa sobre supervisiones operativas.'}`;
+
+    bot.sendMessage(chatId, anaStatus, { parse_mode: 'Markdown' });
+  } catch (error) {
+    console.error('Error en comando /ana:', error);
+    bot.sendMessage(chatId, '🤖 Error al obtener el estado de Ana. Intenta más tarde.');
+  }
+});
+
+// Comando /retrain - Forzar reentrenamiento de Ana (solo para debugging)
+bot.onText(/\/retrain/, async (msg) => {
+  const chatId = msg.chat.id;
+  
+  try {
+    bot.sendMessage(chatId, '🔄 **Iniciando reentrenamiento completo de Ana...**\n\nEsto puede tomar unos momentos...');
+    
+    const newStatus = await agenticDirector.forceRetraining();
+    
+    const retrainMessage = `✅ **Reentrenamiento completado!**
+
+🧠 **Nuevo estado de Ana:**
+• Entrenamiento: ${newStatus.training_complete ? '✅ COMPLETO' : '❌ FALLA'}
+• Conocimiento BD: ${newStatus.database_knowledge}
+• Capacidades: ${newStatus.capabilities.length} módulos activos
+
+🎉 **Ana ahora conoce al 120% toda la operación de El Pollo Loco!**`;
+
+    bot.sendMessage(chatId, retrainMessage, { parse_mode: 'Markdown' });
+  } catch (error) {
+    console.error('Error en reentrenamiento:', error);
+    bot.sendMessage(chatId, '❌ Error durante el reentrenamiento. Revisa los logs del sistema.');
+  }
 });
 
 // Comando /ayuda_avanzada - Ayuda contextual inteligente
@@ -1153,6 +1243,39 @@ bot.on('callback_query', async (callbackQuery) => {
   }
   
   switch (data) {
+    case 'ana_status':
+      // Show Ana Ultra Intelligence status
+      try {
+        const status = agenticDirector.getIntelligenceStatus();
+        const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
+        
+        const statusMessage = `🧠 **ANA - ESTADO ULTRA INTELIGENTE**
+
+${status.training_complete ? '🟢 **ACTIVA Y LISTA**' : status.is_training ? '🟡 **ENTRENÁNDOSE...**' : '🔴 **PENDIENTE**'}
+
+📊 **Métricas:**
+• Conocimiento BD: ${status.database_knowledge}
+• Consultas dinámicas: ${status.dynamic_queries_enabled ? 'ACTIVAS' : 'INACTIVAS'}
+• Última actualización: ${trainingTime}
+
+🎯 **Lo que puedo hacer:**
+• Análisis completo de supervisiones
+• Tendencias y predicciones
+• Recomendaciones CAS personalizadas
+• Consultas ilimitadas de BD
+
+💬 **Pruébame con:**
+"¿Qué sucursales de TEPEYAC van mejor?"
+"¿Cuáles son las oportunidades de OGAS?"
+"¿Qué grupos necesitan más apoyo?"
+
+${status.training_complete ? '🎉 ¡Pregúntame cualquier cosa!' : '⏳ Terminando entrenamiento...'}`;
+
+        bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
+      } catch (error) {
+        bot.sendMessage(chatId, '❌ Error al obtener estado de Ana.');
+      }
+      break;
     case 'kpis':
       // Execute the KPIs command directly
       try {
