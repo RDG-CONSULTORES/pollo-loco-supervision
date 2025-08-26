@@ -141,24 +141,8 @@ bot.on('error', (error) => {
   console.error('❌ Bot error:', error);
 });
 
-// Manejo de webhook para producción
-if (process.env.NODE_ENV === 'production') {
-  const express = require('express');
-  const app = express();
-  
-  app.use(express.json());
-  
-  // Webhook endpoint
-  app.post(`/bot${token}`, (req, res) => {
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
-  });
-  
-  const PORT = process.env.PORT || 10000;
-  app.listen(PORT, () => {
-    console.log(`🌐 Webhook server running on port ${PORT}`);
-  });
-}
+// Export bot for server-integrated.js to handle webhook
+module.exports = bot;
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

@@ -351,17 +351,28 @@ app.listen(PORT, async () => {
     if (process.env.NODE_ENV === 'production' || process.env.START_BOT === 'true') {
         console.log('🤖 Starting Telegram Bot...');
         
-        // Import and store bot globally for webhook access
+        // Import bot (ya no necesitamos webhook manual)
         global.telegramBot = require('./telegram-bot/bot-simple.js');
         
-        // Set webhook in production
-        if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL) {
+        // Set webhook in production usando setWebHook method
+        if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL && process.env.TELEGRAM_BOT_TOKEN) {
             const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/webhook`;
             console.log(`🔗 Setting webhook to: ${webhookUrl}`);
             
             try {
-                await global.telegramBot.setWebHook(webhookUrl);
-                console.log('✅ Webhook set successfully');
+                // Use Telegram Bot API directly
+                const response = await fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setWebhook`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: webhookUrl })
+                });
+                const result = await response.json();
+                
+                if (result.ok) {
+                    console.log('✅ Webhook set successfully');
+                } else {
+                    console.error('❌ Webhook error:', result.description);
+                }
             } catch (error) {
                 console.error('❌ Error setting webhook:', error.message);
             }
