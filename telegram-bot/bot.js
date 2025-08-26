@@ -38,6 +38,12 @@ const WEBAPP_URL = process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000';
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
+// Debug token availability at startup
+console.log('🔑 Token Debug at startup:');
+console.log(`   CLAUDE_API_KEY exists: ${CLAUDE_API_KEY ? 'YES' : 'NO'}`);
+console.log(`   Token length: ${CLAUDE_API_KEY ? CLAUDE_API_KEY.length : 0}`);
+console.log(`   Token starts correctly: ${CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') ? 'YES' : 'NO'}`);
+
 if (!token) {
   console.error('❌ Bot token is required! Please set TELEGRAM_BOT_TOKEN in .env file');
   process.exit(1);
@@ -840,6 +846,9 @@ bot.on('message', async (msg) => {
   if (msg.text && !msg.text.startsWith('/') && msg.chat.type !== 'group') {
     const chatId = msg.chat.id;
     const question = msg.text;
+    
+    console.log(`📨 New message received: "${question}"`);
+    console.log(`🔍 About to check Claude API availability...`);
     
     try {
       // Check if user is in tutorial practice mode
