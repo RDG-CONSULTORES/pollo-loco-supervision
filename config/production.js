@@ -5,5 +5,6 @@ module.exports = {
   NODE_ENV: 'production',
   START_BOT: true,
   RENDER_EXTERNAL_URL: process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision.onrender.com',
-  API_BASE_URL: 'http://localhost:10000/api'
+  API_BASE_URL: 'http://localhost:10000/api',
+  CLAUDE_API_KEY: process.env.CLAUDE_API_KEY
 };

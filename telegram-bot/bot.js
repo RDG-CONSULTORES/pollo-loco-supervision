@@ -125,62 +125,117 @@ async function queryDatabase(question) {
 }
 
 async function askAI(question, context = null) {
-  if (!CLAUDE_API_KEY && !OPENAI_API_KEY) {
-    return "🤖 El agente de IA no está configurado. Usa los comandos específicos como /kpis, /grupos, etc.";
-  }
-  
   try {
     // Get database context if not provided
     if (!context) {
       context = await queryDatabase(question);
     }
     
-    const systemPrompt = `Eres un asistente de IA especializado en análisis de datos de supervisión operativa para El Pollo Loco CAS. 
-    
-Tienes acceso a datos de supervisión operativa que incluyen:
-- 135 supervisiones completadas
-- 79 sucursales evaluadas  
-- 9 estados con presencia
-- 38 indicadores diferentes
-- Datos organizados por Grupo Operativo, Estado y Trimestre
-
-Responde en español de manera concisa y profesional. Usa emojis apropiados.
-Si no tienes datos específicos, indica qué comandos pueden ayudar (/kpis, /grupos, /estados, /criticas, /top10).`;
-
-    // Prepare context data summary
-    let contextSummary = '';
-    if (context && Array.isArray(context)) {
-      contextSummary = `Datos disponibles: ${context.length} registros encontrados.`;
-      if (context.length > 0) {
-        const sample = context[0];
-        contextSummary += ` Ejemplo: ${JSON.stringify(sample)}`;
-      }
-    } else if (context && typeof context === 'object') {
-      contextSummary = `Datos KPI: ${JSON.stringify(context)}`;
-    }
-
-    const userPrompt = `Pregunta del usuario: "${question}"
-    
-Contexto de datos: ${contextSummary}
-
-Por favor responde de manera útil y específica basándote en los datos disponibles.`;
-
-    // Try Claude API first, then OpenAI as fallback
-    if (CLAUDE_API_KEY) {
-      // Note: This would require proper Claude API integration
-      // For now, return a structured response based on the data
-      return generateStructuredResponse(question, context);
-    } else if (OPENAI_API_KEY) {
-      // Note: This would require proper OpenAI API integration
-      // For now, return a structured response based on the data
-      return generateStructuredResponse(question, context);
+    // Use real Claude API if available
+    if (CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-')) {
+      return await callClaudeAPI(question, context);
     }
     
+    // Use real OpenAI API if available  
+    if (OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-')) {
+      return await callOpenAI(question, context);
+    }
+    
+    // Fallback to enhanced pattern matching
     return generateStructuredResponse(question, context);
   } catch (error) {
     console.error('AI Error:', error);
     return "🤖 Error al procesar tu pregunta. Intenta usar comandos específicos como /kpis o /grupos.";
   }
+}
+
+// Claude API Integration
+async function callClaudeAPI(question, context) {
+  try {
+    const prompt = createIntelligentPrompt(question, context);
+    
+    const response = await axios.post('https://api.anthropic.com/v1/messages', {
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 800,
+      messages: [
+        {
+          role: 'user',
+          content: prompt
+        }
+      ]
+    }, {
+      headers: {
+        'Authorization': `Bearer ${CLAUDE_API_KEY}`,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01'
+      }
+    });
+
+    return response.data.content[0].text;
+  } catch (error) {
+    console.error('Claude API error:', error.response?.data || error.message);
+    return generateStructuredResponse(question, context);
+  }
+}
+
+// OpenAI API Integration  
+async function callOpenAI(question, context) {
+  try {
+    const prompt = createIntelligentPrompt(question, context);
+    
+    const response = await axios.post('https://api.openai.com/v1/chat/completions', {
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system', 
+          content: 'Eres un experto analista de datos de supervisión operativa para El Pollo Loco. Responde en español, conciso y profesional.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 600,
+      temperature: 0.3
+    }, {
+      headers: {
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    return response.data.choices[0].message.content;
+  } catch (error) {
+    console.error('OpenAI API error:', error.response?.data || error.message);
+    return generateStructuredResponse(question, context);
+  }
+}
+
+function createIntelligentPrompt(question, context) {
+  let prompt = `Eres un analista experto de El Pollo Loco CAS. Responde específicamente lo que pregunta el usuario.
+
+PREGUNTA: "${question}"
+
+DATOS REALES DE SUPERVISIÓN:
+${JSON.stringify(context, null, 2)}
+
+INSTRUCCIONES:
+- Responde exactamente lo que pide (si dice "top 5", muestra 5)
+- Usa los datos reales proporcionados
+- Formato: emoji + título + lista numerada + insight
+- Máximo 600 caracteres, español profesional
+- Para rankings usa: 🥇🥈🥉 + números
+
+Ejemplo si pide "top 5 grupos":
+🏆 TOP 5 GRUPOS OPERATIVOS
+
+🥇 [Nombre]: [%] ([supervisiones] supervisiones)
+🥈 [Nombre]: [%] ([supervisiones] supervisiones)
+...
+
+💡 Insight: [observación basada en datos]`;
+
+  return prompt;
 }
 
 function generateStructuredResponse(question, context) {
