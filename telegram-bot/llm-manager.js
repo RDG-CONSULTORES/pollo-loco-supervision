@@ -4,46 +4,34 @@
 // =========================================
 
 const OpenAI = require('openai');
-const { Anthropic } = require('@anthropic-ai/sdk');
 
 class LLMManager {
   constructor() {
-    // Configurar múltiples proveedores
+    // Solo OpenAI - máxima simplicidad y eficiencia
     this.openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY
     });
     
-    this.anthropic = new Anthropic({
-      apiKey: process.env.CLAUDE_API_KEY
-    });
-    
-    // Configuraciones específicas por proveedor
+    // Configuraciones optimizadas solo para OpenAI
     this.providers = {
       'gpt-4-turbo': {
         client: this.openai,
         model: 'gpt-4-turbo-preview',
-        maxTokens: 2048,
+        maxTokens: 3000,
         temperature: 0.7,
         cost_per_token: 0.00001
       },
       'gpt-3.5-turbo': {
         client: this.openai,
         model: 'gpt-3.5-turbo',
-        maxTokens: 1500,
+        maxTokens: 2000,
         temperature: 0.6,
         cost_per_token: 0.000002
-      },
-      'claude-3-opus': {
-        client: this.anthropic,
-        model: 'claude-3-opus-20240229',
-        maxTokens: 2000,
-        temperature: 0.7,
-        cost_per_token: 0.000015
       }
     };
     
-    // Estrategia de fallback
-    this.fallbackChain = ['gpt-4-turbo', 'gpt-3.5-turbo', 'claude-3-opus'];
+    // Estrategia de fallback solo OpenAI
+    this.fallbackChain = ['gpt-4-turbo', 'gpt-3.5-turbo'];
     this.currentProvider = this.fallbackChain[0];
     
     // Tracking de uso y costos
@@ -84,44 +72,24 @@ class LLMManager {
         let response;
         let tokens_used = 0;
         
-        if (providerName.includes('gpt')) {
-          const completion = await Promise.race([
-            provider.client.chat.completions.create({
-              model: provider.model,
-              messages: [{ 
-                role: 'user', 
-                content: prompt 
-              }],
-              max_tokens: provider.maxTokens,
-              temperature: provider.temperature
-            }),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), timeout)
-            )
-          ]);
-          
-          response = completion.choices[0].message.content;
-          tokens_used = completion.usage.total_tokens;
-          
-        } else if (providerName.includes('claude')) {
-          const completion = await Promise.race([
-            provider.client.messages.create({
-              model: provider.model,
-              max_tokens: provider.maxTokens,
-              temperature: provider.temperature,
-              messages: [{ 
-                role: 'user', 
-                content: prompt 
-              }]
-            }),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Timeout')), timeout)
-            )
-          ]);
-          
-          response = completion.content[0].text;
-          tokens_used = completion.usage.input_tokens + completion.usage.output_tokens;
-        }
+        // Solo OpenAI - simplificado y optimizado
+        const completion = await Promise.race([
+          provider.client.chat.completions.create({
+            model: provider.model,
+            messages: [{ 
+              role: 'user', 
+              content: prompt 
+            }],
+            max_tokens: provider.maxTokens,
+            temperature: provider.temperature
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Timeout')), timeout)
+          )
+        ]);
+        
+        response = completion.choices[0].message.content;
+        tokens_used = completion.usage.total_tokens;
         
         // Update usage metrics
         const cost = tokens_used * provider.cost_per_token;

@@ -7,8 +7,8 @@ const RealSupervisionIntelligence = require('./real-data-intelligence');
 const IntelligentSupervisionSystem = require('./intelligent-supervision-system');
 const IntelligentKnowledgeBase = require('./intelligent-knowledge-base');
 
-// REEMPLAZADO: Sistema fake por sistema verdaderamente inteligente
-const TrueAgenticDirector = require('./true-agentic-director');
+// ULTRA INTELLIGENT SYSTEM: OpenAI al máximo
+const UltraIntelligentDirector = require('./ultra-intelligent-director');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -23,11 +23,10 @@ if (process.env.NODE_ENV === 'production' && !process.env.TELEGRAM_BOT_TOKEN) {
     });
 }
 
-// Initialize database pool for AI
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
-});
+// Initialize database manager with robust connection handling
+const { getDatabaseManager } = require('./database-manager');
+const dbManager = getDatabaseManager();
+const pool = dbManager.getPool();
 
 // Initialize AI engines
 const aiEngine = new SupervisionAI(pool);
@@ -35,8 +34,8 @@ const realDataEngine = new RealSupervisionIntelligence(pool);
 const intelligentSystem = new IntelligentSupervisionSystem(pool);
 const knowledgeBase = new IntelligentKnowledgeBase(pool);
 
-// AGENTIC SYSTEM - CONVERSATIONAL AI VERDADERAMENTE INTELIGENTE
-const trueAgenticDirector = new TrueAgenticDirector(pool, knowledgeBase, intelligentSystem);
+// ULTRA INTELLIGENT SYSTEM - OpenAI MAXIMUM POWER
+const ultraIntelligentDirector = new UltraIntelligentDirector(pool);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -46,27 +45,19 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
     
 const WEBAPP_URL = process.env.RENDER_EXTERNAL_URL || 'http://localhost:3000';
 
-// AI Configuration
-const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY;
+// AI Configuration - Solo OpenAI
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 // Debug token availability at startup
-console.log('🔑 Token Debug at startup:');
-console.log(`   CLAUDE_API_KEY exists: ${CLAUDE_API_KEY ? 'YES' : 'NO'}`);
-console.log(`   Token length: ${CLAUDE_API_KEY ? CLAUDE_API_KEY.length : 0}`);
-console.log(`   Token starts correctly: ${CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') ? 'YES' : 'NO'}`);
+console.log('🔑 OpenAI Token Status:');
 console.log(`   OPENAI_API_KEY exists: ${OPENAI_API_KEY ? 'YES' : 'NO'}`);
-console.log(`   OpenAI token length: ${OPENAI_API_KEY ? OPENAI_API_KEY.length : 0}`);
-console.log(`   OpenAI token starts correctly: ${OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-') ? 'YES' : 'NO'}`);
-if (CLAUDE_API_KEY && CLAUDE_API_KEY.length > 20) {
-  console.log(`   Claude first 20 chars: ${CLAUDE_API_KEY.substring(0, 20)}...`);
-  console.log(`   Claude last 10 chars: ...${CLAUDE_API_KEY.substring(CLAUDE_API_KEY.length - 10)}`);
-} else if (CLAUDE_API_KEY) {
-  console.log(`   Claude token: [TOO_SHORT_${CLAUDE_API_KEY.length}_CHARS]`);
-}
+console.log(`   Token length: ${OPENAI_API_KEY ? OPENAI_API_KEY.length : 0}`);
+console.log(`   Token starts correctly: ${OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-') ? 'YES' : 'NO'}`);
 if (OPENAI_API_KEY && OPENAI_API_KEY.length > 20) {
   console.log(`   OpenAI first 20 chars: ${OPENAI_API_KEY.substring(0, 20)}...`);
   console.log(`   OpenAI last 10 chars: ...${OPENAI_API_KEY.substring(OPENAI_API_KEY.length - 10)}`);
+} else if (OPENAI_API_KEY) {
+  console.log(`   OpenAI token: [TOO_SHORT_${OPENAI_API_KEY.length}_CHARS]`);
 }
 
 if (!token) {
@@ -170,7 +161,7 @@ async function askAI(question, context = null, chatId = null) {
     // PRIORIDAD 1: USAR ANA ULTRA INTELIGENTE (120% conocimiento)
     if (chatId) {
       console.log(`🚀 Delegando a ANA ULTRA INTELIGENTE para chat ${chatId}`);
-      const anaResponse = await trueAgenticDirector.processUserQuestion(question, chatId);
+      const anaResponse = await ultraIntelligentDirector.processUserQuestion(question, chatId);
       
       if (anaResponse && anaResponse.length > 10) {
         console.log(`✅ ANA ULTRA INTELIGENTE generó respuesta completa`);
@@ -871,7 +862,7 @@ bot.onText(/\/ana/, async (msg) => {
   const chatId = msg.chat.id;
   
   try {
-    const status = trueAgenticDirector.getIntelligenceStatus();
+    const status = ultraIntelligentDirector.getIntelligenceStats();
     const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
     
     const anaStatus = `🧠 **ANA - ANALISTA ULTRA INTELIGENTE**
@@ -920,7 +911,7 @@ bot.onText(/\/retrain/, async (msg) => {
   try {
     bot.sendMessage(chatId, '🔄 **Iniciando reentrenamiento completo de Ana...**\n\nEsto puede tomar unos momentos...');
     
-    const newStatus = await trueAgenticDirector.forceRetraining();
+    const newStatus = await ultraIntelligentDirector.forceIntelligenceBoost();
     
     const retrainMessage = `✅ **Reentrenamiento completado!**
 
@@ -1250,7 +1241,7 @@ bot.on('callback_query', async (callbackQuery) => {
     case 'ana_status':
       // Show Ana Ultra Intelligence status
       try {
-        const status = trueAgenticDirector.getIntelligenceStatus();
+        const status = ultraIntelligentDirector.getIntelligenceStats();
         const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
         
         const statusMessage = `🧠 **ANA - ESTADO ULTRA INTELIGENTE**
