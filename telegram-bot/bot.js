@@ -850,8 +850,12 @@ bot.on('message', async (msg) => {
       // Send typing indicator
       bot.sendChatAction(chatId, 'typing');
       
-      // Use new AI engine for intelligent responses
-      const response = await aiEngine.analyzeAndRespond(question);
+      // Log API key availability for debugging
+      console.log(`🔍 Claude API Key available: ${CLAUDE_API_KEY ? 'YES' : 'NO'}`);
+      console.log(`🔍 Token starts with sk-ant: ${CLAUDE_API_KEY && CLAUDE_API_KEY.startsWith('sk-ant-') ? 'YES' : 'NO'}`);
+      
+      // Use Claude AI for intelligent responses
+      const response = await askAI(question);
       
       bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
       
