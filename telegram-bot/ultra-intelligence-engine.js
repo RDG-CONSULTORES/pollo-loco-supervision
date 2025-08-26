@@ -576,15 +576,21 @@ class UltraIntelligenceEngine {
       )
       SELECT 
         grupo_operativo,
-        array_agg(area_evaluacion ORDER BY promedio_area ASC LIMIT 5) as areas_capacitacion,
-        array_agg(promedio_area ORDER BY promedio_area ASC LIMIT 5) as promedios_areas,
+        (SELECT array_agg(area_evaluacion)
+         FROM (SELECT area_evaluacion FROM area_weaknesses aw2 
+               WHERE aw2.grupo_operativo = aw1.grupo_operativo
+               ORDER BY promedio_area ASC LIMIT 5) AS worst_areas) as areas_capacitacion,
+        (SELECT array_agg(promedio_area)
+         FROM (SELECT promedio_area FROM area_weaknesses aw2 
+               WHERE aw2.grupo_operativo = aw1.grupo_operativo
+               ORDER BY promedio_area ASC LIMIT 5) AS worst_scores) as promedios_areas,
         SUM(evaluaciones_criticas_area) as total_evaluaciones_criticas,
         CASE 
           WHEN AVG(promedio_area) < 70 THEN 'capacitacion_intensiva'
           WHEN AVG(promedio_area) < 80 THEN 'capacitacion_estructurada'
           ELSE 'capacitacion_refuerzo'
         END as tipo_capacitacion
-      FROM area_weaknesses
+      FROM area_weaknesses aw1
       GROUP BY grupo_operativo
       ORDER BY AVG(promedio_area) ASC;
     `;

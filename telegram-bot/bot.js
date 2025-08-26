@@ -56,11 +56,13 @@ console.log(`   Token starts correctly: ${CLAUDE_API_KEY && CLAUDE_API_KEY.start
 console.log(`   OPENAI_API_KEY exists: ${OPENAI_API_KEY ? 'YES' : 'NO'}`);
 console.log(`   OpenAI token length: ${OPENAI_API_KEY ? OPENAI_API_KEY.length : 0}`);
 console.log(`   OpenAI token starts correctly: ${OPENAI_API_KEY && OPENAI_API_KEY.startsWith('sk-') ? 'YES' : 'NO'}`);
-if (CLAUDE_API_KEY) {
-  console.log(`   Token first 20 chars: ${CLAUDE_API_KEY.substring(0, 20)}...`);
-  console.log(`   Token last 10 chars: ...${CLAUDE_API_KEY.substring(CLAUDE_API_KEY.length - 10)}`);
+if (CLAUDE_API_KEY && CLAUDE_API_KEY.length > 20) {
+  console.log(`   Claude first 20 chars: ${CLAUDE_API_KEY.substring(0, 20)}...`);
+  console.log(`   Claude last 10 chars: ...${CLAUDE_API_KEY.substring(CLAUDE_API_KEY.length - 10)}`);
+} else if (CLAUDE_API_KEY) {
+  console.log(`   Claude token: [TOO_SHORT_${CLAUDE_API_KEY.length}_CHARS]`);
 }
-if (OPENAI_API_KEY) {
+if (OPENAI_API_KEY && OPENAI_API_KEY.length > 20) {
   console.log(`   OpenAI first 20 chars: ${OPENAI_API_KEY.substring(0, 20)}...`);
   console.log(`   OpenAI last 10 chars: ...${OPENAI_API_KEY.substring(OPENAI_API_KEY.length - 10)}`);
 }
@@ -902,7 +904,7 @@ bot.onText(/\/ana/, async (msg) => {
 
 ${!status.training_complete ? '\n⚠️ **Nota:** Estoy terminando mi entrenamiento. ¡Pronto tendré conocimiento completo!' : '\n🎉 **¡Estoy lista!** Pregúntame cualquier cosa sobre supervisiones operativas.'}`;
 
-    bot.sendMessage(chatId, anaStatus, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, anaStatus);
   } catch (error) {
     console.error('Error en comando /ana:', error);
     bot.sendMessage(chatId, '🤖 Error al obtener el estado de Ana. Intenta más tarde.');
@@ -927,7 +929,7 @@ bot.onText(/\/retrain/, async (msg) => {
 
 🎉 **Ana ahora conoce al 120% toda la operación de El Pollo Loco!**`;
 
-    bot.sendMessage(chatId, retrainMessage, { parse_mode: 'Markdown' });
+    bot.sendMessage(chatId, retrainMessage);
   } catch (error) {
     console.error('Error en reentrenamiento:', error);
     bot.sendMessage(chatId, '❌ Error durante el reentrenamiento. Revisa los logs del sistema.');
@@ -1271,7 +1273,7 @@ ${status.training_complete ? '🟢 **ACTIVA Y LISTA**' : status.is_training ? '�
 
 ${status.training_complete ? '🎉 ¡Pregúntame cualquier cosa!' : '⏳ Terminando entrenamiento...'}`;
 
-        bot.sendMessage(chatId, statusMessage, { parse_mode: 'Markdown' });
+        bot.sendMessage(chatId, statusMessage);
       } catch (error) {
         bot.sendMessage(chatId, '❌ Error al obtener estado de Ana.');
       }
@@ -1424,7 +1426,7 @@ bot.on('message', async (msg) => {
       // Use AGENTIC SYSTEM for natural responses
       const response = await askAI(question, null, chatId);
       
-      // Send without markdown to avoid parsing errors for now
+      // Send without markdown to avoid parsing errors
       bot.sendMessage(chatId, response);
       
       // Log for analysis
