@@ -4,17 +4,15 @@
 // =========================================
 
 const TelegramBot = require('node-telegram-bot-api');
-const { Pool } = require('pg');
 const AnaIntelligent = require('./ana-intelligent');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
-// Database connection simple
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+// Database connection with robust manager
+const { getDatabaseManager } = require('./database-manager');
+const dbManager = getDatabaseManager();
+const pool = dbManager.getPool();
 
 // Initialize Ana Intelligent - SOLO SISTEMA
 const ana = new AnaIntelligent(pool);
@@ -147,7 +145,7 @@ module.exports = bot;
 // Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('🔄 Cerrando bot...');
-  if (pool) await pool.end();
+  if (dbManager) await dbManager.close();
   process.exit(0);
 });
 
