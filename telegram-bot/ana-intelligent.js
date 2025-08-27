@@ -245,11 +245,116 @@ class AnaIntelligent {
     return processed;
   }
   
+  // SISTEMA DE COMANDOS DE AYUDA
+  handleHelpCommands(question) {
+    if (question.includes('/help') || question === 'help' || question.includes('ayuda')) {
+      return `🤖 **ANA - AYUDA RÁPIDA**
+
+📊 **CONSULTAS BÁSICAS:**
+• "como va [MI GRUPO]"
+• "[MI SUCURSAL] Q3" 
+• "supervisiones [MI ESTADO]"
+
+📈 **RANKINGS:**
+• "ranking grupos Q3"
+• "top sucursales [MI GRUPO]"
+• "mejores grupos trimestre"
+
+💼 **EJECUTIVAS:**
+• "consolidado todos los grupos"
+• "métricas formato ejecutivo" 
+• "análisis riesgo operativo"
+
+⚡ **COMANDOS:**
+• /ejemplos - Ver ejemplos por tipo
+• /comandos - Lista completa
+• /simple - Respuestas cortas
+
+🎯 **EJEMPLOS:**
+"como va mi grupo" | "áreas críticas" | "ranking Q3"`;
+    }
+    
+    if (question.includes('/ejemplos')) {
+      return `📚 **EJEMPLOS DE PROMPTS POR TIPO**
+
+🏢 **POR GRUPO:**
+✅ "performance [MI GRUPO]"
+✅ "[MI GRUPO] este trimestre"
+✅ "áreas críticas [MI GRUPO]"
+
+🏪 **POR SUCURSAL:**
+✅ "como va [MI SUCURSAL]" 
+✅ "áreas oportunidad [SUCURSAL]"
+✅ "[SUCURSAL] vs benchmark"
+
+🗺️ **POR REGIÓN:**
+✅ "supervisiones [MI ESTADO]"
+✅ "grupos [MI ESTADO]"
+✅ "[ESTADO] performance"
+
+📊 **ANÁLISIS:**
+✅ "áreas críticas Q3"
+✅ "sucursales bajo 85%"
+✅ "problemas operativos"
+
+💡 Usa /help para volver al menú principal`;
+    }
+    
+    if (question.includes('/comandos')) {
+      return `⚡ **COMANDOS DISPONIBLES**
+
+🆘 **AYUDA:**
+• /help - Ayuda rápida
+• /ejemplos - Ejemplos por tipo
+• /comandos - Esta lista
+
+📊 **ANÁLISIS:**
+• /insights [tema] - Análisis detallado
+• /areas - Áreas críticas
+• /ranking - Rankings actualizados
+• /stats - Estadísticas generales
+
+🎯 **FORMATO:**
+• /simple - Respuestas ultra-cortas
+• /ejecutivo - Para directivos
+• /detallado - Información completa
+
+📱 **USO:**
+Simplemente pregunta en lenguaje natural:
+"como va mi grupo" | "ranking Q3" | "áreas críticas"`;
+    }
+    
+    if (question.includes('/simple')) {
+      return `⚡ **MODO SIMPLE ACTIVADO**
+
+Ana ahora responderá:
+✅ Máximo 3-5 líneas
+✅ Datos primero
+✅ Sin análisis extenso
+✅ Formato visual rápido
+
+🎯 **EJEMPLOS SIMPLES:**
+"como va [GRUPO]" → Calificación + ranking
+"[SUCURSAL] Q3" → Performance directo
+"ranking grupos" → Top 5 únicamente
+
+💡 Usa /detallado para análisis completo`;
+    }
+    
+    return null; // No es comando de ayuda
+  }
+  
   // MÉTODO PRINCIPAL - TODO EN UNO
   async processQuestion(question, chatId) {
     console.log(`🎯 Ana procesando: "${question}" (Chat: ${chatId})`);
     
     try {
+      // 0. COMANDOS DE AYUDA (antes del procesamiento)
+      const helpResponse = this.handleHelpCommands(question.toLowerCase());
+      if (helpResponse) {
+        return helpResponse;
+      }
+      
       // 1. PREPROCESAR PREGUNTA (NUEVA INTELIGENCIA)
       const processedQuestion = this.preprocessQuestion(question);
       
