@@ -27,11 +27,15 @@ class AnaIntelligent {
       table: 'supervision_operativa_detalle',
       columns: {
         location_name: 'VARCHAR(255) - Nombre de la sucursal',
-        grupo_operativo: 'VARCHAR(255) - Grupo operativo (20 grupos)',
+        grupo_operativo: 'VARCHAR(255) - Grupo operativo (~20 grupos)',
         area_evaluacion: 'VARCHAR(255) - Área evaluada (29 áreas específicas + CALIFICACION GENERAL)',
         porcentaje: 'DECIMAL(5,2) - Porcentaje obtenido (0-100)',
         fecha_supervision: 'DATE - Fecha de supervisión',
-        submission_id: 'VARCHAR(255) - ID único'
+        submission_id: 'VARCHAR(255) - ID único',
+        estado: 'VARCHAR(255) - Estado de México (7 estados)',
+        municipio: 'VARCHAR(255) - Municipio específico',
+        latitud: 'DECIMAL - Coordenada latitud',
+        longitud: 'DECIMAL - Coordenada longitud'
       },
       grupos_disponibles: [
         'OGAS', 'TEPEYAC', 'PLOG QUERETARO', 'EPL SO', 'TEC', 
@@ -172,10 +176,12 @@ PARA CALIFICACIÓN GENERAL (MÁS ESTRICTO):
 - ⚠️ Atención: 85-89% (requiere atención)  
 - 🚨 Crítico: <85% (acción inmediata)
 
-INFORMACIÓN GEOGRÁFICA:
-- Estados y ubicaciones están en la BD (campo location_name)
-- Cada sucursal pertenece a un grupo_operativo específico
+INFORMACIÓN GEOGRÁFICA EL POLLO LOCO:
+- Cobertura: 7 estados de México (~20 grupos operativos)
+- Datos disponibles: estado, municipio, latitud/longitud
 - Ana puede consultar distribución geográfica dinámicamente
+- Mapping completo: Sucursal → Grupo → Estado → Municipio
+- Coordenadas exactas disponibles para análisis geoespaciales
 
 CAPACIDADES ULTRA INTELIGENTES:
 1. ENTIENDES el contexto completo del negocio
