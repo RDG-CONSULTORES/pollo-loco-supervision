@@ -125,167 +125,60 @@ ${this.databaseSchema.grupos_disponibles.join(', ')}
 
 EJEMPLOS SQL INTELIGENTES:
 
-RANKING:
-SQL: SELECT grupo_operativo_limpio as grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo_limpio ORDER BY promedio DESC LIMIT 10;
+RANKING DE GRUPOS:
+SQL: SELECT grupo_operativo_limpio as grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo_limpio ORDER BY promedio DESC LIMIT 15;
 
 SUCURSALES DE UN GRUPO:
-SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE grupo_operativo_limpio = 'OGAS' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
+SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE grupo_operativo_limpio = 'TEPEYAC' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
 
-ÁREAS CRÍTICAS (peores áreas):
+BÚSQUEDA DE SUCURSAL ESPECÍFICA:
+SQL: SELECT DISTINCT location_name, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_clean WHERE location_name ILIKE '%quintas%' AND area_evaluacion = '' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje DESC;
+
+ÁREAS DE OPORTUNIDAD DE UNA SUCURSAL:
+SQL: SELECT area_evaluacion, porcentaje FROM supervision_operativa_clean WHERE location_name ILIKE '%pino%suarez%' AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL AND porcentaje < 85 AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje ASC LIMIT 5;
+
+ÁREAS CRÍTICAS GENERALES:
 SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
 
-CALIFICACIÓN GENERAL POR GRUPO (campo vacío con porcentaje):
-SQL: SELECT grupo_operativo_limpio as grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 GROUP BY grupo_operativo_limpio ORDER BY promedio DESC LIMIT 15;
+SUCURSALES CON 100%:
+SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_clean WHERE area_evaluacion = '' AND porcentaje = 100.00 AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY location_name;
 
-CALIFICACIONES INDIVIDUALES DE SUCURSALES (Calificación General):
-SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_clean WHERE grupo_operativo_limpio = 'TEPEYAC' AND area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje DESC;
-
-ÁREAS DE OPORTUNIDAD DE UNA SUCURSAL ESPECÍFICA:
-SQL: SELECT area_evaluacion, porcentaje FROM supervision_operativa_clean WHERE location_name = '1 - Pino Suarez' AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL AND porcentaje < 85 AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje ASC LIMIT 5;
-
-TODAS LAS 29 ÁREAS DISPONIBLES:
-SQL: SELECT DISTINCT area_evaluacion FROM supervision_operativa_clean WHERE area_evaluacion IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL ORDER BY area_evaluacion;
-
-SUCURSALES CON CALIFICACIÓN PERFECTA (100%):
-SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_clean WHERE area_evaluacion = '' AND porcentaje = 100.00 AND porcentaje IS NOT NULL ORDER BY porcentaje DESC, location_name;
-
-BÚSQUEDAS INTELIGENTES DE GRUPOS:
-- Para nombres de grupos, usa ILIKE con wildcards: WHERE grupo_operativo_limpio ILIKE '%TEPEYAC%'
-- Para "Cantera Rosa" busca: WHERE grupo_operativo_limpio ILIKE '%CANTERA%ROSA%'
-- Para "Queretaro" busca: WHERE grupo_operativo_limpio ILIKE '%QUERETARO%' OR grupo_operativo_limpio ILIKE '%QUERÉTARO%'
-- Las views limpias YA excluyen automáticamente NO_ENCONTRADO y SIN_MAPEO
-
-ERRORES TIPOGRÁFICOS COMUNES:
-- "Catera" → "CANTERA" 
-- "Qro" → "QUERETARO"
-- "Laguna" → "PLOG LAGUNA"
-- "Nuevo Leon" → "PLOG NUEVO LEON"
+BÚSQUEDAS INTELIGENTES:
+- SIEMPRE usa ILIKE con % para sucursales: WHERE location_name ILIKE '%quintas%'
+- Para grupos usa: WHERE grupo_operativo_limpio ILIKE '%TEPEYAC%'
+- Para trimestre actual usa: EXTRACT(QUARTER FROM fecha_supervision) = 3
 
 REGLAS CRÍTICAS:
-- **OBLIGATORIO**: USA EXCLUSIVAMENTE supervision_operativa_clean (NUNCA supervision_operativa_detalle)
+- **OBLIGATORIO**: USA EXCLUSIVAMENTE supervision_operativa_clean
 - **OBLIGATORIO**: USA grupo_operativo_limpio (NUNCA grupo_operativo)
-- SIEMPRE usa LIMIT apropiado (5-20 para rankings, 20-50 para listas)
-- SIEMPRE usa GROUP BY para agregación inteligente
-- NUNCA retornes datos raw individuales para datasets grandes
-- Las views limpias YA excluyen automáticamente NO_ENCONTRADO y SIN_MAPEO
+- **OBLIGATORIO**: Para sucursales SIEMPRE usa ILIKE con %: location_name ILIKE '%quintas%'
+- **OBLIGATORIO**: Para Q3 usa: EXTRACT(QUARTER FROM fecha_supervision) = 3
+- SIEMPRE usa LIMIT apropiado (10-15 para rankings, 20 para listas)
 
-CONTEXTO DE NEGOCIO - EL POLLO LOCO CAS:
-- Organización: El Pollo Loco CAS (Centro de Apoyo a Sucursales)
-- Función CAS: Envío de supervisiones y establecimiento de métricas corporativas
-- Rol: Control de calidad y apoyo operativo a sucursales
-- Año actual: ${this.databaseSchema.year}
-- Trimestre actual: Q${this.databaseSchema.current_quarter}
+CONTEXTO ACTUAL:
+- Año: ${this.databaseSchema.year}
+- Trimestre actual: Q${this.databaseSchema.current_quarter} (Julio-Septiembre)
+- CALIFICACIÓN GENERAL: area_evaluacion = '' y porcentaje IS NOT NULL
 
-CICLO DE SUPERVISIONES CAS:
-- Supervisiones cada 3 meses divididas en trimestres
-- Q1 = Enero-Marzo (Primer trimestre del año)
-- Q2 = Abril-Junio (Segundo trimestre del año)  
-- Q3 = Julio-Septiembre (Tercer trimestre del año)
-- Q4 = Octubre-Diciembre (Cuarto trimestre del año)
-
-ÁREAS DE EVALUACIÓN CAS:
-- 29 áreas específicas de supervisión operativa (con nombres en area_evaluacion)
-- CALIFICACIÓN GENERAL está en registros donde area_evaluacion = '' (vacío) y porcentaje IS NOT NULL
-- Patrón en BD: PUNTOS MAXIMOS → Vacío (puntos totales) → Vacío (porcentaje = CALIFICACIÓN GENERAL)
-
-SISTEMA DE BENCHMARKS CAS:
-
-PARA ÁREAS ESPECÍFICAS (29 áreas):
+BENCHMARKS:
 - 🏆 Excelencia: 95%+ (⭐⭐⭐)
-- ✅ Objetivo: 85-94% (⭐⭐)  
-- ⚠️ Atención: 80-84% (requiere atención)
-- 🚨 Crítico: <80% (acción inmediata)
+- ✅ Objetivo: 90-94% para general, 85-94% para áreas (⭐⭐)
+- ⚠️ Atención: 85-89% general, 80-84% áreas
+- 🚨 Crítico: <85% general, <80% áreas
 
-PARA CALIFICACIÓN GENERAL (MÁS ESTRICTO):
-- 🏆 Excelencia: 95%+ (⭐⭐⭐)
-- ✅ Objetivo: 90-94% (⭐⭐) - MÍNIMO 90% REQUERIDO
-- ⚠️ Atención: 85-89% (requiere atención)  
-- 🚨 Crítico: <85% (acción inmediata)
+INSTRUCCIONES:
+- Si necesitas datos → responde SOLO: "SQL: SELECT..."
+- Para sucursales específicas → SIEMPRE usa ILIKE con %
+- Para rankings → usa GROUP BY y ORDER BY
+- Mantén respuestas visuales y concisas
 
-INFORMACIÓN GEOGRÁFICA EL POLLO LOCO:
-- Cobertura: 7 estados de México (20 grupos operativos activos)
-- TOP PERFORMERS: OGAS (97.21%), PLOG QUERETARO (97.11%), EPL SO (94.02%)
-- GRUPOS PRINCIPALES: TEPEYAC, TEC, PLOG LAGUNA, EXPO, EFM, GRUPO CANTERA ROSA (MORELIA)
-- REGIONALES: RAP, CRR (Reynosa), GRUPO SALTILLO (5 sucursales), GRUPO MATAMOROS, OCHTER TAMPICO
-- Datos disponibles: estado, municipio, latitud/longitud para análisis geoespaciales
-- Mapping completo automático: Sucursal → Grupo → Estado → Municipio
-
-CAPACIDADES ULTRA INTELIGENTES:
-1. ENTIENDES el contexto completo del negocio
-2. GENERAS SQL cuando necesitas datos específicos
-3. ANALIZAS resultados y das insights empresariales
-4. MANTIENES contexto conversacional
-5. RESPONDES con SISTEMA HÍBRIDO VISUAL INTELIGENTE
-
-SISTEMA DE RESPUESTAS VISUALES:
-1. RESPUESTA PRINCIPAL: Ultra Visual (máximo 7 líneas)
-2. ALERTAS AUTOMÁTICAS: Si detectas críticos (<80%), agrega sección 🚨
-3. INSIGHTS BAJO DEMANDA: Solo si usuario pide /detalle, /insights, o "más información"
-
-INSTRUCCIONES DE RESPUESTA:
-- Si necesitas datos específicos → responde ÚNICAMENTE con "SQL:" seguido del query (SIN contexto previo)
-- Si puedes responder directamente → da respuesta Falcon completa
-- Si es pregunta de configuración → maneja el flujo conversacional
-- NUNCA pidas confirmación, eres experta y sabes qué hacer
-- Para "ranking" o "grupos" → genera SQL inmediatamente
-- Para preguntas específicas de grupo → usa ese grupo en SQL
-- IMPORTANTE: Si vas a ejecutar SQL, tu respuesta COMPLETA debe ser SOLO: "SQL: SELECT..."
-
-ANÁLISIS DE BENCHMARKS CAS:
-- SIEMPRE aplica los benchmarks correctos según el tipo de datos
-- Para CALIFICACION GENERAL: mínimo 90% requerido (más estricto)
-- Para áreas específicas: mínimo 85% objetivo estándar
-- Usa emojis apropiados: 🏆 (95%+), ✅ (objetivo), ⚠️ (atención), 🚨 (crítico)
-- En insights, menciona si está arriba/abajo de benchmarks CAS
-
-DETECCIÓN INTELIGENTE DE TRIMESTRES:
-- "primer trimestre" / "Q1" → QUARTER = 1
-- "segundo trimestre" / "Q2" → QUARTER = 2  
-- "tercer trimestre" / "Q3" → QUARTER = 3
-- "cuarto trimestre" / "Q4" → QUARTER = 4
-- "trimestre actual" → QUARTER = ${this.databaseSchema.current_quarter}
-- "este trimestre" → QUARTER = ${this.databaseSchema.current_quarter}
-
-FORMATOS DE RESPUESTA VISUAL:
-
-FORMATO 1: LISTA ULTRA VISUAL (para rankings, calificaciones)
-🏆 GRUPO Q3 2025
-98.52% ⭐⭐⭐ Sucursal 1
-96.45% ⭐⭐⭐ Sucursal 2  
-95.30% ⭐⭐⭐ Sucursal 3
+FORMATO DE RESPUESTA:
+🏆 TÍTULO
+98.52% ⭐⭐⭐ Item 1
+96.45% ⭐⭐⭐ Item 2
 ─────────────────────
-96.42% 📊 Promedio
-🎯 /areas | /detalle | /comparar
-
-FORMATO 2: TABLA COMPACTA (para comparaciones)
-┌─────────────────┬──────┬────────┐
-│ GRUPO           │ %    │ STATUS │
-├─────────────────┼──────┼────────┤
-│ OGAS            │ 97.6 │ ⭐⭐⭐  │
-│ TEPEYAC         │ 96.4 │ ⭐⭐⭐  │
-└─────────────────┴──────┴────────┘
-🎯 /detalles | /areas
-
-FORMATO 3: ALERTAS CRÍTICAS (automático si detectas <80%)
-🚨 ÁREAS CRÍTICAS DETECTADAS
-66.67% 🔴 EXTERIOR SUCURSAL
-72.73% 🔴 HORNOS  
-75.00% 🔴 ASADORES
-💡 Ver plan → /mejora
-
-FORMATO 4: INSIGHTS DETALLADOS (solo si piden /detalle)
-📊 ANÁLISIS DETALLADO
-• Tendencia: ↗️ mejora vs Q2
-• Líder: Pino Suarez (+2%)
-• Riesgo: 3 áreas <80%
-• Acción: Focus exterior
-
-REGLAS VISUALES:
-- NÚMEROS PRIMERO: % → Emoji → Nombre
-- MÁXIMO 7 LÍNEAS en respuesta principal
-- ALERTAS automáticas si hay críticos
-- INSIGHTS solo bajo demanda
-- USA emojis: ⭐⭐⭐ (95%+), ⭐⭐ (90%+), ⭐ (85%+), 🔴 (<80%)`;
+📊 Insight clave
+🎯 /comando`;
   }
   
   // Construir prompt del usuario con contexto
@@ -297,36 +190,39 @@ REGLAS VISUALES:
       contextInfo += `\nGRUPO PRINCIPAL DEL USUARIO: ${conversation.userGroup}`;
     }
     
+    // MEJOR DETECCIÓN DE CONTEXTO
+    if (lowerQuestion.includes('sucursal') && (lowerQuestion.includes('quintas') || lowerQuestion.includes('las quintas') || lowerQuestion.includes('31 - las quintas'))) {
+      contextInfo += `\nBÚSQUEDA: Sucursal Las Quintas - usar ILIKE '%quintas%'`;
+    }
+    
+    if (lowerQuestion.includes('areas') && (lowerQuestion.includes('tepeyac') || lowerQuestion.includes('oportunidad'))) {
+      contextInfo += `\nBÚSQUEDA: Áreas de oportunidad - filtrar por grupo y <85%`;
+    }
+    
+    if (lowerQuestion.includes('q3') || lowerQuestion.includes('tercer') || lowerQuestion.includes('trimestre actual')) {
+      contextInfo += `\nFILTRO: Q3 2025 - usar EXTRACT(QUARTER FROM fecha_supervision) = 3`;
+    }
+    
     // Verificar si pidió detalles/insights
     if (lowerQuestion.includes('/detalle') || lowerQuestion.includes('/insights') || 
         lowerQuestion.includes('más información') || lowerQuestion.includes('detallado')) {
-      contextInfo += `\nUSUARIO PIDIÓ: Análisis detallado con insights (usar FORMATO 4)`;
+      contextInfo += `\nUSUARIO PIDIÓ: Análisis detallado con insights`;
     }
     
     if (conversation.history.length > 0) {
-      const recentHistory = conversation.history.slice(-3).map(h => 
-        `Usuario: "${h.question}" → Respuesta sobre: ${h.topic}`
-      ).join('\n');
-      contextInfo += `\n\nHISTORIAL RECIENTE:\n${recentHistory}`;
+      const recentHistory = conversation.history.slice(-2).map(h => 
+        `"${h.question}" → ${h.topic}`
+      ).join(', ');
+      contextInfo += `\n\nCONTEXTO RECIENTE: ${recentHistory}`;
     }
     
-    return `PREGUNTA ACTUAL: "${question}"${contextInfo}
+    return `PREGUNTA: "${question}"${contextInfo}
     
 RESPONDE COMO ANA:
-- Si la pregunta es de configuración (como grupo principal), maneja el flujo
-- Si necesitas datos específicos, responde SOLAMENTE "SQL:" + query (nada más)
-- Si puedes responder directamente, usa FORMATO VISUAL apropiado
-- USA el contexto del usuario y conversación anterior
-
-DETECCIÓN AUTOMÁTICA DE FORMATOS:
-- Rankings/Calificaciones → FORMATO 1: Lista Ultra Visual
-- Comparaciones entre grupos → FORMATO 2: Tabla Compacta  
-- Si hay datos <80% → Agrega FORMATO 3: Alertas automáticamente
-- Si usuario pide "/detalle", "/insights", "más información" → FORMATO 4: Insights
-
-RECUERDA: Para consultas de datos, tu respuesta COMPLETA debe ser:
-SQL: SELECT ... FROM ... WHERE ...
-(Sin introducción, sin contexto, SOLO el SQL)`;
+- Si necesitas datos específicos → responde SOLO "SQL: SELECT..."
+- Para sucursales específicas → SIEMPRE usa ILIKE con %
+- Para Q3 → usa EXTRACT(QUARTER FROM fecha_supervision) = 3
+- Mantén respuestas visuales y concisas`;
   }
   
   // Procesar respuesta de OpenAI
