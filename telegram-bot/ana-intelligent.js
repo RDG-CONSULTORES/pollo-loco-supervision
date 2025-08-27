@@ -129,28 +129,31 @@ RANKING:
 SQL: SELECT grupo_operativo_limpio as grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo_limpio ORDER BY promedio DESC LIMIT 10;
 
 SUCURSALES DE UN GRUPO:
-SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE grupo_operativo = 'OGAS' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
+SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE grupo_operativo_limpio = 'OGAS' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
 
 ÁREAS CRÍTICAS (peores áreas):
-SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
+SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
 
 CALIFICACIÓN GENERAL POR GRUPO (campo vacío con porcentaje):
-SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO') GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 15;
+SQL: SELECT grupo_operativo_limpio as grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 GROUP BY grupo_operativo_limpio ORDER BY promedio DESC LIMIT 15;
 
 CALIFICACIONES INDIVIDUALES DE SUCURSALES (Calificación General):
-SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_detalle WHERE grupo_operativo = 'TEPEYAC' AND area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje DESC;
+SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_clean WHERE grupo_operativo_limpio = 'TEPEYAC' AND area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje DESC;
 
 ÁREAS DE OPORTUNIDAD DE UNA SUCURSAL ESPECÍFICA:
-SQL: SELECT area_evaluacion, porcentaje FROM supervision_operativa_detalle WHERE location_name = '1 - Pino Suarez' AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL AND porcentaje < 85 AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje ASC LIMIT 5;
+SQL: SELECT area_evaluacion, porcentaje FROM supervision_operativa_clean WHERE location_name = '1 - Pino Suarez' AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL AND porcentaje < 85 AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje ASC LIMIT 5;
 
 TODAS LAS 29 ÁREAS DISPONIBLES:
-SQL: SELECT DISTINCT area_evaluacion FROM supervision_operativa_detalle WHERE area_evaluacion IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL ORDER BY area_evaluacion;
+SQL: SELECT DISTINCT area_evaluacion FROM supervision_operativa_clean WHERE area_evaluacion IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL ORDER BY area_evaluacion;
+
+SUCURSALES CON CALIFICACIÓN PERFECTA (100%):
+SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_clean WHERE area_evaluacion = '' AND porcentaje = 100.00 AND porcentaje IS NOT NULL ORDER BY porcentaje DESC, location_name;
 
 BÚSQUEDAS INTELIGENTES DE GRUPOS:
-- Para nombres de grupos, usa ILIKE con wildcards: WHERE grupo_operativo ILIKE '%TEPEYAC%'
-- Para "Cantera Rosa" busca: WHERE grupo_operativo ILIKE '%CANTERA%ROSA%'
-- Para "Queretaro" busca: WHERE grupo_operativo ILIKE '%QUERETARO%' OR grupo_operativo ILIKE '%QUERÉTARO%'
-- SIEMPRE excluye datos sin mapear: AND grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO')
+- Para nombres de grupos, usa ILIKE con wildcards: WHERE grupo_operativo_limpio ILIKE '%TEPEYAC%'
+- Para "Cantera Rosa" busca: WHERE grupo_operativo_limpio ILIKE '%CANTERA%ROSA%'
+- Para "Queretaro" busca: WHERE grupo_operativo_limpio ILIKE '%QUERETARO%' OR grupo_operativo_limpio ILIKE '%QUERÉTARO%'
+- Las views limpias YA excluyen automáticamente NO_ENCONTRADO y SIN_MAPEO
 
 ERRORES TIPOGRÁFICOS COMUNES:
 - "Catera" → "CANTERA" 
@@ -158,11 +161,13 @@ ERRORES TIPOGRÁFICOS COMUNES:
 - "Laguna" → "PLOG LAGUNA"
 - "Nuevo Leon" → "PLOG NUEVO LEON"
 
-REGLAS IMPORTANTES:
+REGLAS CRÍTICAS:
+- **OBLIGATORIO**: USA EXCLUSIVAMENTE supervision_operativa_clean (NUNCA supervision_operativa_detalle)
+- **OBLIGATORIO**: USA grupo_operativo_limpio (NUNCA grupo_operativo)
 - SIEMPRE usa LIMIT apropiado (5-20 para rankings, 20-50 para listas)
 - SIEMPRE usa GROUP BY para agregación inteligente
 - NUNCA retornes datos raw individuales para datasets grandes
-- SIEMPRE filtra NO_ENCONTRADO y SIN_MAPEO automáticamente
+- Las views limpias YA excluyen automáticamente NO_ENCONTRADO y SIN_MAPEO
 
 CONTEXTO DE NEGOCIO - EL POLLO LOCO CAS:
 - Organización: El Pollo Loco CAS (Centro de Apoyo a Sucursales)
