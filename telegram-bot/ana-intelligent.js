@@ -65,7 +65,7 @@ class AnaIntelligent {
       
       // 4. OpenAI decide TODO
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4-turbo',
+        model: 'gpt-4o-mini',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -101,8 +101,21 @@ ${Object.entries(this.databaseSchema.columns).map(([col, desc]) => `- ${col}: ${
 GRUPOS OPERATIVOS DISPONIBLES:
 ${this.databaseSchema.grupos_disponibles.join(', ')}
 
-EJEMPLO SQL PARA RANKING:
-SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 5;
+EJEMPLOS SQL INTELIGENTES:
+
+RANKING:
+SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 10;
+
+SUCURSALES DE UN GRUPO:
+SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE grupo_operativo = 'OGAS' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
+
+ÁREAS CRÍTICAS:
+SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
+
+REGLAS IMPORTANTES:
+- SIEMPRE usa LIMIT apropiado (5-20 para rankings, 20-50 para listas)
+- SIEMPRE usa GROUP BY para agregación inteligente
+- NUNCA retornes datos raw individuales para datasets grandes
 
 CONTEXTO DE NEGOCIO:
 - Año actual: ${this.databaseSchema.year}
@@ -169,15 +182,37 @@ RESPONDE COMO ANA:
         const result = await this.pool.query(sqlQuery);
         const data = result.rows;
         
+        // Optimizar datos grandes para evitar token overflow
+        let dataForAnalysis = data;
+        if (data.length > 100) {
+          // Para datasets grandes, usar muestra representativa + agregaciones
+          console.log(`📊 Dataset grande (${data.length} registros) - optimizando...`);
+          
+          dataForAnalysis = {
+            sample: data.slice(0, 20),
+            total_records: data.length,
+            summary: {
+              avg_score: data.reduce((sum, row) => sum + (parseFloat(row.promedio || row.porcentaje) || 0), 0) / data.length,
+              top_performer: data.sort((a, b) => (b.promedio || b.porcentaje) - (a.promedio || a.porcentaje))[0],
+              bottom_performer: data.sort((a, b) => (a.promedio || a.porcentaje) - (b.promedio || b.porcentaje))[0],
+              unique_locations: [...new Set(data.map(row => row.location_name))].length
+            }
+          };
+        }
+        
         // Pedir a OpenAI que analice los resultados
         const analysisPrompt = `Los datos de la consulta "${originalQuestion}" son:
         
-${JSON.stringify(data, null, 2)}
+${JSON.stringify(dataForAnalysis, null, 2)}
+
+${data.length > 100 ? 
+`NOTA: Dataset grande con ${data.length} registros totales. Arriba tienes muestra representativa + resumen estadístico.` : 
+''}
 
 ANALIZA estos datos como Ana y da una respuesta Falcon completa con insights empresariales específicos.`;
 
         const analysisResponse = await this.openai.chat.completions.create({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'system', content: this.buildSystemPrompt() },
             { role: 'user', content: analysisPrompt }
