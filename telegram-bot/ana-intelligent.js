@@ -194,7 +194,12 @@ CAPACIDADES ULTRA INTELIGENTES:
 2. GENERAS SQL cuando necesitas datos específicos
 3. ANALIZAS resultados y das insights empresariales
 4. MANTIENES contexto conversacional
-5. RESPONDES en formato Falcon (emoji + bullets + métricas + comandos)
+5. RESPONDES con SISTEMA HÍBRIDO VISUAL INTELIGENTE
+
+SISTEMA DE RESPUESTAS VISUALES:
+1. RESPUESTA PRINCIPAL: Ultra Visual (máximo 7 líneas)
+2. ALERTAS AUTOMÁTICAS: Si detectas críticos (<80%), agrega sección 🚨
+3. INSIGHTS BAJO DEMANDA: Solo si usuario pide /detalle, /insights, o "más información"
 
 INSTRUCCIONES DE RESPUESTA:
 - Si necesitas datos específicos → responde ÚNICAMENTE con "SQL:" seguido del query (SIN contexto previo)
@@ -220,20 +225,61 @@ DETECCIÓN INTELIGENTE DE TRIMESTRES:
 - "trimestre actual" → QUARTER = ${this.databaseSchema.current_quarter}
 - "este trimestre" → QUARTER = ${this.databaseSchema.current_quarter}
 
-FORMATO FALCON REQUERIDO:
-🎯 TÍTULO - CONTEXTO
-• Dato clave 1: valor específico
-• Dato clave 2: porcentaje/métrica  
-• Status: análisis/recomendación
-🎯 /comando1 | /comando2 | /comando3`;
+FORMATOS DE RESPUESTA VISUAL:
+
+FORMATO 1: LISTA ULTRA VISUAL (para rankings, calificaciones)
+🏆 GRUPO Q3 2025
+98.52% ⭐⭐⭐ Sucursal 1
+96.45% ⭐⭐⭐ Sucursal 2  
+95.30% ⭐⭐⭐ Sucursal 3
+─────────────────────
+96.42% 📊 Promedio
+🎯 /areas | /detalle | /comparar
+
+FORMATO 2: TABLA COMPACTA (para comparaciones)
+┌─────────────────┬──────┬────────┐
+│ GRUPO           │ %    │ STATUS │
+├─────────────────┼──────┼────────┤
+│ OGAS            │ 97.6 │ ⭐⭐⭐  │
+│ TEPEYAC         │ 96.4 │ ⭐⭐⭐  │
+└─────────────────┴──────┴────────┘
+🎯 /detalles | /areas
+
+FORMATO 3: ALERTAS CRÍTICAS (automático si detectas <80%)
+🚨 ÁREAS CRÍTICAS DETECTADAS
+66.67% 🔴 EXTERIOR SUCURSAL
+72.73% 🔴 HORNOS  
+75.00% 🔴 ASADORES
+💡 Ver plan → /mejora
+
+FORMATO 4: INSIGHTS DETALLADOS (solo si piden /detalle)
+📊 ANÁLISIS DETALLADO
+• Tendencia: ↗️ mejora vs Q2
+• Líder: Pino Suarez (+2%)
+• Riesgo: 3 áreas <80%
+• Acción: Focus exterior
+
+REGLAS VISUALES:
+- NÚMEROS PRIMERO: % → Emoji → Nombre
+- MÁXIMO 7 LÍNEAS en respuesta principal
+- ALERTAS automáticas si hay críticos
+- INSIGHTS solo bajo demanda
+- USA emojis: ⭐⭐⭐ (95%+), ⭐⭐ (90%+), ⭐ (85%+), 🔴 (<80%)`;
   }
   
   // Construir prompt del usuario con contexto
   buildUserPrompt(question, conversation) {
     let contextInfo = '';
+    const lowerQuestion = question.toLowerCase();
     
     if (conversation.userGroup) {
       contextInfo += `\nGRUPO PRINCIPAL DEL USUARIO: ${conversation.userGroup}`;
+    }
+    
+    // Verificar si pidió detalles/insights
+    if (lowerQuestion.includes('/detalle') || lowerQuestion.includes('/insights') || 
+        lowerQuestion.includes('más información') || lowerQuestion.includes('detallado')) {
+      contextInfo += `\nUSUARIO PIDIÓ: Análisis detallado con insights (usar FORMATO 4)`;
     }
     
     if (conversation.history.length > 0) {
@@ -248,9 +294,14 @@ FORMATO FALCON REQUERIDO:
 RESPONDE COMO ANA:
 - Si la pregunta es de configuración (como grupo principal), maneja el flujo
 - Si necesitas datos específicos, responde SOLAMENTE "SQL:" + query (nada más)
-- Si puedes responder directamente, da respuesta Falcon completa
+- Si puedes responder directamente, usa FORMATO VISUAL apropiado
 - USA el contexto del usuario y conversación anterior
-- Sé precisa, específica y útil
+
+DETECCIÓN AUTOMÁTICA DE FORMATOS:
+- Rankings/Calificaciones → FORMATO 1: Lista Ultra Visual
+- Comparaciones entre grupos → FORMATO 2: Tabla Compacta  
+- Si hay datos <80% → Agrega FORMATO 3: Alertas automáticamente
+- Si usuario pide "/detalle", "/insights", "más información" → FORMATO 4: Insights
 
 RECUERDA: Para consultas de datos, tu respuesta COMPLETA debe ser:
 SQL: SELECT ... FROM ... WHERE ...
@@ -347,12 +398,21 @@ ANALIZA estos datos como Ana y da una respuesta Falcon completa con insights emp
     return aiResponse;
   }
   
-  // Manejar configuración de usuario
+  // Manejar configuración de usuario y comandos especiales
   handleUserConfiguration(response, chatId, question) {
     const conversation = this.getConversation(chatId);
     
-    // Detectar si el usuario está configurando un grupo
+    // Detectar comandos especiales
     const lowerQuestion = question.toLowerCase();
+    
+    // Marcar si el usuario pidió detalles/insights
+    if (lowerQuestion.includes('/detalle') || lowerQuestion.includes('/insights') || 
+        lowerQuestion.includes('más información') || lowerQuestion.includes('detallado')) {
+      conversation.requestedDetails = true;
+      console.log(`💡 Usuario ${chatId} pidió insights detallados`);
+    }
+    
+    // Detectar si el usuario está configurando un grupo
     for (const group of this.databaseSchema.grupos_disponibles) {
       if (lowerQuestion.includes(group.toLowerCase())) {
         conversation.userGroup = group;
