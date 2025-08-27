@@ -48,9 +48,12 @@ SELECT
     WHEN location_name = '33 - Eloy Cavazos' THEN 'EXPO'
     WHEN location_name = '26 - Cadereyta' THEN 'EXPO'
     
-    -- COAHUILA - GRUPO SALTILLO
-    WHEN location_name = '57 - Harold R. Pape' THEN 'GRUPO SALTILLO'
+    -- COAHUILA - GRUPO SALTILLO (5 sucursales confirmadas)
+    WHEN location_name = '52 - Venustiano Carranza' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '54 - Ramos Arizpe' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '55 - Eulalio Gutierrez' THEN 'GRUPO SALTILLO'
     WHEN location_name = '56 - Luis Echeverria' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '57 - Harold R. Pape' THEN 'GRUPO SALTILLO'
     
     -- MAPEO POR NOMBRES SIMILARES (análisis de patrones)
     WHEN location_name ILIKE '%aeropuerto%' AND (estado = 'Tamaulipas' OR municipio ILIKE '%reynosa%') THEN 'RAP'
@@ -143,7 +146,6 @@ SELECT
   
 FROM supervision_operativa_detalle
 WHERE grupo_operativo IS NOT NULL 
-  AND grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO')
   AND location_name IS NOT NULL;
 
 -- 2. View para calificaciones generales limpias
