@@ -332,7 +332,179 @@ async function areasOportunidadTepeyac() {
   }
 }
 
-// Comentar la exploración general y ejecutar funciones específicas
-// explorePolloLocoData();
-// obtenerCalificacionesTepeyac();
-areasOportunidadTepeyac();
+// Función para verificar grupo CRR vs RAP
+async function verificarGruposCRR_RAP() {
+  try {
+    console.log('🔍 VERIFICANDO GRUPOS CRR vs RAP\n');
+    
+    // 1. Verificar que grupos existen
+    console.log('1. GRUPOS DISPONIBLES:');
+    const grupos = await pool.query(`
+      SELECT DISTINCT grupo_operativo, COUNT(*) as registros
+      FROM supervision_operativa_detalle 
+      WHERE grupo_operativo IN ('CRR', 'RAP')
+      GROUP BY grupo_operativo
+      ORDER BY grupo_operativo
+    `);
+    
+    grupos.rows.forEach(row => {
+      console.log(`   ${row.grupo_operativo}: ${row.registros} registros`);
+    });
+    
+    // 2. Ver sucursales de cada grupo
+    console.log('\n2. SUCURSALES POR GRUPO:');
+    
+    for (const grupo of ['CRR', 'RAP']) {
+      console.log(`\n   GRUPO ${grupo}:`);
+      
+      const sucursales = await pool.query(`
+        SELECT DISTINCT location_name, COUNT(*) as evaluaciones
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo = $1
+        GROUP BY location_name
+        ORDER BY location_name
+        LIMIT 5
+      `, [grupo]);
+      
+      sucursales.rows.forEach(row => {
+        console.log(`     • ${row.location_name} (${row.evaluaciones} evaluaciones)`);
+      });
+    }
+    
+    // 3. Verificar si "77 - Boulevard Morelos" existe y en qué grupo
+    console.log('\n3. VERIFICANDO "77 - Boulevard Morelos":');
+    const boulevard = await pool.query(`
+      SELECT DISTINCT grupo_operativo, COUNT(*) as registros
+      FROM supervision_operativa_detalle 
+      WHERE location_name ILIKE '%Boulevard Morelos%'
+      GROUP BY grupo_operativo
+    `);
+    
+    if (boulevard.rows.length > 0) {
+      boulevard.rows.forEach(row => {
+        console.log(`   "${row.grupo_operativo}": ${row.registros} registros`);
+      });
+    } else {
+      console.log('   ❌ No encontrada "Boulevard Morelos"');
+      
+      // Buscar variaciones
+      console.log('\n   Buscando variaciones de "Boulevard":');
+      const variaciones = await pool.query(`
+        SELECT DISTINCT location_name, grupo_operativo
+        FROM supervision_operativa_detalle 
+        WHERE location_name ILIKE '%boulevard%'
+        ORDER BY location_name
+        LIMIT 10
+      `);
+      
+      variaciones.rows.forEach(row => {
+        console.log(`     • "${row.location_name}" → ${row.grupo_operativo}`);
+      });
+    }
+    
+    await pool.end();
+    
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+  }
+}
+
+// Función para verificar Cantera Rosa
+async function verificarCanteraRosa() {
+  try {
+    console.log('🔍 VERIFICANDO GRUPO CANTERA ROSA\n');
+    
+    // 1. Buscar todas las variaciones de Cantera Rosa
+    console.log('1. BUSCANDO VARIACIONES DE "CANTERA ROSA":');
+    const variaciones = await pool.query(`
+      SELECT DISTINCT grupo_operativo, COUNT(*) as registros
+      FROM supervision_operativa_detalle 
+      WHERE grupo_operativo ILIKE '%CANTERA%'
+         OR grupo_operativo ILIKE '%ROSA%'
+         OR grupo_operativo ILIKE '%MORELIA%'
+      GROUP BY grupo_operativo
+      ORDER BY grupo_operativo
+    `);
+    
+    variaciones.rows.forEach(row => {
+      console.log(`   "${row.grupo_operativo}": ${row.registros} registros`);
+    });
+    
+    // 2. Buscar por ubicación en Michoacán/Morelia
+    console.log('\n2. SUCURSALES EN MICHOACÁN/MORELIA:');
+    const michoacan = await pool.query(`
+      SELECT DISTINCT 
+        location_name, 
+        grupo_operativo, 
+        estado,
+        municipio,
+        COUNT(*) as evaluaciones
+      FROM supervision_operativa_detalle 
+      WHERE estado ILIKE '%michoacan%'
+         OR estado ILIKE '%michoacán%'
+         OR municipio ILIKE '%morelia%'
+      GROUP BY location_name, grupo_operativo, estado, municipio
+      ORDER BY location_name
+    `);
+    
+    if (michoacan.rows.length > 0) {
+      michoacan.rows.forEach(row => {
+        console.log(`   • ${row.location_name} | ${row.grupo_operativo} | ${row.estado}, ${row.municipio} (${row.evaluaciones} evaluaciones)`);
+      });
+    } else {
+      console.log('   ❌ No se encontraron sucursales en Michoacán/Morelia');
+      
+      // Buscar estados disponibles
+      console.log('\n   ESTADOS DISPONIBLES:');
+      const estados = await pool.query(`
+        SELECT DISTINCT estado, COUNT(*) as sucursales
+        FROM supervision_operativa_detalle 
+        WHERE estado IS NOT NULL AND estado != ''
+        GROUP BY estado
+        ORDER BY estado
+      `);
+      
+      estados.rows.forEach(row => {
+        console.log(`     - ${row.estado}: ${row.sucursales} registros`);
+      });
+    }
+    
+    // 3. Ver si existe el grupo exacto
+    console.log('\n3. GRUPO EXACTO:');
+    const exacto = await pool.query(`
+      SELECT DISTINCT grupo_operativo, COUNT(*) as registros
+      FROM supervision_operativa_detalle 
+      WHERE grupo_operativo = 'GRUPO CANTERA ROSA (MORELIA)'
+      GROUP BY grupo_operativo
+    `);
+    
+    if (exacto.rows.length > 0) {
+      console.log(`   ✅ Encontrado: "${exacto.rows[0].grupo_operativo}" con ${exacto.rows[0].registros} registros`);
+      
+      // Mostrar sucursales del grupo
+      const sucursales = await pool.query(`
+        SELECT DISTINCT location_name, COUNT(*) as evaluaciones
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo = 'GRUPO CANTERA ROSA (MORELIA)'
+        GROUP BY location_name
+        ORDER BY location_name
+        LIMIT 10
+      `);
+      
+      console.log('\n   SUCURSALES DEL GRUPO:');
+      sucursales.rows.forEach(row => {
+        console.log(`     • ${row.location_name} (${row.evaluaciones} evaluaciones)`);
+      });
+    } else {
+      console.log('   ❌ No encontrado grupo exacto');
+    }
+    
+    await pool.end();
+    
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+  }
+}
+
+// Ejecutar verificación
+verificarCanteraRosa();

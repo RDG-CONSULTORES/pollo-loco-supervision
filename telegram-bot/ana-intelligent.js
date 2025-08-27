@@ -24,15 +24,15 @@ class AnaIntelligent {
     
     // Esquema de BD completo para OpenAI
     this.databaseSchema = {
-      table: 'supervision_operativa_detalle',
+      table: 'supervision_operativa_clean',  // USA LA VIEW LIMPIA
       columns: {
         location_name: 'VARCHAR(255) - Nombre de la sucursal',
-        grupo_operativo: 'VARCHAR(255) - Grupo operativo (~20 grupos)',
+        grupo_operativo_limpio: 'VARCHAR(255) - Grupo operativo limpio (sin NO_ENCONTRADO)',
         area_evaluacion: 'VARCHAR(255) - Área evaluada (29 áreas específicas + CALIFICACION GENERAL)',
         porcentaje: 'DECIMAL(5,2) - Porcentaje obtenido (0-100)',
         fecha_supervision: 'DATE - Fecha de supervisión',
         submission_id: 'VARCHAR(255) - ID único',
-        estado: 'VARCHAR(255) - Estado de México (7 estados)',
+        estado_normalizado: 'VARCHAR(255) - Estado normalizado (sin duplicados)',
         municipio: 'VARCHAR(255) - Municipio específico',
         latitud: 'DECIMAL - Coordenada latitud',
         longitud: 'DECIMAL - Coordenada longitud'
@@ -124,7 +124,7 @@ ${this.databaseSchema.grupos_disponibles.join(', ')}
 EJEMPLOS SQL INTELIGENTES:
 
 RANKING:
-SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 10;
+SQL: SELECT grupo_operativo_limpio as grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_clean WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo_limpio ORDER BY promedio DESC LIMIT 10;
 
 SUCURSALES DE UN GRUPO:
 SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE grupo_operativo = 'OGAS' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
@@ -133,7 +133,7 @@ SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as ev
 SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
 
 CALIFICACIÓN GENERAL POR GRUPO (campo vacío con porcentaje):
-SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 15;
+SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO') GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 15;
 
 CALIFICACIONES INDIVIDUALES DE SUCURSALES (Calificación General):
 SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_detalle WHERE grupo_operativo = 'TEPEYAC' AND area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje DESC;
@@ -144,10 +144,23 @@ SQL: SELECT area_evaluacion, porcentaje FROM supervision_operativa_detalle WHERE
 TODAS LAS 29 ÁREAS DISPONIBLES:
 SQL: SELECT DISTINCT area_evaluacion FROM supervision_operativa_detalle WHERE area_evaluacion IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL ORDER BY area_evaluacion;
 
+BÚSQUEDAS INTELIGENTES DE GRUPOS:
+- Para nombres de grupos, usa ILIKE con wildcards: WHERE grupo_operativo ILIKE '%TEPEYAC%'
+- Para "Cantera Rosa" busca: WHERE grupo_operativo ILIKE '%CANTERA%ROSA%'
+- Para "Queretaro" busca: WHERE grupo_operativo ILIKE '%QUERETARO%' OR grupo_operativo ILIKE '%QUERÉTARO%'
+- SIEMPRE excluye datos sin mapear: AND grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO')
+
+ERRORES TIPOGRÁFICOS COMUNES:
+- "Catera" → "CANTERA" 
+- "Qro" → "QUERETARO"
+- "Laguna" → "PLOG LAGUNA"
+- "Nuevo Leon" → "PLOG NUEVO LEON"
+
 REGLAS IMPORTANTES:
 - SIEMPRE usa LIMIT apropiado (5-20 para rankings, 20-50 para listas)
 - SIEMPRE usa GROUP BY para agregación inteligente
 - NUNCA retornes datos raw individuales para datasets grandes
+- SIEMPRE filtra NO_ENCONTRADO y SIN_MAPEO automáticamente
 
 CONTEXTO DE NEGOCIO - EL POLLO LOCO CAS:
 - Organización: El Pollo Loco CAS (Centro de Apoyo a Sucursales)
