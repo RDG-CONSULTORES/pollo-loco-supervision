@@ -278,19 +278,36 @@ BENCHMARKS:
 - ⚠️ Atención: 85-89% general, 80-84% áreas
 - 🚨 Crítico: <85% general, <80% áreas
 
-INSTRUCCIONES:
+INSTRUCCIONES DE RESPUESTA:
 - Si necesitas datos → responde SOLO: "SQL: SELECT..."
 - Para sucursales específicas → SIEMPRE usa ILIKE con %
 - Para rankings → usa GROUP BY y ORDER BY
-- Mantén respuestas visuales y concisas
+- RESPUESTAS COMPACTAS: Datos primero, explicaciones mínimas
+- Si Q3 no tiene datos → buscar Q2, indicar trimestre
+- Si usuario pide /insights → dar análisis detallado
 
-FORMATO DE RESPUESTA:
-🏆 TÍTULO
+FORMATO COMPACTO OBLIGATORIO:
+🏆 GRUPO/SUCURSAL Q3 2025
 98.52% ⭐⭐⭐ Item 1
 96.45% ⭐⭐⭐ Item 2
-─────────────────────
-📊 Insight clave
-🎯 /comando`;
+85.30% ⚠️ Item 3
+
+💡 /insights - Análisis detallado
+🎯 /areas - Áreas críticas
+
+SI NO HAY DATOS Q3:
+📊 GRUPO Q3 2025 - Sin supervisiones
+📊 GRUPO Q2 2025 - Últimas evaluaciones:
+96.45% ⭐⭐⭐ Item 1
+⚠️ Datos de Q2 (último trimestre disponible)
+💡 /insights-q2 - Ver análisis Q2
+
+PARA INSIGHTS DETALLADOS (/insights):
+📊 ANÁLISIS DETALLADO GRUPO Q3:
+• Líder: [sucursal] con [%]
+• Riesgo: [problema identificado]
+• Tendencia: [vs trimestre anterior]
+• Acción: [recomendación específica]`;
   }
   
   // Construir prompt del usuario con contexto
@@ -315,10 +332,11 @@ FORMATO DE RESPUESTA:
       contextInfo += `\nFILTRO: Q3 2025 - usar EXTRACT(QUARTER FROM fecha_supervision) = 3`;
     }
     
-    // Verificar si pidió detalles/insights
-    if (lowerQuestion.includes('/detalle') || lowerQuestion.includes('/insights') || 
-        lowerQuestion.includes('más información') || lowerQuestion.includes('detallado')) {
-      contextInfo += `\nUSUARIO PIDIÓ: Análisis detallado con insights`;
+    // NIVEL 3: Detectar comandos de insights
+    if (this.isInsightsRequest(lowerQuestion)) {
+      contextInfo += `\nCOMANDO: /insights - Usuario quiere análisis detallado completo`;
+    } else {
+      contextInfo += `\nFORMATO: Respuesta compacta - datos primero, mínimo texto`;
     }
     
     if (conversation.history.length > 0) {
@@ -337,6 +355,58 @@ RESPONDE COMO ANA:
 - Mantén respuestas visuales y concisas`;
   }
   
+  // NIVEL 2: SISTEMA DE FALLBACK DE TRIMESTRES
+  async tryFallbackQuery(originalQuery) {
+    console.log('🔄 Intentando fallback de trimestres...');
+    
+    try {
+      // Intentar Q3 primero
+      const q3Query = originalQuery.replace(/EXTRACT\(QUARTER FROM fecha_supervision\) = \d+/g, 'EXTRACT(QUARTER FROM fecha_supervision) = 3');
+      const q3Result = await this.pool.query(q3Query);
+      
+      if (q3Result.rows.length > 0) {
+        console.log('✅ Datos encontrados en Q3');
+        return { data: q3Result.rows, quarter: 'Q3 2025', fallback: false };
+      }
+      
+      // Si Q3 está vacío, intentar Q2
+      console.log('🔍 Q3 sin datos, intentando Q2...');
+      const q2Query = originalQuery.replace(/EXTRACT\(QUARTER FROM fecha_supervision\) = \d+/g, 'EXTRACT(QUARTER FROM fecha_supervision) = 2');
+      const q2Result = await this.pool.query(q2Query);
+      
+      if (q2Result.rows.length > 0) {
+        console.log('✅ Datos encontrados en Q2 (fallback)');
+        return { data: q2Result.rows, quarter: 'Q2 2025', fallback: true };
+      }
+      
+      // Si Q2 también está vacío, intentar Q1
+      console.log('🔍 Q2 sin datos, intentando Q1...');
+      const q1Query = originalQuery.replace(/EXTRACT\(QUARTER FROM fecha_supervision\) = \d+/g, 'EXTRACT(QUARTER FROM fecha_supervision) = 1');
+      const q1Result = await this.pool.query(q1Query);
+      
+      if (q1Result.rows.length > 0) {
+        console.log('✅ Datos encontrados en Q1 (fallback)');
+        return { data: q1Result.rows, quarter: 'Q1 2025', fallback: true };
+      }
+      
+      return { data: [], quarter: null, fallback: false };
+      
+    } catch (error) {
+      console.error('❌ Error en fallback:', error.message);
+      return { data: [], quarter: null, fallback: false };
+    }
+  }
+  
+  // NIVEL 3: DETECTOR DE COMANDO INSIGHTS
+  isInsightsRequest(question) {
+    const lowerQ = question.toLowerCase();
+    return lowerQ.includes('/insights') || 
+           lowerQ.includes('análisis detallado') || 
+           lowerQ.includes('insights') ||
+           lowerQ.includes('más información') ||
+           lowerQ.includes('detallado');
+  }
+  
   // Procesar respuesta de OpenAI
   async processAIResponse(aiResponse, chatId, originalQuestion) {
     // Si OpenAI quiere ejecutar SQL
@@ -345,8 +415,19 @@ RESPONDE COMO ANA:
       console.log('📊 Ejecutando SQL generado por OpenAI:', sqlQuery);
       
       try {
-        const result = await this.pool.query(sqlQuery);
-        const data = result.rows;
+        // NIVEL 2: Intentar consulta con fallback de trimestres
+        let queryResult;
+        
+        // Si la query incluye trimestres, usar sistema de fallback
+        if (sqlQuery.includes('EXTRACT(QUARTER FROM fecha_supervision)')) {
+          queryResult = await this.tryFallbackQuery(sqlQuery);
+        } else {
+          // Query normal sin trimestres
+          const result = await this.pool.query(sqlQuery);
+          queryResult = { data: result.rows, quarter: null, fallback: false };
+        }
+        
+        const data = queryResult.data;
         
         // Optimizar datos grandes para evitar token overflow
         let dataForAnalysis = data;
@@ -366,6 +447,23 @@ RESPONDE COMO ANA:
           };
         }
         
+        // NIVEL 3: Verificar si es request de insights
+        const wantsInsights = this.isInsightsRequest(originalQuestion);
+        
+        // Preparar contexto para OpenAI
+        let contextInfo = '';
+        if (queryResult.fallback) {
+          contextInfo += `\nIMPORTANTE: Datos de ${queryResult.quarter} (fallback - Q3 sin supervisiones).`;
+        } else if (queryResult.quarter) {
+          contextInfo += `\nDatos de ${queryResult.quarter}.`;
+        }
+        
+        if (wantsInsights) {
+          contextInfo += '\nUsuario pidí análisis detallado - usar formato de insights completo.';
+        } else {
+          contextInfo += '\nUsuario quiere respuesta compacta - usar formato compacto obligatorio.';
+        }
+        
         // Pedir a OpenAI que analice los resultados
         const analysisPrompt = `Los datos de la consulta "${originalQuestion}" son:
         
@@ -375,7 +473,9 @@ ${data.length > 100 ?
 `NOTA: Dataset grande con ${data.length} registros totales. Arriba tienes muestra representativa + resumen estadístico.` : 
 ''}
 
-ANALIZA estos datos como Ana y da una respuesta Falcon completa con insights empresariales específicos.`;
+${contextInfo}
+
+ANALIZA estos datos como Ana siguiendo las instrucciones de formato.`;
 
         const analysisResponse = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
@@ -419,12 +519,54 @@ ANALIZA estos datos como Ana y da una respuesta Falcon completa con insights emp
       }
     }
     
+    // NIVEL 3: Manejo de comandos insights
+    if (aiResponse.startsWith('/insights') || this.isInsightsRequest(originalQuestion)) {
+      // Generar insights detallados basados en contexto conversacional
+      const conversation = this.getConversation(chatId);
+      return this.generateDetailedInsights(originalQuestion, conversation);
+    }
+    
     // Si es manejo de configuración o respuesta directa
     if (aiResponse.includes('grupo principal') || aiResponse.includes('configurar')) {
       this.handleUserConfiguration(aiResponse, chatId, originalQuestion);
     }
     
     return aiResponse;
+  }
+  
+  // NIVEL 3: GENERADOR DE INSIGHTS DETALLADOS
+  async generateDetailedInsights(question, conversation) {
+    console.log('📊 Generando insights detallados...');
+    
+    try {
+      const insightsPrompt = `
+Genera un análisis detallado para: "${question}"
+
+Contexto conversacional reciente:
+${conversation.history.slice(-2).map(h => `- ${h.question}`).join('\n')}
+
+USA FORMATO DE INSIGHTS DETALLADOS:
+📊 ANÁLISIS DETALLADO:
+• Líder: [mejor performer con dato específico]
+• Riesgo: [problema principal identificado]
+• Tendencia: [comparación vs periodo anterior]
+• Acción: [recomendación concreta y actionable]`;
+
+      const insightsResponse = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: this.buildSystemPrompt() },
+          { role: 'user', content: insightsPrompt }
+        ],
+        temperature: 0.3
+      });
+      
+      return insightsResponse.choices[0].message.content;
+      
+    } catch (error) {
+      console.error('❌ Error generando insights:', error.message);
+      return '📊 Insights temporalmente no disponibles\n\n💡 Intenta: /stats | /areas | /ranking';
+    }
   }
   
   // Manejar configuración de usuario y comandos especiales
