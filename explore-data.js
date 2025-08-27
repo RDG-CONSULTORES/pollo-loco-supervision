@@ -506,5 +506,184 @@ async function verificarCanteraRosa() {
   }
 }
 
-// Ejecutar verificación
-verificarCanteraRosa();
+// Función para analizar coordenadas y mapeo geográfico
+async function analizarCoordenadasParaMapeo() {
+  try {
+    console.log('🗺️ ANÁLISIS DE COORDENADAS PARA MAPEO AUTOMÁTICO\n');
+    
+    // 1. Ver registros SIN mapeo que tienen coordenadas
+    console.log('1. REGISTROS SIN MAPEO CON COORDENADAS:');
+    const sinMapeoConCoordenadas = await pool.query(`
+      SELECT 
+        location_name,
+        estado,
+        municipio,
+        latitud,
+        longitud,
+        COUNT(*) as registros
+      FROM supervision_operativa_detalle 
+      WHERE grupo_operativo IN ('NO_ENCONTRADO', 'SIN_MAPEO')
+        AND latitud IS NOT NULL 
+        AND longitud IS NOT NULL
+      GROUP BY location_name, estado, municipio, latitud, longitud
+      ORDER BY registros DESC
+      LIMIT 10
+    `);
+    
+    sinMapeoConCoordenadas.rows.forEach(row => {
+      console.log(`   ${row.location_name} | ${row.estado}, ${row.municipio}`);
+      console.log(`     Coords: ${row.latitud}, ${row.longitud} | ${row.registros} registros\n`);
+    });
+    
+    // 2. Ver coordenadas de grupos CONOCIDOS para comparar
+    console.log('2. COORDENADAS DE GRUPOS CONOCIDOS (para mapeo):');
+    const gruposConocidos = ['TEPEYAC', 'OGAS', 'RAP', 'CRR', 'GRUPO CANTERA ROSA (MORELIA)'];
+    
+    for (const grupo of gruposConocidos) {
+      const coordenadas = await pool.query(`
+        SELECT 
+          location_name,
+          estado, 
+          municipio,
+          ROUND(AVG(latitud::numeric), 6) as lat_promedio,
+          ROUND(AVG(longitud::numeric), 6) as lng_promedio,
+          COUNT(DISTINCT location_name) as sucursales
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo = $1
+          AND latitud IS NOT NULL 
+          AND longitud IS NOT NULL
+        GROUP BY location_name, estado, municipio
+        ORDER BY location_name
+        LIMIT 3
+      `, [grupo]);
+      
+      if (coordenadas.rows.length > 0) {
+        console.log(`\n   ${grupo}:`);
+        coordenadas.rows.forEach(row => {
+          console.log(`     ${row.location_name} | ${row.estado}, ${row.municipio}`);
+          console.log(`     Coords: ${row.lat_promedio}, ${row.lng_promedio}`);
+        });
+      }
+    }
+    
+    // 3. Buscar clusters de coordenadas similares
+    console.log('\n3. ANÁLISIS DE PROXIMIDAD GEOGRÁFICA:');
+    const proximidad = await pool.query(`
+      WITH coords_conocidos AS (
+        SELECT DISTINCT
+          grupo_operativo,
+          location_name,
+          latitud::numeric as lat,
+          longitud::numeric as lng
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO', '')
+          AND latitud IS NOT NULL 
+          AND longitud IS NOT NULL
+          AND grupo_operativo IS NOT NULL
+      ),
+      coords_sin_mapeo AS (
+        SELECT DISTINCT
+          location_name as sin_mapeo_nombre,
+          estado,
+          municipio,
+          latitud::numeric as lat_sin_mapeo,
+          longitud::numeric as lng_sin_mapeo
+        FROM supervision_operativa_detalle 
+        WHERE grupo_operativo IN ('NO_ENCONTRADO', 'SIN_MAPEO')
+          AND latitud IS NOT NULL 
+          AND longitud IS NOT NULL
+      )
+      SELECT 
+        sin_mapeo_nombre,
+        estado,
+        municipio,
+        lat_sin_mapeo,
+        lng_sin_mapeo,
+        grupo_operativo as grupo_cercano,
+        location_name as sucursal_cercana,
+        ROUND(
+          SQRT(
+            POWER(lat - lat_sin_mapeo, 2) + 
+            POWER(lng - lng_sin_mapeo, 2)
+          ), 6
+        ) as distancia_aproximada
+      FROM coords_sin_mapeo
+      CROSS JOIN coords_conocidos
+      WHERE SQRT(
+        POWER(lat - lat_sin_mapeo, 2) + 
+        POWER(lng - lng_sin_mapeo, 2)
+      ) < 0.1  -- Aproximadamente 11km
+      ORDER BY sin_mapeo_nombre, distancia_aproximada
+      LIMIT 15
+    `);
+    
+    console.log('   SUCURSALES SIN MAPEO CERCA DE GRUPOS CONOCIDOS:');
+    proximidad.rows.forEach(row => {
+      console.log(`   ${row.sin_mapeo_nombre} (${row.estado}) → ${row.grupo_cercano}`);
+      console.log(`     Cerca de: ${row.sucursal_cercana} | Distancia: ${row.distancia_aproximada}`);
+    });
+    
+    await pool.end();
+    
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+  }
+}
+
+// Función para confirmar mapeo con el usuario
+async function confirmarMapeoConUsuario() {
+  try {
+    console.log('🔍 SUCURSALES SIN MAPEO - CONFIRMACIÓN REQUERIDA\n');
+    
+    // Obtener las principales sucursales sin mapeo
+    const sucursalesSinMapeo = await pool.query(`
+      SELECT 
+        location_name,
+        estado,
+        municipio,
+        latitud,
+        longitud,
+        COUNT(*) as total_registros
+      FROM supervision_operativa_detalle 
+      WHERE grupo_operativo IN ('NO_ENCONTRADO', 'SIN_MAPEO')
+        AND latitud IS NOT NULL 
+        AND longitud IS NOT NULL
+      GROUP BY location_name, estado, municipio, latitud, longitud
+      ORDER BY total_registros DESC
+      LIMIT 15
+    `);
+    
+    console.log('📋 SUCURSALES QUE REQUIEREN CONFIRMACIÓN:\n');
+    
+    sucursalesSinMapeo.rows.forEach((row, i) => {
+      console.log(`${i+1}. 📍 ${row.location_name}`);
+      console.log(`   📍 Ubicación: ${row.estado}, ${row.municipio}`);
+      console.log(`   🗺️ Coordenadas: ${row.latitud}, ${row.longitud}`);
+      console.log(`   📊 Registros: ${row.total_registros}`);
+      console.log(`   ❓ ¿A qué GRUPO OPERATIVO pertenece?\n`);
+    });
+    
+    console.log('🎯 GRUPOS DISPONIBLES PARA ASIGNAR:');
+    const gruposDisponibles = [
+      'TEPEYAC', 'OGAS', 'RAP', 'CRR', 'EXPO', 'TEC', 
+      'GRUPO CANTERA ROSA (MORELIA)', 'PLOG NUEVO LEON', 
+      'PLOG QUERETARO', 'PLOG LAGUNA', 'EFM',
+      'GRUPO SALTILLO', 'GRUPO MATAMOROS', 'GRUPO RIO BRAVO'
+    ];
+    
+    gruposDisponibles.forEach((grupo, i) => {
+      console.log(`   ${i+1}. ${grupo}`);
+    });
+    
+    console.log('\n💡 Por favor confirma a qué grupo pertenece cada sucursal');
+    console.log('   Ejemplo: "76 - Aeropuerto (Reynosa) → RAP"');
+    
+    await pool.end();
+    
+  } catch (error) {
+    console.error('❌ Error:', error.message);
+  }
+}
+
+// Ejecutar confirmación con usuario
+confirmarMapeoConUsuario();

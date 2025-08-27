@@ -1,9 +1,9 @@
 -- ===============================================
--- VIEWS LIMPIAS PARA EL POLLO LOCO CAS
+-- VIEWS LIMPIAS CON MAPEO AUTOMÁTICO POR COORDENADAS
 -- Solución inmediata para datos duplicados y sin mapeo
 -- ===============================================
 
--- 1. View principal con datos limpios
+-- 1. View principal con datos limpios Y MAPEO AUTOMÁTICO POR COORDENADAS
 CREATE OR REPLACE VIEW supervision_operativa_clean AS
 SELECT 
   id,
@@ -24,10 +24,110 @@ SELECT
   latitud,
   longitud,
   
-  -- Solo grupos válidos (excluir sin mapeo)
+  -- MAPEO AUTOMÁTICO INTELIGENTE por coordenadas y nombres
   CASE 
-    WHEN grupo_operativo IN ('NO_ENCONTRADO', 'SIN_MAPEO') THEN NULL
-    ELSE grupo_operativo 
+    -- Si ya tiene grupo válido, mantenerlo
+    WHEN grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO', '') 
+         AND grupo_operativo IS NOT NULL THEN grupo_operativo
+    
+    -- MAPEO POR NOMBRES ESPECÍFICOS CONFIRMADO POR USUARIO
+    -- REYNOSA - TAMAULIPAS
+    WHEN location_name = '74 - Hidalgo (Reynosa)' THEN 'CRR'
+    WHEN location_name = '77 - Boulevard Morelos' THEN 'RAP'
+    WHEN location_name = '76 - Aeropuerto (Reynosa)' THEN 'RAP'
+    WHEN location_name = '75 - Libramiento (Reynosa)' THEN 'CRR'
+    WHEN location_name = '78 - Alcala' THEN 'RAP'
+    WHEN location_name = '73 - Anzalduas' THEN 'CRR'
+    
+    -- NUEVO LEÓN - CONFIRMADO COMO EXPO
+    WHEN location_name = '32 - Allende' THEN 'EXPO'
+    WHEN location_name = '31 - Las Quintas' THEN 'EXPO'
+    WHEN location_name = '27 - Santiago' THEN 'EXPO'
+    WHEN location_name = '34 - Montemorelos' THEN 'EXPO'
+    WHEN location_name = '24 - Exposicion' THEN 'EXPO'
+    WHEN location_name = '33 - Eloy Cavazos' THEN 'EXPO'
+    WHEN location_name = '26 - Cadereyta' THEN 'EXPO'
+    
+    -- COAHUILA - GRUPO SALTILLO
+    WHEN location_name = '57 - Harold R. Pape' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '56 - Luis Echeverria' THEN 'GRUPO SALTILLO'
+    
+    -- MAPEO POR NOMBRES SIMILARES (análisis de patrones)
+    WHEN location_name ILIKE '%aeropuerto%' AND (estado = 'Tamaulipas' OR municipio ILIKE '%reynosa%') THEN 'RAP'
+    WHEN location_name ILIKE '%boulevard%' AND location_name ILIKE '%morelos%' THEN 'RAP'
+    WHEN location_name ILIKE '%alcala%' AND (estado = 'Tamaulipas' OR municipio ILIKE '%reynosa%') THEN 'RAP'
+    WHEN location_name ILIKE '%anzalduas%' THEN 'CRR'
+    WHEN location_name ILIKE '%hidalgo%' AND municipio ILIKE '%reynosa%' THEN 'CRR'
+    WHEN location_name ILIKE '%libramiento%' AND municipio ILIKE '%reynosa%' THEN 'CRR'
+    
+    -- MAPEO POR PATRONES DE NOMBRES SIMILARES A GRUPOS EXISTENTES
+    -- TEPEYAC - Monterrey centro
+    WHEN location_name ILIKE '%pino suarez%' OR location_name ILIKE '%pino%suarez%' THEN 'TEPEYAC'
+    WHEN location_name ILIKE '%madero%' AND estado = 'Nuevo León' AND municipio = 'Monterrey' THEN 'TEPEYAC'
+    WHEN location_name ILIKE '%matamoros%' AND estado = 'Nuevo León' AND municipio = 'Monterrey' THEN 'TEPEYAC'
+    WHEN location_name ILIKE '%felix%gomez%' OR location_name ILIKE '%felix%u%gomez%' THEN 'TEPEYAC'
+    
+    -- OGAS - San Nicolás, Apodaca área
+    WHEN location_name ILIKE '%anahuac%' AND estado = 'Nuevo León' THEN 'OGAS'
+    WHEN location_name ILIKE '%barragan%' AND estado = 'Nuevo León' THEN 'OGAS'
+    WHEN location_name ILIKE '%lincoln%' AND estado = 'Nuevo León' THEN 'OGAS'
+    WHEN location_name ILIKE '%concordia%' AND estado = 'Nuevo León' THEN 'OGAS'
+    WHEN location_name ILIKE '%apodaca%' AND estado = 'Nuevo León' THEN 'OGAS'
+    
+    -- EXPO - Basado en confirmaciones (área metropolitana Nuevo León)
+    WHEN location_name ILIKE '%exposicion%' AND estado = 'Nuevo León' THEN 'EXPO'
+    WHEN location_name ILIKE '%quintas%' AND estado = 'Nuevo León' THEN 'EXPO'
+    WHEN location_name ILIKE '%allende%' AND estado = 'Nuevo León' THEN 'EXPO'
+    WHEN location_name ILIKE '%santiago%' AND estado = 'Nuevo León' THEN 'EXPO'
+    WHEN location_name ILIKE '%montemorelos%' AND estado = 'Nuevo León' THEN 'EXPO'
+    WHEN location_name ILIKE '%eloy%cavazos%' AND estado = 'Nuevo León' THEN 'EXPO'
+    WHEN location_name ILIKE '%cadereyta%' AND estado = 'Nuevo León' THEN 'EXPO'
+    
+    -- MAPEO CANTERA ROSA por patrones
+    WHEN location_name ILIKE '%lazaro%cardenas%' AND (estado ILIKE '%michoacán%' OR municipio ILIKE '%morelia%') THEN 'GRUPO CANTERA ROSA (MORELIA)'
+    WHEN location_name ILIKE '%madero%' AND (estado ILIKE '%michoacán%' OR municipio ILIKE '%morelia%') THEN 'GRUPO CANTERA ROSA (MORELIA)'
+    WHEN location_name ILIKE '%huerta%' AND (estado ILIKE '%michoacán%' OR municipio ILIKE '%morelia%') THEN 'GRUPO CANTERA ROSA (MORELIA)'
+    
+    -- MAPEO por números conocidos en rangos específicos
+    WHEN location_name ~ '^[1-9] - ' AND estado = 'Nuevo León' AND municipio = 'Monterrey' THEN 'TEPEYAC'
+    WHEN location_name ~ '^[67][0-9] - ' AND estado = 'Tamaulipas' AND municipio = 'Reynosa' THEN 
+      CASE 
+        WHEN location_name ~ '^7[678] - ' THEN 'RAP'
+        WHEN location_name ~ '^7[345] - ' THEN 'CRR'
+        ELSE 'RAP'
+      END
+    
+    -- MAPEO POR COORDENADAS GEOGRÁFICAS (Reynosa - Tamaulipas)
+    WHEN estado = 'Tamaulipas' AND municipio = 'Reynosa' AND
+         latitud::numeric BETWEEN 26.02 AND 26.07 AND longitud::numeric BETWEEN -98.30 AND -98.22
+         THEN 'RAP'
+    WHEN estado = 'Tamaulipas' AND municipio = 'Reynosa' AND
+         latitud::numeric BETWEEN 26.04 AND 26.10 AND longitud::numeric BETWEEN -98.35 AND -98.30
+         THEN 'CRR'
+    
+    -- MAPEO NUEVO LEÓN por proximidad a grupos conocidos
+    WHEN estado = 'Nuevo León' AND municipio = 'Monterrey' AND
+         latitud::numeric BETWEEN 25.66 AND 25.69 AND longitud::numeric BETWEEN -100.33 AND -100.31
+         THEN 'TEPEYAC'
+    WHEN estado = 'Nuevo León' AND municipio IN ('San Nicolás de los Garza', 'Apodaca', 'Guadalupe') AND
+         latitud::numeric BETWEEN 25.75 AND 25.79 AND longitud::numeric BETWEEN -100.41 AND -100.25
+         THEN 'OGAS'
+    WHEN estado = 'Nuevo León' AND (municipio = 'Guadalupe' OR location_name ILIKE '%quintas%') AND
+         latitud::numeric BETWEEN 25.68 AND 25.70 AND longitud::numeric BETWEEN -100.22 AND -100.20
+         THEN 'EXPO'
+    
+    -- MAPEO MICHOACÁN
+    WHEN (estado = 'Michoacán' OR estado = 'Michoacán de Ocampo') AND municipio = 'Morelia'
+         THEN 'GRUPO CANTERA ROSA (MORELIA)'
+    
+    -- GRUPO SALTILLO - Coahuila (basado en confirmaciones)
+    WHEN location_name ILIKE '%harold%pape%' OR location_name ILIKE '%harold%r%pape%' THEN 'GRUPO SALTILLO'
+    WHEN location_name ILIKE '%luis%echeverria%' THEN 'GRUPO SALTILLO'
+    WHEN (estado = 'Coahuila' OR estado = 'Coahuila de Zaragoza') AND municipio = 'Monclova' THEN 'GRUPO SALTILLO'
+    WHEN (estado = 'Coahuila' OR estado = 'Coahuila de Zaragoza') AND municipio = 'Saltillo' THEN 'GRUPO SALTILLO'
+    
+    -- Casos sin mapear después de análisis
+    ELSE 'REQUIERE_MAPEO_MANUAL'
   END as grupo_operativo_limpio,
   
   director_operativo,
@@ -96,8 +196,58 @@ SELECT
 FROM calificaciones_generales_clean
 GROUP BY grupo_operativo;
 
+-- 5. View para validar efectividad del mapeo automático
+CREATE OR REPLACE VIEW mapeo_automatico_stats AS
+SELECT 
+  grupo_operativo_limpio,
+  COUNT(*) as total_registros,
+  COUNT(DISTINCT location_name) as sucursales_unicas,
+  COUNT(DISTINCT estado_normalizado) as estados,
+  ROUND(AVG(
+    CASE WHEN area_evaluacion = '' AND porcentaje IS NOT NULL 
+    THEN porcentaje END
+  ), 2) as promedio_calificacion_general,
+  -- Indicar método de mapeo
+  CASE 
+    WHEN grupo_operativo_limpio = 'REQUIERE_MAPEO_MANUAL' THEN 'Manual requerido'
+    WHEN grupo_operativo_limpio IN (
+      SELECT DISTINCT grupo_operativo 
+      FROM supervision_operativa_detalle 
+      WHERE grupo_operativo NOT IN ('NO_ENCONTRADO', 'SIN_MAPEO')
+    ) THEN 'Mapeo original'
+    ELSE 'Mapeo automático'
+  END as metodo_mapeo
+FROM supervision_operativa_clean
+WHERE grupo_operativo_limpio IS NOT NULL
+GROUP BY grupo_operativo_limpio
+ORDER BY 
+  CASE WHEN grupo_operativo_limpio = 'REQUIERE_MAPEO_MANUAL' THEN 1 ELSE 0 END,
+  total_registros DESC;
+
+-- 6. View de sucursales problemáticas para revisión manual
+CREATE OR REPLACE VIEW sucursales_requieren_revision AS
+SELECT DISTINCT
+  location_name,
+  estado_normalizado,
+  municipio, 
+  latitud,
+  longitud,
+  COUNT(*) as total_registros,
+  -- Mostrar grupos cercanos por coordenadas para ayuda
+  CASE 
+    WHEN latitud IS NOT NULL AND longitud IS NOT NULL THEN 
+      'Revisar coordenadas para mapeo manual'
+    ELSE 'Sin coordenadas - mapeo por nombre requerido'
+  END as sugerencia
+FROM supervision_operativa_clean  
+WHERE grupo_operativo_limpio = 'REQUIERE_MAPEO_MANUAL'
+GROUP BY location_name, estado_normalizado, municipio, latitud, longitud
+ORDER BY total_registros DESC;
+
 -- Comentarios para documentación
-COMMENT ON VIEW supervision_operativa_clean IS 'Vista limpia sin datos duplicados ni grupos sin mapear';
+COMMENT ON VIEW supervision_operativa_clean IS 'Vista limpia con mapeo automático por coordenadas y nombres similares';
 COMMENT ON VIEW calificaciones_generales_clean IS 'Vista específica para calificaciones generales limpias';
 COMMENT ON VIEW areas_evaluacion_clean IS 'Vista específica para áreas de evaluación limpias';
 COMMENT ON VIEW grupos_estadisticas IS 'Estadísticas consolidadas por grupo operativo';
+COMMENT ON VIEW mapeo_automatico_stats IS 'Estadísticas de efectividad del mapeo automático';
+COMMENT ON VIEW sucursales_requieren_revision IS 'Sucursales que requieren mapeo manual';
