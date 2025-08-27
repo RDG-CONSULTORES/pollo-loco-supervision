@@ -130,13 +130,19 @@ SUCURSALES DE UN GRUPO:
 SQL: SELECT location_name, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE grupo_operativo = 'OGAS' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY location_name ORDER BY promedio DESC LIMIT 20;
 
 ÁREAS CRÍTICAS (peores áreas):
-SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL AND area_evaluacion != 'CALIFICACION GENERAL' GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
+SQL: SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' GROUP BY area_evaluacion ORDER BY promedio ASC LIMIT 10;
 
-CALIFICACIÓN GENERAL POR GRUPO:
-SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE area_evaluacion = 'CALIFICACION GENERAL' AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 AND porcentaje IS NOT NULL GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 15;
+CALIFICACIÓN GENERAL POR GRUPO (campo vacío con porcentaje):
+SQL: SELECT grupo_operativo, ROUND(AVG(porcentaje), 2) as promedio, COUNT(*) as evaluaciones FROM supervision_operativa_detalle WHERE area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 GROUP BY grupo_operativo ORDER BY promedio DESC LIMIT 15;
+
+CALIFICACIONES INDIVIDUALES DE SUCURSALES (Calificación General):
+SQL: SELECT DISTINCT location_name as sucursal, porcentaje as calificacion_general, fecha_supervision FROM supervision_operativa_detalle WHERE grupo_operativo = 'TEPEYAC' AND area_evaluacion = '' AND porcentaje IS NOT NULL AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje DESC;
+
+ÁREAS DE OPORTUNIDAD DE UNA SUCURSAL ESPECÍFICA:
+SQL: SELECT area_evaluacion, porcentaje FROM supervision_operativa_detalle WHERE location_name = '1 - Pino Suarez' AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL AND porcentaje < 85 AND EXTRACT(YEAR FROM fecha_supervision) = 2025 AND EXTRACT(QUARTER FROM fecha_supervision) = 3 ORDER BY porcentaje ASC LIMIT 5;
 
 TODAS LAS 29 ÁREAS DISPONIBLES:
-SQL: SELECT DISTINCT area_evaluacion FROM supervision_operativa_detalle WHERE area_evaluacion IS NOT NULL AND area_evaluacion != 'CALIFICACION GENERAL' ORDER BY area_evaluacion;
+SQL: SELECT DISTINCT area_evaluacion FROM supervision_operativa_detalle WHERE area_evaluacion IS NOT NULL AND area_evaluacion != '' AND area_evaluacion != 'PUNTOS MAXIMOS' AND porcentaje IS NOT NULL ORDER BY area_evaluacion;
 
 REGLAS IMPORTANTES:
 - SIEMPRE usa LIMIT apropiado (5-20 para rankings, 20-50 para listas)
@@ -158,9 +164,9 @@ CICLO DE SUPERVISIONES CAS:
 - Q4 = Octubre-Diciembre (Cuarto trimestre del año)
 
 ÁREAS DE EVALUACIÓN CAS:
-- 29 áreas específicas de supervisión operativa
-- CALIFICACION GENERAL (calificación integral de toda la supervisión)
-- Las 29 áreas están disponibles dinámicamente en la BD en area_evaluacion
+- 29 áreas específicas de supervisión operativa (con nombres en area_evaluacion)
+- CALIFICACIÓN GENERAL está en registros donde area_evaluacion = '' (vacío) y porcentaje IS NOT NULL
+- Patrón en BD: PUNTOS MAXIMOS → Vacío (puntos totales) → Vacío (porcentaje = CALIFICACIÓN GENERAL)
 
 SISTEMA DE BENCHMARKS CAS:
 
