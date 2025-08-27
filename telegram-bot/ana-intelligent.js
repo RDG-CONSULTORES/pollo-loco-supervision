@@ -103,7 +103,8 @@ class AnaIntelligent {
       'sinaloa': 'TEC',
       
       // Ciudades con 1 grupo  
-      'tampico': 'OCHTER TAMPICO'
+      'tampico': 'OCHTER TAMPICO',
+      'ochter': 'OCHTER TAMPICO'
       // Nota: queretaro y morelia ya se manejan arriba en grupos principales
     };
     
@@ -528,7 +529,7 @@ RESPONDE COMO ANA:
         if (wantsInsights) {
           contextInfo += '\nUsuario pidí análisis detallado - usar formato de insights completo.';
         } else {
-          contextInfo += '\nUsuario quiere respuesta compacta - usar formato compacto obligatorio.';
+          contextInfo += '\nUsuario quiere respuesta compacta - MÁXIMO 5 LÍNEAS. DATOS PRIMERO, sin análisis extenso. Formato visual con emoticons.';
         }
         
         // Pedir a OpenAI que analice los resultados
