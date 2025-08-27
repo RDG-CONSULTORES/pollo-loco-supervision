@@ -87,13 +87,50 @@ class AnaIntelligent {
     // Grupos regionales
     processed = processed.replace(/\brap\b/gi, 'RAP');
     processed = processed.replace(/\bcrr\b/gi, 'CRR');
-    processed = processed.replace(/\bmatamoros\b/gi, 'GRUPO MATAMOROS');
+    // processed = processed.replace(/\bmatamoros\b/gi, 'GRUPO MATAMOROS'); // Removido - Matamoros es sucursal TEPEYAC
     processed = processed.replace(/\brio\s*bravo\b/gi, 'GRUPO RIO BRAVO');
     processed = processed.replace(/\bnuevo\s*leon\b/gi, 'PLOG NUEVO LEON');
     processed = processed.replace(/\blaguna\b/gi, 'PLOG LAGUNA');
     
-    // Casos especiales
-    processed = processed.replace(/\breynosa\b/gi, 'grupos de Reynosa (RAP y CRR)');
+    // === ESTRATEGIA HÍBRIDA INTELIGENTE: ESTADOS/CIUDADES → GRUPOS ===
+    
+    // UBICACIONES CON GRUPO ÚNICO (conversión directa válida)
+    const ubicacionesUnicas = {
+      // Estados con 1 grupo
+      'durango': 'PLOG LAGUNA',
+      'michoacán': 'GRUPO CANTERA ROSA (MORELIA)', 
+      'michoacan': 'GRUPO CANTERA ROSA (MORELIA)',
+      'sinaloa': 'TEC',
+      
+      // Ciudades con 1 grupo  
+      'tampico': 'OCHTER TAMPICO'
+      // Nota: queretaro y morelia ya se manejan arriba en grupos principales
+    };
+    
+    // UBICACIONES CON MÚLTIPLES GRUPOS (agregar contexto)
+    const ubicacionesMultiples = {
+      'reynosa': '(CRR y RAP)',
+      // matamoros removido - es una sucursal de TEPEYAC en Monterrey
+      'nuevo león': '(10 grupos operativos)',
+      'nuevo leon': '(10 grupos operativos)',
+      'tamaulipas': '(8 grupos operativos)',
+      'coahuila': '(3 grupos: PIEDRAS NEGRAS, SALTILLO, LAGUNA)'
+    };
+    
+    // Aplicar conversiones únicas primero
+    Object.entries(ubicacionesUnicas).forEach(([ubicacion, grupo]) => {
+      const regex = new RegExp(`\\b${ubicacion}\\b`, 'gi');
+      processed = processed.replace(regex, grupo);
+    });
+    
+    // Aplicar contexto para ubicaciones múltiples
+    Object.entries(ubicacionesMultiples).forEach(([ubicacion, contexto]) => {
+      const regex = new RegExp(`\\b${ubicacion}\\b`, 'gi');
+      processed = processed.replace(regex, `${ubicacion} ${contexto}`);
+    });
+    
+    // Casos especiales ya procesados arriba - mantener para compatibilidad
+    // processed = processed.replace(/\breynosa\b/gi, 'grupos de Reynosa (RAP y CRR)'); // Ya manejado
     
     // === DETECCIÓN DE SUCURSALES ===
     // Sucursales principales TEPEYAC
@@ -101,6 +138,7 @@ class AnaIntelligent {
     processed = processed.replace(/\bpino\s*suarez\b/gi, '1 - Pino Suarez');
     processed = processed.replace(/\bmadero\b/gi, '2 - Madero');
     processed = processed.replace(/\bfelix\s*(u\.?\s*)?gomez\b/gi, '5 - Felix U. Gomez');
+    processed = processed.replace(/\bmatamoros\b/gi, 'Matamoros (TEPEYAC)'); // Sucursal TEPEYAC en Monterrey
     
     // Sucursales OGAS
     processed = processed.replace(/\blincoln\b/gi, '11 - Lincoln');
@@ -113,7 +151,15 @@ class AnaIntelligent {
     processed = processed.replace(/\bboulevard\s*morelos\b/gi, '77 - Boulevard Morelos');
     processed = processed.replace(/\blibramiento\b/gi, '75 - Libramiento (Reynosa)');
     processed = processed.replace(/\banzalduas\b/gi, '73 - Anzalduas');
-    processed = processed.replace(/\bhidalgo\b/gi, '74 - Hidalgo (Reynosa)');
+    // Hidalgo solo si NO es parte de "GRUPO SABINAS HIDALGO"
+    processed = processed.replace(/\bhidalgo\b(?!\s*\(reynosa\))/gi, (match, offset, string) => {
+      // Si viene después de "SABINAS", no convertir
+      const beforeMatch = string.substring(Math.max(0, offset - 20), offset).toLowerCase();
+      if (beforeMatch.includes('sabinas')) {
+        return match; // No convertir, mantener original
+      }
+      return '74 - Hidalgo (Reynosa)';
+    });
     
     // Sucursales Saltillo
     processed = processed.replace(/\bharold\s*(r\.?\s*)?pape\b/gi, '57 - Harold R. Pape');
@@ -172,6 +218,27 @@ class AnaIntelligent {
     
     // Mejorar detección de áreas críticas
     processed = processed.replace(/\bareas\s+criticas\b/gi, 'áreas críticas');
+    
+    // === DETECCIÓN DE CASOS EJECUTIVOS ===
+    // Reportes y consolidaciones
+    processed = processed.replace(/\bnecesito\s+ranking\s+consolidado\b/gi, 'ranking consolidado completo todos los grupos');
+    processed = processed.replace(/\bestado\s+completo\b/gi, 'reporte estado completo');
+    processed = processed.replace(/\bdesglose\s+performance\b/gi, 'análisis detallado performance');
+    processed = processed.replace(/\bregional\s+completo\b/gi, 'todas las regiones');
+    
+    // KPIs y métricas ejecutivas
+    processed = processed.replace(/\bkpis?\s+consolidados?\b/gi, 'métricas clave consolidadas');
+    processed = processed.replace(/\bpara\s+junta\s+directiva\b/gi, 'formato ejecutivo junta directiva');
+    processed = processed.replace(/\bpara\s+reporte\b/gi, 'formato reporte ejecutivo');
+    
+    // Análisis y tendencias
+    processed = processed.replace(/\banalisis\s+de\s+riesgo\b/gi, 'análisis riesgo operativo');
+    processed = processed.replace(/\btendencias\s+performance\b/gi, 'análisis tendencias performance');
+    processed = processed.replace(/\bvs\s+trimestre\s+anterior\b/gi, 'comparativo trimestre anterior');
+    
+    // Términos de completitud
+    processed = processed.replace(/\btodas?\s+regiones?\b/gi, 'consolidado regional completo');
+    processed = processed.replace(/\btodos?\s+los?\s+grupos?\b/gi, 'todos los grupos operativos');
     
     console.log(`✅ Pregunta procesada: "${processed}"`);
     return processed;
