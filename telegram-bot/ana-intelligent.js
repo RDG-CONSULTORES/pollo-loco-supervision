@@ -41,7 +41,9 @@ class AnaIntelligent {
         'OGAS', 'TEPEYAC', 'PLOG QUERETARO', 'EPL SO', 'TEC', 
         'EXPO', 'EFM', 'CRR', 'RAP', 'PLOG LAGUNA',
         'GRUPO MATAMOROS', 'GRUPO RIO BRAVO', 'GRUPO SALTILLO',
-        'PLANTA REYNOLDS', 'ADMINISTRACION'
+        'PLOG NUEVO LEON', 'OCHTER TAMPICO', 'GRUPO CANTERA ROSA (MORELIA)',
+        'GRUPO CENTRITO', 'GRUPO NUEVO LAREDO (RUELAS)', 'GRUPO SABINAS HIDALGO',
+        'GRUPO PIEDRAS NEGRAS'
       ],
       year: 2025,
       current_quarter: 3,
@@ -196,11 +198,12 @@ PARA CALIFICACIÓN GENERAL (MÁS ESTRICTO):
 - 🚨 Crítico: <85% (acción inmediata)
 
 INFORMACIÓN GEOGRÁFICA EL POLLO LOCO:
-- Cobertura: 7 estados de México (~20 grupos operativos)
-- Datos disponibles: estado, municipio, latitud/longitud
-- Ana puede consultar distribución geográfica dinámicamente
-- Mapping completo: Sucursal → Grupo → Estado → Municipio
-- Coordenadas exactas disponibles para análisis geoespaciales
+- Cobertura: 7 estados de México (20 grupos operativos activos)
+- TOP PERFORMERS: OGAS (97.21%), PLOG QUERETARO (97.11%), EPL SO (94.02%)
+- GRUPOS PRINCIPALES: TEPEYAC, TEC, PLOG LAGUNA, EXPO, EFM, GRUPO CANTERA ROSA (MORELIA)
+- REGIONALES: RAP, CRR (Reynosa), GRUPO SALTILLO (5 sucursales), GRUPO MATAMOROS, OCHTER TAMPICO
+- Datos disponibles: estado, municipio, latitud/longitud para análisis geoespaciales
+- Mapping completo automático: Sucursal → Grupo → Estado → Municipio
 
 CAPACIDADES ULTRA INTELIGENTES:
 1. ENTIENDES el contexto completo del negocio
