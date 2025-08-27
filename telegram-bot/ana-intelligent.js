@@ -68,24 +68,136 @@ class AnaIntelligent {
     console.log('🧠 Ana Intelligent inicializada - Sistema SIMPLE que funciona');
   }
   
+  // DETECTOR DE ENTIDADES ULTRA-INTELIGENTE
+  preprocessQuestion(question) {
+    console.log(`🔍 Pregunta original: "${question}"`);
+    
+    let processed = question;
+    
+    // === DETECCIÓN DE GRUPOS OPERATIVOS ===
+    // Grupos principales
+    processed = processed.replace(/\btepeyac\b|\btepy\b/gi, 'TEPEYAC');
+    processed = processed.replace(/\bogas\b/gi, 'OGAS');
+    processed = processed.replace(/\bqueretaro\b|\bqro\b|\bquerétaro\b/gi, 'PLOG QUERETARO');
+    processed = processed.replace(/\bmorelia\b|\bcantera\s*rosa\b/gi, 'GRUPO CANTERA ROSA (MORELIA)');
+    processed = processed.replace(/\bsaltillo\b/gi, 'GRUPO SALTILLO');
+    processed = processed.replace(/\bexpo\b|\bexposicion\b/gi, 'EXPO');
+    processed = processed.replace(/\btec\b|\btecnologico\b/gi, 'TEC');
+    
+    // Grupos regionales
+    processed = processed.replace(/\brap\b/gi, 'RAP');
+    processed = processed.replace(/\bcrr\b/gi, 'CRR');
+    processed = processed.replace(/\bmatamoros\b/gi, 'GRUPO MATAMOROS');
+    processed = processed.replace(/\brio\s*bravo\b/gi, 'GRUPO RIO BRAVO');
+    processed = processed.replace(/\bnuevo\s*leon\b/gi, 'PLOG NUEVO LEON');
+    processed = processed.replace(/\blaguna\b/gi, 'PLOG LAGUNA');
+    
+    // Casos especiales
+    processed = processed.replace(/\breynosa\b/gi, 'grupos de Reynosa (RAP y CRR)');
+    
+    // === DETECCIÓN DE SUCURSALES ===
+    // Sucursales principales TEPEYAC
+    processed = processed.replace(/\bquintas\b|\blas\s*quintas\b/gi, '31 - Las Quintas');
+    processed = processed.replace(/\bpino\s*suarez\b/gi, '1 - Pino Suarez');
+    processed = processed.replace(/\bmadero\b/gi, '2 - Madero');
+    processed = processed.replace(/\bfelix\s*(u\.?\s*)?gomez\b/gi, '5 - Felix U. Gomez');
+    
+    // Sucursales OGAS
+    processed = processed.replace(/\blincoln\b/gi, '11 - Lincoln');
+    processed = processed.replace(/\banahuac\b/gi, '9 - Anahuac');
+    processed = processed.replace(/\bbarragan\b/gi, '10 - Barragan');
+    processed = processed.replace(/\bapodaca\b/gi, '36 - Apodaca Centro');
+    
+    // Sucursales Reynosa
+    processed = processed.replace(/\baeropuerto\b/gi, '76 - Aeropuerto (Reynosa)');
+    processed = processed.replace(/\bboulevard\s*morelos\b/gi, '77 - Boulevard Morelos');
+    processed = processed.replace(/\blibramiento\b/gi, '75 - Libramiento (Reynosa)');
+    processed = processed.replace(/\banzalduas\b/gi, '73 - Anzalduas');
+    processed = processed.replace(/\bhidalgo\b/gi, '74 - Hidalgo (Reynosa)');
+    
+    // Sucursales Saltillo
+    processed = processed.replace(/\bharold\s*(r\.?\s*)?pape\b/gi, '57 - Harold R. Pape');
+    processed = processed.replace(/\becheverria\b|\bluis\s*echeverria\b/gi, '56 - Luis Echeverria');
+    
+    // === DETECCIÓN DE FECHAS ===
+    // Trimestres
+    processed = processed.replace(/\beste\s+trimestre\b|\btrimestre\s+actual\b/gi, 'Q3 2025');
+    processed = processed.replace(/\bq3\b|\btercer\s+trimestre\b/gi, 'Q3 2025');
+    processed = processed.replace(/\bq2\b|\bsegundo\s+trimestre\b/gi, 'Q2 2025');
+    processed = processed.replace(/\bq1\b|\bprimer\s+trimestre\b/gi, 'Q1 2025');
+    
+    // Meses específicos
+    processed = processed.replace(/\beste\s+mes\b/gi, 'agosto 2025');
+    processed = processed.replace(/\bjulio\b/gi, 'julio 2025');
+    processed = processed.replace(/\bagosto\b/gi, 'agosto 2025');
+    processed = processed.replace(/\bseptiembre\b/gi, 'septiembre 2025');
+    
+    // Año
+    processed = processed.replace(/\beste\s+año\b|\baño\s+actual\b/gi, '2025');
+    
+    // Limpiar duplicados de año
+    processed = processed.replace(/(\b2025\b.*?)\b2025\b/gi, '$1');
+    
+    // === DETECCIÓN DE INTENCIONES ===
+    // Preguntas sobre cantidad
+    processed = processed.replace(/\bcuantas\s+supervisiones\b/gi, 'total supervisiones');
+    processed = processed.replace(/\bcuantos\s+grupos\b/gi, 'total grupos operativos');
+    processed = processed.replace(/\bcuantas\s+sucursales\b/gi, 'total sucursales');
+    
+    // Preguntas sobre listados
+    processed = processed.replace(/\bcuales\s+sucursales\b/gi, 'listado sucursales');
+    processed = processed.replace(/\bcuales\s+grupos\b/gi, 'listado grupos operativos');
+    processed = processed.replace(/\bque\s+sucursales\b/gi, 'listado sucursales');
+    
+    // Calificaciones y scores
+    processed = processed.replace(/\bcalificaciones\b|\bscores\b|\bpuntuaciones\b/gi, 'porcentajes supervisiones');
+    processed = processed.replace(/\bnotas\b|\bevaluaciones\b/gi, 'calificaciones supervisiones');
+    
+    // Términos de performance
+    processed = processed.replace(/\bmejores\b|\btop\b|\blideres\b/gi, 'ranking mejores');
+    processed = processed.replace(/\bpeores\b|\bbottom\b|\bbajos\b/gi, 'ranking peores');
+    processed = processed.replace(/\bcriticos\b|\bproblemas\b/gi, 'áreas críticas');
+    processed = processed.replace(/\boportunidades\b|\bmejora\b/gi, 'áreas de oportunidad');
+    
+    // Benchmarks y performance
+    processed = processed.replace(/\bobjetivo\b|\bmeta\b/gi, 'benchmark objetivo (90% general, 85% áreas)');
+    processed = processed.replace(/\bexcelencia\b/gi, 'benchmark excelencia (95%)');
+    processed = processed.replace(/\b100\s*%\b|\bperfecto\b|\bperfectas\b/gi, 'calificación perfecta (100%)');
+    processed = processed.replace(/\btienen\s+100%\b|\bcon\s+100%\b/gi, 'tienen calificación perfecta (100%)');
+    
+    // Casos específicos de intenciones complejas (debe ir antes de las reglas generales)
+    if (processed.toLowerCase().includes('cuales sucursales tienen 100%')) {
+      processed = processed.replace(/cuales sucursales tienen 100%/gi, 'listado sucursales tienen calificación perfecta (100%)');
+    }
+    
+    // Mejorar detección de áreas críticas
+    processed = processed.replace(/\bareas\s+criticas\b/gi, 'áreas críticas');
+    
+    console.log(`✅ Pregunta procesada: "${processed}"`);
+    return processed;
+  }
+  
   // MÉTODO PRINCIPAL - TODO EN UNO
   async processQuestion(question, chatId) {
     console.log(`🎯 Ana procesando: "${question}" (Chat: ${chatId})`);
     
     try {
-      // 1. Obtener/crear contexto conversacional
+      // 1. PREPROCESAR PREGUNTA (NUEVA INTELIGENCIA)
+      const processedQuestion = this.preprocessQuestion(question);
+      
+      // 2. Obtener/crear contexto conversacional
       const conversation = this.getConversation(chatId);
       
-      // 2. Check if OpenAI is available
+      // 3. Check if OpenAI is available
       if (!this.hasOpenAI) {
-        return this.getTestResponse(question, conversation);
+        return this.getTestResponse(processedQuestion, conversation);
       }
       
-      // 3. Prompt mega-inteligente para OpenAI
+      // 4. Prompt mega-inteligente para OpenAI
       const systemPrompt = this.buildSystemPrompt();
-      const userPrompt = this.buildUserPrompt(question, conversation);
+      const userPrompt = this.buildUserPrompt(processedQuestion, conversation);
       
-      // 4. OpenAI decide TODO
+      // 5. OpenAI decide TODO (con pregunta procesada)
       const response = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
         messages: [
@@ -98,10 +210,10 @@ class AnaIntelligent {
       const aiResponse = response.choices[0].message.content;
       console.log('🤖 OpenAI raw response:', aiResponse.substring(0, 200) + '...');
       
-      // 4. Procesar respuesta de IA
+      // 6. Procesar respuesta de IA (usar pregunta original para contexto)
       const result = await this.processAIResponse(aiResponse, chatId, question);
       
-      // 5. Actualizar memoria conversacional
+      // 7. Actualizar memoria conversacional (con pregunta original)
       this.updateConversation(chatId, question, result);
       
       return result;
@@ -426,14 +538,17 @@ ANALIZA estos datos como Ana y da una respuesta Falcon completa con insights emp
     
     return `🧠 Ana Intelligent - Modo Testing
 
-📊 Tu consulta: "${question}"
+📊 Consulta original: "${question}"
+🔍 Consulta procesada: "${this.preprocessQuestion ? this.preprocessQuestion(question) : question}"
 
 ⚠️ Para funcionalidad completa:
 1. Configura OPENAI_API_KEY
 2. Configura DATABASE_URL
 3. Sistema quedará 100% operativo
 
-🎯 /ranking | /stats | /help`;
+🎯 /ranking | /stats | /help
+
+💡 El detector de entidades está activo y funcionando`;
   }
   
   // Respuesta de error
