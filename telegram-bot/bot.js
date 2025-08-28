@@ -800,11 +800,17 @@ bot.onText(/\/start/, async (msg) => {
 
   // Ana V2 maneja su propio onboarding integrado
   try {
+    console.log('🔄 Llamando a Ana V2 con /start...');
     const anaResponse = await ana.processMessage('/start', chatId);
+    console.log('✅ Ana V2 respondió:', anaResponse.substring(0, 100) + '...');
     bot.sendMessage(chatId, anaResponse, { parse_mode: 'Markdown' });
     return;
   } catch (error) {
-    console.error('❌ Error en onboarding check:', error);
+    console.error('❌ ERROR CRÍTICO en Ana V2:', error);
+    console.error('❌ Stack trace:', error.stack);
+    // No caer al fallback - mostrar el error para debug
+    bot.sendMessage(chatId, `🚨 Error en Ana V2: ${error.message}`);
+    return;
   }
   const welcomeMessage = `🍗 **EPL Estandarización Operativa**
 
