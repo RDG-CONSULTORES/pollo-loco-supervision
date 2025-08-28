@@ -8,7 +8,7 @@ const IntelligentSupervisionSystem = require('./intelligent-supervision-system')
 const IntelligentKnowledgeBase = require('./intelligent-knowledge-base');
 
 // ANA V2 STRUCTURED - Sistema completo con contexto
-const AnaV2Structured = require('./ana-v2-structured');
+const AnaV2Structured = require('./ana-intelligent');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
