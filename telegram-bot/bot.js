@@ -7,8 +7,8 @@ const RealSupervisionIntelligence = require('./real-data-intelligence');
 const IntelligentSupervisionSystem = require('./intelligent-supervision-system');
 const IntelligentKnowledgeBase = require('./intelligent-knowledge-base');
 
-// ULTRA INTELLIGENT SYSTEM: OpenAI al máximo
-const UltraIntelligentDirector = require('./ultra-intelligent-director');
+// ANA V2 STRUCTURED - Sistema completo con contexto
+const AnaV2Structured = require('./ana-v2-structured');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -34,8 +34,8 @@ const realDataEngine = new RealSupervisionIntelligence(pool);
 const intelligentSystem = new IntelligentSupervisionSystem(pool);
 const knowledgeBase = new IntelligentKnowledgeBase(pool);
 
-// ULTRA INTELLIGENT SYSTEM - OpenAI MAXIMUM POWER
-const ultraIntelligentDirector = new UltraIntelligentDirector(pool);
+// ANA V2 STRUCTURED - Sistema híbrido con contexto
+const ana = new AnaV2Structured(pool);
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 // In production, use relative paths for same-server API calls
@@ -83,9 +83,9 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_POLLING === 'tru
 }
 
 console.log('🤖 EPL Estandarización Operativa Bot started!');
-console.log('🧠 ANA ULTRA INTELIGENTE iniciándose...');
-console.log('📊 Base de datos: supervision_operativa_detalle');
-console.log('🎯 Conocimiento objetivo: 120% de toda la operación');
+console.log('🚀 ANA V2 STRUCTURED iniciándose...');
+console.log('📊 Base de datos: supervision_operativa_clean');
+console.log('🎯 Sistema híbrido: Contexto + Menús + BD en vivo');
 console.log('⚡ Sistema de consultas: DINÁMICO (sin límites)');
 console.log('🤖 Personalidad: Ana - Analista experta de El Pollo Loco');
 
@@ -158,13 +158,13 @@ async function askAI(question, context = null, chatId = null) {
   try {
     console.log(`🧠 ANA ULTRA INTELIGENTE Processing: "${question}"`);
     
-    // PRIORIDAD 1: USAR ANA ULTRA INTELIGENTE (120% conocimiento)
+    // PRIORIDAD 1: USAR ANA V2 STRUCTURED (Sistema híbrido con contexto)
     if (chatId) {
-      console.log(`🚀 Delegando a ANA ULTRA INTELIGENTE para chat ${chatId}`);
-      const anaResponse = await ultraIntelligentDirector.processUserQuestion(question, chatId);
+      console.log(`🚀 Delegando a ANA V2 STRUCTURED para chat ${chatId}`);
+      const anaResponse = await ana.processMessage(question, chatId);
       
       if (anaResponse && anaResponse.length > 10) {
-        console.log(`✅ ANA ULTRA INTELIGENTE generó respuesta completa`);
+        console.log(`✅ ANA V2 STRUCTURED generó respuesta completa`);
         return anaResponse;
       }
     }
@@ -798,14 +798,11 @@ bot.onText(/\/start/, async (msg) => {
   }
   messageCache.set(messageId, true);
 
-  // Verificar si necesita onboarding
+  // Ana V2 maneja su propio onboarding integrado
   try {
-    const onboardingResponse = await ultraIntelligentDirector.onboardingSystem.checkOnboardingNeeded(chatId, '/start');
-    
-    if (onboardingResponse) {
-      bot.sendMessage(chatId, onboardingResponse, { parse_mode: 'Markdown' });
-      return;
-    }
+    const anaResponse = await ana.processMessage('/start', chatId);
+    bot.sendMessage(chatId, anaResponse, { parse_mode: 'Markdown' });
+    return;
   } catch (error) {
     console.error('❌ Error en onboarding check:', error);
   }
@@ -874,38 +871,33 @@ bot.onText(/\/ana/, async (msg) => {
   const chatId = msg.chat.id;
   
   try {
-    const status = ultraIntelligentDirector.getIntelligenceStats();
-    const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
-    
-    const anaStatus = `🧠 **ANA - ANALISTA ULTRA INTELIGENTE**
+    // Ana V2 Structured status
+    const anaStatus = `🚀 **ANA V2 - SISTEMA ESTRUCTURADO**
 
-🎯 **Estado actual:**
-• Entrenamiento: ${status.training_complete ? '✅ COMPLETO' : status.is_training ? '🔄 EN PROCESO' : '❌ PENDIENTE'}
-• Nivel de inteligencia: ${status.intelligence_type || 'LLM_POWERED'}
-• Conocimiento de BD: ${status.database_knowledge}
-• Consultas dinámicas: ${status.dynamic_queries_enabled ? '✅ ACTIVAS' : '❌ INACTIVAS'}
+🎯 **Sistema Híbrido Activo:**
+• Contexto persistente: ✅ 5 fases implementadas
+• Dashboard personalizado: ✅ EPL CAS + grupos específicos  
+• Navegación híbrida: ✅ Menús + comandos + lenguaje natural
+• Respuestas directas: ✅ Sin verbosidad, datos inmediatos
+• Cache en vivo: ✅ 5 minutos, BD actualizada
 
-📅 **Último entrenamiento:** ${trainingTime}
+🏢 **Contexto Empresarial:**
+• 21 grupos operativos + EPL CAS corporativo
+• Roles: supervisor, gerente, directivo
+• Onboarding inteligente con selección inicial
+• Q3 2025 en supervision_operativa_clean
 
-🎭 **Mi personalidad:**
-• Nombre: Ana
-• Rol: Tu analista experta de El Pollo Loco
-• Especialidad: Supervisión operativa
-• Idioma: Español mexicano
+🚀 **Cómo usar Ana V2:**
+• Comenzar: Escribe "/start" para onboarding completo
+• Navegación: Usa números (1,2,3) o habla natural
+• Comandos directos: /areas, /ranking funcionales
+• Contexto: Ana recuerda tu grupo y rol automáticamente
 
-🚀 **Mis capacidades avanzadas:**
-• 📊 Análisis dinámico completo de cualquier consulta
-• 📈 Tendencias predictivas y patrones históricos
-• 💡 Recomendaciones CAS inteligentes
-• 🔍 Consultas ilimitadas a la base de datos
-• 🏢 Contexto empresarial completo
-
-💬 **Ejemplos de lo que puedo hacer:**
-• "¿Cuáles sucursales de TEPEYAC han evolucionado mejor?"
-• "¿Qué tendencias ves en OGAS durante Q3?"
-• "¿Qué grupos necesitan más apoyo del CAS?"
-• "Analiza la evolución de FREIDORAS en todos los grupos"
-• "¿Cuáles son las mejores prácticas de los grupos líderes?"
+💬 **Ejemplos prácticos:**
+• "como va tepeyac" → Performance directo
+• "areas criticas" → Solo áreas <85%
+• "ranking" → Posiciones actuales
+• "1" → Opción 1 del menú personalizado
 
 ${!status.training_complete ? '\n⚠️ **Nota:** Estoy terminando mi entrenamiento. ¡Pronto tendré conocimiento completo!' : '\n🎉 **¡Estoy lista!** Pregúntame cualquier cosa sobre supervisiones operativas.'}`;
 
@@ -923,16 +915,23 @@ bot.onText(/\/retrain/, async (msg) => {
   try {
     bot.sendMessage(chatId, '🔄 **Iniciando reentrenamiento completo de Ana...**\n\nEsto puede tomar unos momentos...');
     
-    const newStatus = await ultraIntelligentDirector.forceIntelligenceBoost();
+    // Ana V2 no necesita reentrenamiento - usa BD en vivo
     
-    const retrainMessage = `✅ **Reentrenamiento completado!**
+    const retrainMessage = `🚀 **ANA V2 STRUCTURED ya está optimizada!**
 
-🧠 **Nuevo estado de Ana:**
-• Entrenamiento: ${newStatus.training_complete ? '✅ COMPLETO' : '❌ FALLA'}
-• Conocimiento BD: ${newStatus.database_knowledge}
-• Capacidades: ${newStatus.capabilities.length} módulos activos
+✅ **Estado actual:**
+• Sistema híbrido: Completamente funcional
+• Cache automático: Datos frescos cada 5 minutos
+• BD en vivo: supervision_operativa_clean Q3 2025
+• Sin necesidad de reentrenamiento: BD siempre actualizada
 
-🎉 **Ana ahora conoce al 120% toda la operación de El Pollo Loco!**`;
+🎯 **Características avanzadas:**
+• Contexto persistente por usuario
+• Respuestas pre-formateadas (no verbose)
+• Navegación inteligente híbrida
+• 21 grupos operativos + EPL CAS
+
+💡 **Ana V2 no requiere reentrenamiento manual - se actualiza automáticamente!**`;
 
     bot.sendMessage(chatId, retrainMessage);
   } catch (error) {
@@ -1251,32 +1250,27 @@ bot.on('callback_query', async (callbackQuery) => {
   
   switch (data) {
     case 'ana_status':
-      // Show Ana Ultra Intelligence status
+      // Show Ana V2 Structured status
       try {
-        const status = ultraIntelligentDirector.getIntelligenceStats();
-        const trainingTime = status.last_training ? new Date(status.last_training).toLocaleString('es-MX') : 'Nunca';
-        
-        const statusMessage = `🧠 **ANA - ESTADO ULTRA INTELIGENTE**
+        const statusMessage = `🚀 **ANA V2 - SISTEMA ESTRUCTURADO**
 
-${status.training_complete ? '🟢 **ACTIVA Y LISTA**' : status.is_training ? '🟡 **ENTRENÁNDOSE...**' : '🔴 **PENDIENTE**'}
+✅ **COMPLETAMENTE ACTIVA**
 
-📊 **Métricas:**
-• Conocimiento BD: ${status.database_knowledge}
-• Consultas dinámicas: ${status.dynamic_queries_enabled ? 'ACTIVAS' : 'INACTIVAS'}
-• Última actualización: ${trainingTime}
+📊 **Capacidades:**
+• ✅ Sistema híbrido: Contexto + Menús + Lenguaje natural
+• ✅ BD en vivo: supervision_operativa_clean Q3 2025
+• ✅ Cache inteligente: 5 minutos de actualización
+• ✅ Respuestas directas: Sin verbosidad, solo datos
 
-🎯 **Lo que puedo hacer:**
-• Análisis completo de supervisiones
-• Tendencias y predicciones
-• Recomendaciones CAS personalizadas
-• Consultas ilimitadas de BD
+🎯 **Onboarding inteligente disponible**
+🏢 **21 grupos operativos + EPL CAS**
 
 💬 **Pruébame con:**
-"¿Qué sucursales de TEPEYAC van mejor?"
-"¿Cuáles son las oportunidades de OGAS?"
-"¿Qué grupos necesitan más apoyo?"
+"como va tepeyac" → Performance directo
+"areas criticas" → Solo áreas <85%
+"ranking" → Posiciones actuales
 
-${status.training_complete ? '🎉 ¡Pregúntame cualquier cosa!' : '⏳ Terminando entrenamiento...'}`;
+💡 **Escribe /start para comenzar**`;
 
         bot.sendMessage(chatId, statusMessage);
       } catch (error) {
