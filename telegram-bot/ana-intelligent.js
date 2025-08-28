@@ -133,38 +133,111 @@ class AnaIntelligent {
     // Casos especiales ya procesados arriba - mantener para compatibilidad
     // processed = processed.replace(/\breynosa\b/gi, 'grupos de Reynosa (RAP y CRR)'); // Ya manejado
     
-    // === DETECCIÓN DE SUCURSALES ===
-    // Sucursales principales TEPEYAC
-    processed = processed.replace(/\bquintas\b|\blas\s*quintas\b/gi, '31 - Las Quintas');
-    processed = processed.replace(/\bpino\s*suarez\b/gi, '1 - Pino Suarez');
-    processed = processed.replace(/\bmadero\b/gi, '2 - Madero');
-    processed = processed.replace(/\bfelix\s*(u\.?\s*)?gomez\b/gi, '5 - Felix U. Gomez');
-    processed = processed.replace(/\bmatamoros\b/gi, 'Matamoros (TEPEYAC)'); // Sucursal TEPEYAC en Monterrey
+    // === DETECCIÓN DE SUCURSALES - MAPEO COMPLETO ===
+    // MAPEO AUTOMATICO DE TODAS LAS 77 SUCURSALES
+    const sucursalMapping = {
+      'aeropuerto': '61 - Aeropuerto (Tampico)',
+      'alcala': '78 - Alcala',
+      'allende': '32 - Allende',
+      'anahuac': '9 - Anahuac',
+      'anzalduas': '73 - Anzalduas',
+      'apodaca centro': '36 - Apodaca Centro',
+      'avenida del niño': '68 - Avenida del Niño',
+      'aztlan': '14 - Aztlan',
+      'barragan': '10 - Barragan',
+      'boulevard morelos': '77 - Boulevard Morelos',
+      'cadereyta': '26 - Cadereyta',
+      'campestre': '46 - Campestre',
+      'carrizo': '30 - Carrizo',
+      'centrito valle': '71 - Centrito Valle',
+      'centro': '67 - Centro (Matamoros)',
+      'chapultepec': '21 - Chapultepec',
+      'coahuila comidas': '70 - Coahuila Comidas',
+      'concordia': '12 - Concordia',
+      'constituyentes': '51 - Constituyentes',
+      'eloy cavazos': '33 - Eloy Cavazos',
+      'escobedo': '13 - Escobedo',
+      'eulalio gutierrez': '55 - Eulalio Gutierrez',
+      'exposicion': '24 - Exposicion',
+      'felix gomez': '5 - Felix U. Gomez',
+      'felix u. gomez': '5 - Felix U. Gomez',
+      'garcia': '6 - Garcia',
+      'gomez morin': '38 - Gomez Morin',
+      'gonzalitos': '8 - Gonzalitos',
+      'guasave': '23 - Guasave',
+      'guerrero': '28 - Guerrero',
+      'guerrero 2': '80 - Guerrero 2 (Ruelas)',
+      'harold pape': '57 - Harold R. Pape',
+      'harold r. pape': '57 - Harold R. Pape',
+      'hidalgo': '74 - Hidalgo (Reynosa)',
+      'huerta': '64 - Huerta',
+      'independencia': '42 - Independencia',
+      'juarez': '25 - Juarez',
+      'la huasteca': '7 - La Huasteca',
+      'las quintas': '31 - Las Quintas',
+      'lauro villar': '66 - Lauro Villar',
+      'lazaro cardenas': '62 - Lazaro Cardenas (Morelia)',
+      'libramiento': '75 - Libramiento (Reynosa)',
+      'lincoln': '11 - Lincoln',
+      'linda vista': '18 - Linda Vista',
+      'luis echeverria': '56 - Luis Echeverria',
+      'madero': '2 - Madero',
+      'matamoros': '3 - Matamoros',
+      'montemorelos': '34 - Montemorelos',
+      'pablo livas': '29 - Pablo Livas',
+      'patio': '50 - Patio',
+      'pedro cardenas': '65 - Pedro Cardenas',
+      'pino suarez': '1 - Pino Suarez',
+      'plaza 1500': '40 - Plaza 1500',
+      'plaza 3601': '59 - Plaza 3601',
+      'pueblito': '49 - Pueblito',
+      'puerto rico': '69 - Puerto Rico',
+      'ramos arizpe': '54 - Ramos Arizpe',
+      'reforma': '81 - Reforma (Ruelas)',
+      'refugio': '48 - Refugio',
+      'revolucion': '43 - Revolucion',
+      'rio bravo': '79 - Rio Bravo',
+      'romulo garza': '17 - Romulo Garza',
+      'ruiz cortinez': '15 - Ruiz Cortinez',
+      'sabinas hidalgo': '72 - Sabinas Hidalgo',
+      'san antonio': '47 - San Antonio',
+      'santa catarina': '4 - Santa Catarina',
+      'santiago': '27 - Santiago',
+      'satelite': '22 - Satelite',
+      'senderos': '44 - Senderos',
+      'solidaridad': '16 - Solidaridad',
+      'stiva': '37 - Stiva',
+      'tecnológico': '20 - Tecnológico',
+      'tecnologico': '20 - Tecnológico',
+      'triana': '45 - Triana',
+      'universidad': '58 - Universidad (Tampico)',
+      'valle soleado': '19 - Valle Soleado',
+      'vasconcelos': '41 - Vasconcelos',
+      'venustiano carranza': '52 - Venustiano Carranza'
+    };
     
-    // Sucursales OGAS
-    processed = processed.replace(/\blincoln\b/gi, '11 - Lincoln');
-    processed = processed.replace(/\banahuac\b/gi, '9 - Anahuac');
-    processed = processed.replace(/\bbarragan\b/gi, '10 - Barragan');
-    processed = processed.replace(/\bapodaca\b/gi, '36 - Apodaca Centro');
-    
-    // Sucursales Reynosa
-    processed = processed.replace(/\baeropuerto\b/gi, '76 - Aeropuerto (Reynosa)');
-    processed = processed.replace(/\bboulevard\s*morelos\b/gi, '77 - Boulevard Morelos');
-    processed = processed.replace(/\blibramiento\b/gi, '75 - Libramiento (Reynosa)');
-    processed = processed.replace(/\banzalduas\b/gi, '73 - Anzalduas');
-    // Hidalgo solo si NO es parte de "GRUPO SABINAS HIDALGO"
-    processed = processed.replace(/\bhidalgo\b(?!\s*\(reynosa\))/gi, (match, offset, string) => {
-      // Si viene después de "SABINAS", no convertir
-      const beforeMatch = string.substring(Math.max(0, offset - 20), offset).toLowerCase();
-      if (beforeMatch.includes('sabinas')) {
-        return match; // No convertir, mantener original
-      }
-      return '74 - Hidalgo (Reynosa)';
+    // Aplicar mapeo inteligente
+    Object.entries(sucursalMapping).forEach(([nombreLimpio, sucursalCompleta]) => {
+      // Buscar el nombre en el texto (case insensitive, palabra completa)
+      const regex = new RegExp(`\\b${nombreLimpio}\\b`, 'gi');
+      processed = processed.replace(regex, (match, offset, string) => {
+        // Caso especial: "hidalgo" no convertir si viene después de "sabinas"
+        if (nombreLimpio === 'hidalgo') {
+          const beforeMatch = string.substring(Math.max(0, offset - 20), offset).toLowerCase();
+          if (beforeMatch.includes('sabinas')) {
+            return match; // No convertir
+          }
+        }
+        // Caso especial: "madero" - verificar si no es Morelia
+        if (nombreLimpio === 'madero') {
+          const afterMatch = string.substring(offset + match.length, offset + match.length + 20).toLowerCase();
+          if (afterMatch.includes('morelia')) {
+            return '63 - Madero (Morelia)';
+          }
+        }
+        return sucursalCompleta;
+      });
     });
-    
-    // Sucursales Saltillo
-    processed = processed.replace(/\bharold\s*(r\.?\s*)?pape\b/gi, '57 - Harold R. Pape');
-    processed = processed.replace(/\becheverria\b|\bluis\s*echeverria\b/gi, '56 - Luis Echeverria');
     
     // === DETECCIÓN DE FECHAS ===
     // Trimestres
@@ -344,6 +417,88 @@ Ana ahora responderá:
     return null; // No es comando de ayuda
   }
   
+  // SISTEMA DE COMANDOS DIRECTOS DE DATOS
+  async handleDirectCommands(question, chatId) {
+    // Detectar comandos /areas y /detalle
+    if (question.includes('/areas') || question.includes('/detalle')) {
+      // Extraer contexto (grupo o sucursal)
+      const processedQuestion = this.preprocessQuestion(question);
+      
+      // Buscar grupo o sucursal en la pregunta procesada
+      let targetEntity = null;
+      let entityType = null;
+      
+      // Detectar sucursal (formato XX - Nombre)
+      const sucursalMatch = processedQuestion.match(/\d+\s*-\s*[^,\s]+/);
+      if (sucursalMatch) {
+        targetEntity = sucursalMatch[0];
+        entityType = 'sucursal';
+      } else {
+        // Detectar grupo
+        for (const grupo of this.databaseSchema.grupos_disponibles) {
+          if (processedQuestion.toUpperCase().includes(grupo)) {
+            targetEntity = grupo;
+            entityType = 'grupo';
+            break;
+          }
+        }
+      }
+      
+      if (!targetEntity) {
+        return '❌ Por favor especifica un grupo o sucursal\nEjemplo: "/areas tepeyac" o "/areas 45 - triana"';
+      }
+      
+      // Ejecutar query directa de áreas críticas
+      try {
+        const query = entityType === 'sucursal' 
+          ? `SELECT area_evaluacion, porcentaje 
+             FROM supervision_operativa_clean 
+             WHERE location_name = '${targetEntity}'
+             AND area_evaluacion != '' 
+             AND area_evaluacion != 'PUNTOS MAXIMOS'
+             AND porcentaje < 80
+             AND EXTRACT(YEAR FROM fecha_supervision) = 2025 
+             AND EXTRACT(QUARTER FROM fecha_supervision) = 3
+             ORDER BY porcentaje ASC 
+             LIMIT 10`
+          : `SELECT area_evaluacion, ROUND(AVG(porcentaje), 2) as promedio
+             FROM supervision_operativa_clean 
+             WHERE grupo_operativo_limpio = '${targetEntity}'
+             AND area_evaluacion != '' 
+             AND area_evaluacion != 'PUNTOS MAXIMOS'
+             AND EXTRACT(YEAR FROM fecha_supervision) = 2025 
+             AND EXTRACT(QUARTER FROM fecha_supervision) = 3
+             GROUP BY area_evaluacion
+             HAVING AVG(porcentaje) < 80
+             ORDER BY promedio ASC 
+             LIMIT 10`;
+             
+        const result = await this.pool.query(query);
+        
+        if (result.rows.length === 0) {
+          return `✅ ${targetEntity} - Sin áreas críticas Q3 2025\n💡 Todas las áreas están sobre 80%`;
+        }
+        
+        // Formatear respuesta directa
+        let response = `🚨 ÁREAS CRÍTICAS - ${targetEntity} Q3 2025\n\n`;
+        result.rows.forEach(row => {
+          const porcentaje = row.porcentaje || row.promedio;
+          const emoji = porcentaje < 70 ? '🔴' : '🟡';
+          response += `${emoji} ${porcentaje}% - ${row.area_evaluacion}\n`;
+        });
+        response += `\n💡 Requieren atención inmediata`;
+        
+        return response;
+        
+      } catch (error) {
+        console.error('Error en comando directo:', error);
+        return `❌ Error obteniendo áreas críticas`;
+      }
+    }
+    
+    return null; // No es comando directo
+  }
+  
   // MÉTODO PRINCIPAL - TODO EN UNO
   async processQuestion(question, chatId) {
     console.log(`🎯 Ana procesando: "${question}" (Chat: ${chatId})`);
@@ -353,6 +508,12 @@ Ana ahora responderá:
       const helpResponse = this.handleHelpCommands(question.toLowerCase());
       if (helpResponse) {
         return helpResponse;
+      }
+      
+      // 0.5. COMANDOS DIRECTOS DE DATOS (nuevo)
+      const directResponse = await this.handleDirectCommands(question.toLowerCase(), chatId);
+      if (directResponse) {
+        return directResponse;
       }
       
       // 1. PREPROCESAR PREGUNTA (NUEVA INTELIGENCIA)
@@ -573,11 +734,8 @@ RESPONDE COMO ANA:
   // NIVEL 3: DETECTOR DE COMANDO INSIGHTS
   isInsightsRequest(question) {
     const lowerQ = question.toLowerCase();
-    return lowerQ.includes('/insights') || 
-           lowerQ.includes('análisis detallado') || 
-           lowerQ.includes('insights') ||
-           lowerQ.includes('más información') ||
-           lowerQ.includes('detallado');
+    // SOLO activar insights con comando explícito /insights
+    return lowerQ.includes('/insights');
   }
   
   // Procesar respuesta de OpenAI
