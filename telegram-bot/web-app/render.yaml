@@ -1,0 +1,40 @@
+# Render deployment configuration for El Pollo Loco Dashboard
+services:
+  - type: web
+    name: pollo-loco-dashboard
+    env: node
+    plan: free  # Use 'starter' or higher for production
+    buildCommand: npm install
+    startCommand: npm start
+    repo: https://github.com/your-username/pollo-loco-supervision  # Update with actual repo
+    branch: main  # or master
+    rootDir: telegram-bot/web-app
+    
+    # Environment variables
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromService:
+          type: postgres
+          name: pollo-loco-db
+          property: connectionString
+      # Add from Render dashboard:
+      # - NEON_DATABASE_URL (from your existing Neon setup)
+      # - GOOGLE_MAPS_API_KEY (for maps functionality)
+      # - WEBAPP_URL (auto-generated Render URL)
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Auto-deploy on push
+    autoDeploy: true
+
+# Optional: PostgreSQL database (if not using external Neon)
+# databases:
+#   - name: pollo-loco-db
+#     databaseName: supervision_dashboard
+#     user: dashboard_user
+#     plan: free
