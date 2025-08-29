@@ -336,6 +336,62 @@ app.get('/health', (req, res) => {
     });
 });
 
+// Dashboard route (MUST BE BEFORE app.listen!)
+app.get('/dashboard', (req, res) => {
+    const dashboardPath = path.join(__dirname, 'telegram-bot/web-app/public/index.html');
+    console.log('📊 Dashboard requested:', dashboardPath);
+    res.sendFile(dashboardPath);
+});
+
+// Dashboard API routes for new dashboard
+app.get('/api/locations', async (req, res) => {
+    try {
+        const { grupo, estado, trimestre } = req.query;
+        let whereClause = `WHERE latitud IS NOT NULL AND longitud IS NOT NULL`;
+        const params = [];
+        let paramIndex = 1;
+        
+        if (grupo) {
+            whereClause += ` AND grupo_operativo_limpio = $${paramIndex}`;
+            params.push(grupo);
+            paramIndex++;
+        }
+        if (estado) {
+            whereClause += ` AND estado_normalizado = $${paramIndex}`;
+            params.push(estado);
+            paramIndex++;
+        }
+        if (trimestre) {
+            whereClause += ` AND EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`;
+            params.push(parseInt(trimestre));
+        }
+        
+        const query = `
+            SELECT 
+                location_name as name,
+                grupo_operativo_limpio as "group",
+                latitud as lat,
+                longitud as lng,
+                ROUND(AVG(porcentaje), 2) as performance,
+                estado_normalizado as state,
+                municipio as municipality,
+                MAX(fecha_supervision) as last_evaluation,
+                COUNT(*) as total_evaluations
+            FROM supervision_operativa_clean 
+            ${whereClause}
+            GROUP BY location_name, grupo_operativo_limpio, latitud, longitud, estado_normalizado, municipio
+            ORDER BY performance DESC
+        `;
+        
+        const result = await pool.query(query, params);
+        console.log(`📍 API /locations: Found ${result.rows.length} locations`);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('❌ API /locations error:', error.message);
+        res.status(500).json({ error: 'Error fetching locations' });
+    }
+});
+
 // Webhook endpoint for Telegram
 app.post('/webhook', (req, res) => {
     if (process.env.NODE_ENV === 'production' && global.telegramBot) {
@@ -353,62 +409,7 @@ app.listen(PORT, async () => {
     // Start Telegram Bot if in production
     if (process.env.NODE_ENV === 'production' || process.env.START_BOT === 'true') {
         console.log('🤖 Starting Telegram Bot...');
-        
-        // Add dashboard route
-        app.get('/dashboard', (req, res) => {
-            const dashboardPath = path.join(__dirname, 'telegram-bot/web-app/public/index.html');
-            console.log('📊 Dashboard requested:', dashboardPath);
-            res.sendFile(dashboardPath);
-        });
 
-        // Add dashboard API routes
-        app.get('/api/locations', async (req, res) => {
-            try {
-                const { grupo, estado, trimestre } = req.query;
-                let whereClause = `WHERE latitud IS NOT NULL AND longitud IS NOT NULL`;
-                const params = [];
-                let paramIndex = 1;
-                
-                if (grupo) {
-                    whereClause += ` AND grupo_operativo_limpio = $${paramIndex}`;
-                    params.push(grupo);
-                    paramIndex++;
-                }
-                if (estado) {
-                    whereClause += ` AND estado_normalizado = $${paramIndex}`;
-                    params.push(estado);
-                    paramIndex++;
-                }
-                if (trimestre) {
-                    whereClause += ` AND EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`;
-                    params.push(parseInt(trimestre));
-                }
-                
-                const query = `
-                    SELECT 
-                        location_name as name,
-                        grupo_operativo_limpio as "group",
-                        latitud as lat,
-                        longitud as lng,
-                        ROUND(AVG(porcentaje), 2) as performance,
-                        estado_normalizado as state,
-                        municipio as municipality,
-                        MAX(fecha_supervision) as last_evaluation,
-                        COUNT(*) as total_evaluations
-                    FROM supervision_operativa_clean 
-                    ${whereClause}
-                    GROUP BY location_name, grupo_operativo_limpio, latitud, longitud, estado_normalizado, municipio
-                    ORDER BY performance DESC
-                `;
-                
-                const result = await pool.query(query, params);
-                console.log(`📍 API /locations: Found ${result.rows.length} locations`);
-                res.json(result.rows);
-            } catch (error) {
-                console.error('❌ API /locations error:', error.message);
-                res.status(500).json({ error: 'Error fetching locations' });
-            }
-        });
 
         // Setup basic Telegram bot
         const TelegramBot = require('node-telegram-bot-api');
