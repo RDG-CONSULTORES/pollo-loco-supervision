@@ -395,22 +395,26 @@ try {
 }
 
 // =====================================================
-// START SERVER
+// START SERVER (only if run directly, not when imported)
 // =====================================================
 
-app.listen(port, () => {
-    console.log(`\n🚀 El Pollo Loco Server running on port ${port}`);
-    console.log(`📊 Dashboard: https://pollo-loco-supervision-kzxj.onrender.com/dashboard`);
-    console.log(`🔍 Health: https://pollo-loco-supervision-kzxj.onrender.com/health`);
-    console.log(`🧪 Test APIs: https://pollo-loco-supervision-kzxj.onrender.com/test.html`);
-    console.log(`\n🎯 Features available:`);
-    console.log('   - Interactive dashboard with real data');
-    console.log('   - 82 locations with coordinates');
-    console.log('   - Dynamic filters and charts');
-    console.log('   - API endpoints for all data');
-    if (bot) console.log('   - Telegram bot integration');
-    console.log('\n✅ Server ready!');
-});
+if (require.main === module) {
+    app.listen(port, () => {
+        console.log(`\n🚀 El Pollo Loco Server running on port ${port}`);
+        console.log(`📊 Dashboard: https://pollo-loco-supervision-kzxj.onrender.com/dashboard`);
+        console.log(`🔍 Health: https://pollo-loco-supervision-kzxj.onrender.com/health`);
+        console.log(`🧪 Test APIs: https://pollo-loco-supervision-kzxj.onrender.com/test.html`);
+        console.log(`\n🎯 Features available:`);
+        console.log('   - Interactive dashboard with real data');
+        console.log('   - 82 locations with coordinates');
+        console.log('   - Dynamic filters and charts');
+        console.log('   - API endpoints for all data');
+        if (bot) console.log('   - Telegram bot integration');
+        console.log('\n✅ Server ready!');
+    });
+} else {
+    console.log('📱 Server module loaded, not starting listener (imported mode)');
+}
 
 // Graceful shutdown
 process.on('SIGINT', async () => {

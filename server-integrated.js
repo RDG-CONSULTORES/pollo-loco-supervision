@@ -43,6 +43,9 @@ pool.connect()
 app.use(cors());
 app.use(express.json());
 
+// Serve dashboard static files
+app.use('/dashboard-static', express.static(path.join(__dirname, 'telegram-bot/web-app/public')));
+
 // Serve design showcase and variants
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'design-showcase.html'));
@@ -351,17 +354,67 @@ app.listen(PORT, async () => {
     if (process.env.NODE_ENV === 'production' || process.env.START_BOT === 'true') {
         console.log('🤖 Starting Telegram Bot...');
         
-        // Import bot usando nuestro server.js mejorado
-        try {
-            global.telegramBot = require('./telegram-bot/server.js');
-            console.log('✅ Using new server.js with all dependencies');
-        } catch (error) {
-            console.log('⚠️ Fallback to basic bot without compression');
-            // Simple fallback bot without compression
-            const TelegramBot = require('node-telegram-bot-api');
-            if (process.env.TELEGRAM_BOT_TOKEN) {
-                global.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+        // Add dashboard route
+        app.get('/dashboard', (req, res) => {
+            const dashboardPath = path.join(__dirname, 'telegram-bot/web-app/public/index.html');
+            console.log('📊 Dashboard requested:', dashboardPath);
+            res.sendFile(dashboardPath);
+        });
+
+        // Add dashboard API routes
+        app.get('/api/locations', async (req, res) => {
+            try {
+                const { grupo, estado, trimestre } = req.query;
+                let whereClause = `WHERE latitud IS NOT NULL AND longitud IS NOT NULL`;
+                const params = [];
+                let paramIndex = 1;
+                
+                if (grupo) {
+                    whereClause += ` AND grupo_operativo_limpio = $${paramIndex}`;
+                    params.push(grupo);
+                    paramIndex++;
+                }
+                if (estado) {
+                    whereClause += ` AND estado_normalizado = $${paramIndex}`;
+                    params.push(estado);
+                    paramIndex++;
+                }
+                if (trimestre) {
+                    whereClause += ` AND EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`;
+                    params.push(parseInt(trimestre));
+                }
+                
+                const query = `
+                    SELECT 
+                        location_name as name,
+                        grupo_operativo_limpio as "group",
+                        latitud as lat,
+                        longitud as lng,
+                        ROUND(AVG(porcentaje), 2) as performance,
+                        estado_normalizado as state,
+                        municipio as municipality,
+                        MAX(fecha_supervision) as last_evaluation,
+                        COUNT(*) as total_evaluations
+                    FROM supervision_operativa_clean 
+                    ${whereClause}
+                    GROUP BY location_name, grupo_operativo_limpio, latitud, longitud, estado_normalizado, municipio
+                    ORDER BY performance DESC
+                `;
+                
+                const result = await pool.query(query, params);
+                console.log(`📍 API /locations: Found ${result.rows.length} locations`);
+                res.json(result.rows);
+            } catch (error) {
+                console.error('❌ API /locations error:', error.message);
+                res.status(500).json({ error: 'Error fetching locations' });
             }
+        });
+
+        // Setup basic Telegram bot
+        const TelegramBot = require('node-telegram-bot-api');
+        if (process.env.TELEGRAM_BOT_TOKEN) {
+            global.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+            console.log('✅ Telegram bot configured, dashboard available');
         }
         
         // Set webhook in production usando setWebHook method
