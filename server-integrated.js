@@ -414,7 +414,68 @@ app.listen(PORT, async () => {
         const TelegramBot = require('node-telegram-bot-api');
         if (process.env.TELEGRAM_BOT_TOKEN) {
             global.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
-            console.log('✅ Telegram bot configured, dashboard available');
+            
+            // Dashboard command
+            global.telegramBot.onText(/\/dashboard/, async (msg) => {
+                const chatId = msg.chat.id;
+                const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision.onrender.com';
+                
+                const keyboard = {
+                    reply_markup: {
+                        inline_keyboard: [[{
+                            text: "📊 Ver Dashboard Interactivo",
+                            web_app: { url: `${dashboardUrl}/dashboard` }
+                        }]]
+                    }
+                };
+                
+                await global.telegramBot.sendMessage(chatId, 
+                    '📊 **Dashboard Interactivo**\n\n¡Explora datos con gráficos, mapas y filtros!\n\n👆 Toca el botón para abrir',
+                    { parse_mode: 'Markdown', ...keyboard }
+                );
+            });
+
+            // Start command
+            global.telegramBot.onText(/\/start/, async (msg) => {
+                const chatId = msg.chat.id;
+                const welcomeMessage = `🤖 **¡Hola! Soy Ana, tu analista de El Pollo Loco**\n\n` +
+                                      `📊 **Comandos disponibles:**\n` +
+                                      `/dashboard - Dashboard interactivo con mapas y gráficos\n` +
+                                      `/help - Lista de comandos\n\n` +
+                                      `💡 **También puedes preguntarme sobre:**\n` +
+                                      `• Performance de grupos operativos\n` +
+                                      `• Análisis de sucursales\n` +
+                                      `• Tendencias y comparaciones\n\n` +
+                                      `¡Pregúntame lo que necesites! 🚀`;
+                
+                await global.telegramBot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+            });
+
+            // Basic message handler
+            global.telegramBot.on('message', async (msg) => {
+                const chatId = msg.chat.id;
+                const messageText = msg.text || '';
+                
+                // Skip commands
+                if (messageText.startsWith('/')) return;
+                
+                try {
+                    // Check for dashboard triggers
+                    const dashboardTriggers = ['dashboard', 'mapa', 'gráfico', 'visual', 'interactivo', 'ubicación'];
+                    if (dashboardTriggers.some(trigger => messageText.toLowerCase().includes(trigger))) {
+                        return global.telegramBot.emit('text', msg, [null, '/dashboard']);
+                    }
+                    
+                    // Basic response
+                    await global.telegramBot.sendMessage(chatId, '🤖 Hola! Usa /dashboard para ver datos interactivos o /start para comandos disponibles.');
+                    
+                } catch (error) {
+                    console.error('Error processing message:', error);
+                    await global.telegramBot.sendMessage(chatId, 'Hubo un error procesando tu solicitud.');
+                }
+            });
+            
+            console.log('✅ Telegram bot configured with commands, dashboard available');
         }
         
         // Set webhook in production usando setWebHook method
