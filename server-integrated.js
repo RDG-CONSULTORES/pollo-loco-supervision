@@ -351,8 +351,18 @@ app.listen(PORT, async () => {
     if (process.env.NODE_ENV === 'production' || process.env.START_BOT === 'true') {
         console.log('🤖 Starting Telegram Bot...');
         
-        // Import bot (ya no necesitamos webhook manual)
-        global.telegramBot = require('./telegram-bot/bot.js');
+        // Import bot usando nuestro server.js mejorado
+        try {
+            global.telegramBot = require('./telegram-bot/server.js');
+            console.log('✅ Using new server.js with all dependencies');
+        } catch (error) {
+            console.log('⚠️ Fallback to basic bot without compression');
+            // Simple fallback bot without compression
+            const TelegramBot = require('node-telegram-bot-api');
+            if (process.env.TELEGRAM_BOT_TOKEN) {
+                global.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
+            }
+        }
         
         // Set webhook in production usando setWebHook method
         if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL && process.env.TELEGRAM_BOT_TOKEN) {
