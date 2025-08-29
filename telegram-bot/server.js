@@ -1,15 +1,20 @@
-const TelegramBot = require('node-telegram-bot-api');
+// =====================================================
+// SERVIDOR PRINCIPAL - EL POLLO LOCO DASHBOARD + BOT
+// Garantiza que Express funcione sin interferencia de Ana
+// =====================================================
+
 const express = require('express');
 const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
-const axios = require('axios');
 const { Pool } = require('pg');
 
-// Load environment variables
+// Load environment
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 
-// Initialize Express app FIRST
+console.log('🚀 Starting El Pollo Loco Server...');
+
+// Initialize Express FIRST
 const app = express();
 const port = process.env.PORT || 10000;
 
@@ -19,7 +24,16 @@ const pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Security and optimization middleware
+// Test database connection
+pool.query('SELECT NOW()', (err, res) => {
+    if (err) {
+        console.error('❌ Database connection failed:', err.message);
+    } else {
+        console.log('✅ Database connected:', res.rows[0].now);
+    }
+});
+
+// Security middleware
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -39,68 +53,41 @@ app.use(express.json());
 // Serve dashboard static files
 app.use(express.static(path.join(__dirname, 'web-app/public')));
 
-// Initialize bot
-const token = process.env.TELEGRAM_BOT_TOKEN;
-if (!token) {
-    console.error('❌ TELEGRAM_BOT_TOKEN is required!');
-    process.exit(1);
-}
-
-const bot = new TelegramBot(token, { polling: false });
-
-// Import Ana (simplified)
-let ana = null;
-try {
-    const AnaV2Structured = require('./ana-intelligent');
-    ana = new AnaV2Structured(pool);
-    console.log('✅ Ana V2 loaded successfully');
-} catch (error) {
-    console.log('⚠️ Ana V2 not available, using fallback');
-}
+console.log('📁 Static files served from:', path.join(__dirname, 'web-app/public'));
 
 // =====================================================
-// WEBHOOK CONFIGURATION
-// =====================================================
-
-if (process.env.NODE_ENV === 'production') {
-    const webhookUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
-    bot.setWebHook(`${webhookUrl}/webhook`);
-    console.log('🔗 Webhook configured:', `${webhookUrl}/webhook`);
-}
-
-// =====================================================
-// EXPRESS ROUTES
+// BASIC ROUTES
 // =====================================================
 
 // Health check
 app.get('/health', async (req, res) => {
     try {
-        const dbCheck = await pool.query('SELECT NOW() as server_time, COUNT(*) as records FROM supervision_operativa_clean LIMIT 1');
+        const dbResult = await pool.query('SELECT NOW() as time, COUNT(*) as records FROM supervision_operativa_clean LIMIT 1');
         res.json({ 
             status: 'healthy',
-            service: 'El Pollo Loco Bot + Dashboard',
+            service: 'El Pollo Loco Dashboard + Bot',
             database: 'connected',
-            server_time: dbCheck.rows[0].server_time,
-            total_records: dbCheck.rows[0].records,
-            features: ['telegram-bot', 'web-dashboard', 'api-endpoints']
+            timestamp: dbResult.rows[0].time,
+            total_records: dbResult.rows[0].records,
+            version: '2.0'
         });
     } catch (error) {
         res.status(500).json({ 
-            status: 'error', 
+            status: 'error',
             database: 'disconnected',
             error: error.message 
         });
     }
 });
 
-// Dashboard route
+// Dashboard
 app.get('/dashboard', (req, res) => {
-    const indexPath = path.join(__dirname, 'web-app/public/index.html');
-    console.log('📊 Dashboard requested, serving:', indexPath);
-    res.sendFile(indexPath);
+    const dashboardPath = path.join(__dirname, 'web-app/public/index.html');
+    console.log('📊 Dashboard requested:', dashboardPath);
+    res.sendFile(dashboardPath);
 });
 
-// Default route
+// Root
 app.get('/', (req, res) => {
     res.json({
         message: 'El Pollo Loco Supervision System',
@@ -108,25 +95,19 @@ app.get('/', (req, res) => {
         status: 'running',
         timestamp: new Date().toISOString(),
         endpoints: {
-            webhook: '/webhook',
             dashboard: '/dashboard',
             health: '/health',
+            test: '/test.html',
             api: '/api/*'
         }
     });
 });
 
-// Webhook endpoint
-app.post('/webhook', (req, res) => {
-    bot.processUpdate(req.body);
-    res.status(200).json({ ok: true });
-});
-
 // =====================================================
-// DASHBOARD API ENDPOINTS
+// API ENDPOINTS
 // =====================================================
 
-// GET /api/locations - Ubicaciones con coordenadas
+// Locations with filters
 app.get('/api/locations', async (req, res) => {
     try {
         const { grupo, estado, trimestre } = req.query;
@@ -150,7 +131,6 @@ app.get('/api/locations', async (req, res) => {
         if (trimestre) {
             whereClause += ` AND EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`;
             params.push(parseInt(trimestre));
-            paramIndex++;
         }
         
         const query = `
@@ -170,18 +150,17 @@ app.get('/api/locations', async (req, res) => {
             ORDER BY performance DESC
         `;
         
-        console.log('🗺️ Locations query with filters:', { grupo, estado, trimestre });
         const result = await pool.query(query, params);
-        console.log(`📍 Found ${result.rows.length} locations`);
+        console.log(`📍 API /locations: Found ${result.rows.length} locations`);
         res.json(result.rows);
         
     } catch (error) {
-        console.error('❌ Error fetching locations:', error);
-        res.status(500).json({ error: 'Error fetching locations', details: error.message });
+        console.error('❌ API /locations error:', error.message);
+        res.status(500).json({ error: 'Error fetching locations' });
     }
 });
 
-// GET /api/performance/overview - KPIs generales
+// Performance overview
 app.get('/api/performance/overview', async (req, res) => {
     try {
         const { trimestre } = req.query;
@@ -206,16 +185,16 @@ app.get('/api/performance/overview', async (req, res) => {
         `;
         
         const result = await pool.query(query, params);
-        console.log('📊 Overview data:', result.rows[0]);
+        console.log('📊 API /overview: Success');
         res.json(result.rows[0]);
         
     } catch (error) {
-        console.error('❌ Error fetching overview:', error);
-        res.status(500).json({ error: 'Error fetching overview', details: error.message });
+        console.error('❌ API /overview error:', error.message);
+        res.status(500).json({ error: 'Error fetching overview' });
     }
 });
 
-// GET /api/performance/groups - Performance por grupo
+// Groups performance
 app.get('/api/performance/groups', async (req, res) => {
     try {
         const { trimestre } = req.query;
@@ -241,16 +220,16 @@ app.get('/api/performance/groups', async (req, res) => {
         `;
         
         const result = await pool.query(query, params);
-        console.log(`📈 Groups data: ${result.rows.length} groups`);
+        console.log(`📈 API /groups: Found ${result.rows.length} groups`);
         res.json(result.rows);
         
     } catch (error) {
-        console.error('❌ Error fetching groups:', error);
-        res.status(500).json({ error: 'Error fetching groups', details: error.message });
+        console.error('❌ API /groups error:', error.message);
+        res.status(500).json({ error: 'Error fetching groups' });
     }
 });
 
-// GET /api/performance/areas - Áreas críticas
+// Areas performance
 app.get('/api/performance/areas', async (req, res) => {
     try {
         const { grupo, trimestre } = req.query;
@@ -268,7 +247,6 @@ app.get('/api/performance/areas', async (req, res) => {
         if (trimestre) {
             whereClause += ` AND EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`;
             params.push(parseInt(trimestre));
-            paramIndex++;
         }
         
         const query = `
@@ -284,16 +262,16 @@ app.get('/api/performance/areas', async (req, res) => {
         `;
         
         const result = await pool.query(query, params);
-        console.log(`🎯 Areas data: ${result.rows.length} areas`);
+        console.log(`🎯 API /areas: Found ${result.rows.length} areas`);
         res.json(result.rows);
         
     } catch (error) {
-        console.error('❌ Error fetching areas:', error);
-        res.status(500).json({ error: 'Error fetching areas', details: error.message });
+        console.error('❌ API /areas error:', error.message);
+        res.status(500).json({ error: 'Error fetching areas' });
     }
 });
 
-// GET /api/performance/trends - Tendencias trimestrales
+// Trends
 app.get('/api/performance/trends', async (req, res) => {
     try {
         const { grupo } = req.query;
@@ -319,151 +297,124 @@ app.get('/api/performance/trends', async (req, res) => {
         `;
         
         const result = await pool.query(query, params);
-        console.log(`📈 Trends data: ${result.rows.length} quarters`);
+        console.log(`📈 API /trends: Found ${result.rows.length} quarters`);
         res.json(result.rows);
         
     } catch (error) {
-        console.error('❌ Error fetching trends:', error);
-        res.status(500).json({ error: 'Error fetching trends', details: error.message });
+        console.error('❌ API /trends error:', error.message);
+        res.status(500).json({ error: 'Error fetching trends' });
     }
 });
 
-// GET /api/filters/groups - Grupos disponibles
+// Filter endpoints
 app.get('/api/filters/groups', async (req, res) => {
     try {
-        const query = `
+        const result = await pool.query(`
             SELECT DISTINCT grupo_operativo_limpio as name
             FROM supervision_operativa_clean 
             WHERE grupo_operativo_limpio IS NOT NULL
             ORDER BY grupo_operativo_limpio
-        `;
+        `);
         
-        const result = await pool.query(query);
-        console.log(`🔍 Filter groups: ${result.rows.length} available`);
+        console.log(`🔍 API /filters/groups: Found ${result.rows.length} groups`);
         res.json(result.rows);
-        
     } catch (error) {
-        console.error('❌ Error fetching filter groups:', error);
-        res.status(500).json({ error: 'Error fetching groups', details: error.message });
+        console.error('❌ API /filters/groups error:', error.message);
+        res.status(500).json({ error: 'Error fetching groups filter' });
     }
 });
 
-// GET /api/filters/states - Estados disponibles
 app.get('/api/filters/states', async (req, res) => {
     try {
-        const query = `
+        const result = await pool.query(`
             SELECT DISTINCT estado_normalizado as name
             FROM supervision_operativa_clean 
             WHERE estado_normalizado IS NOT NULL
             ORDER BY estado_normalizado
-        `;
+        `);
         
-        const result = await pool.query(query);
-        console.log(`🔍 Filter states: ${result.rows.length} available`);
+        console.log(`🔍 API /filters/states: Found ${result.rows.length} states`);
         res.json(result.rows);
-        
     } catch (error) {
-        console.error('❌ Error fetching filter states:', error);
-        res.status(500).json({ error: 'Error fetching states', details: error.message });
+        console.error('❌ API /filters/states error:', error.message);
+        res.status(500).json({ error: 'Error fetching states filter' });
     }
 });
 
 // =====================================================
-// TELEGRAM BOT HANDLERS
+// TELEGRAM BOT (OPCIONAL)
 // =====================================================
 
-// Dashboard command
-bot.onText(/\/dashboard/, async (msg) => {
-    const chatId = msg.chat.id;
+let bot = null;
+try {
+    const TelegramBot = require('node-telegram-bot-api');
+    const token = process.env.TELEGRAM_BOT_TOKEN;
     
-    try {
-        const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
+    if (token) {
+        bot = new TelegramBot(token, { polling: false });
         
-        const keyboard = {
-            reply_markup: {
-                inline_keyboard: [[
-                    {
-                        text: "📊 Ver Dashboard Interactivo",
-                        web_app: { url: `${dashboardUrl}/dashboard` }
-                    }
-                ]]
-            }
-        };
-        
-        const message = `📊 **Dashboard Interactivo Disponible**\n\n¡Explora todos los datos de supervisión con gráficos interactivos, mapas y filtros dinámicos!\n\n• 🗺️ Mapa con 82 sucursales\n• 📈 Gráficos de performance\n• 🔍 Filtros dinámicos\n• 📊 KPIs en tiempo real\n\n👆 Toca el botón para abrir`;
-        
-        await bot.sendMessage(chatId, message, {
-            parse_mode: 'Markdown',
-            ...keyboard
+        // Webhook
+        app.post('/webhook', (req, res) => {
+            bot.processUpdate(req.body);
+            res.status(200).json({ ok: true });
         });
         
-    } catch (error) {
-        console.error('Error showing dashboard:', error);
-        bot.sendMessage(chatId, '❌ Error al cargar el dashboard. Intenta más tarde.');
-    }
-});
-
-// Basic message handler
-bot.on('message', async (msg) => {
-    const chatId = msg.chat.id;
-    const messageText = msg.text || '';
-    
-    // Skip commands
-    if (messageText.startsWith('/')) return;
-    
-    try {
-        // Check for dashboard triggers
-        const dashboardTriggers = ['dashboard', 'mapa', 'gráfico', 'visual', 'interactivo', 'ubicación'];
-        if (dashboardTriggers.some(trigger => messageText.toLowerCase().includes(trigger))) {
-            return bot.emit('text', msg, [null, '/dashboard']);
+        // Dashboard command
+        bot.onText(/\/dashboard/, async (msg) => {
+            const chatId = msg.chat.id;
+            const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
+            
+            const keyboard = {
+                reply_markup: {
+                    inline_keyboard: [[{
+                        text: "📊 Ver Dashboard Interactivo",
+                        web_app: { url: `${dashboardUrl}/dashboard` }
+                    }]]
+                }
+            };
+            
+            await bot.sendMessage(chatId, 
+                '📊 **Dashboard Interactivo**\n\n¡Explora datos con gráficos, mapas y filtros!\n\n👆 Toca el botón para abrir',
+                { parse_mode: 'Markdown', ...keyboard }
+            );
+        });
+        
+        // Set webhook in production
+        if (process.env.NODE_ENV === 'production') {
+            const webhookUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
+            bot.setWebHook(`${webhookUrl}/webhook`);
+            console.log('🤖 Telegram webhook configured');
         }
         
-        // Use Ana if available
-        if (ana) {
-            const response = await ana.processMessage(messageText, chatId);
-            await bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
-        } else {
-            await bot.sendMessage(chatId, '🤖 Hola! Usa /dashboard para ver datos interactivos o /help para comandos disponibles.');
-        }
-        
-    } catch (error) {
-        console.error('Error processing message:', error);
-        await bot.sendMessage(chatId, 'Hubo un error procesando tu solicitud.');
+        console.log('✅ Telegram bot initialized');
+    } else {
+        console.log('⚠️ No Telegram token, bot disabled');
     }
-});
-
-// Start command
-bot.onText(/\/start/, async (msg) => {
-    const chatId = msg.chat.id;
-    
-    const welcomeMessage = `🤖 **¡Hola! Soy Ana, tu analista de El Pollo Loco**\n\n` +
-                          `📊 **Comandos disponibles:**\n` +
-                          `/dashboard - Dashboard interactivo con mapas y gráficos\n` +
-                          `/help - Lista de comandos\n\n` +
-                          `💡 **También puedes preguntarme sobre:**\n` +
-                          `• Performance de grupos operativos\n` +
-                          `• Análisis de sucursales\n` +
-                          `• Tendencias y comparaciones\n\n` +
-                          `¡Pregúntame lo que necesites! 🚀`;
-    
-    await bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
-});
+} catch (error) {
+    console.log('⚠️ Telegram bot not available:', error.message);
+}
 
 // =====================================================
-// START EXPRESS SERVER
+// START SERVER
 // =====================================================
 
 app.listen(port, () => {
-    console.log(`🚀 El Pollo Loco Server running on port ${port}`);
+    console.log(`\n🚀 El Pollo Loco Server running on port ${port}`);
     console.log(`📊 Dashboard: https://pollo-loco-supervision-kzxj.onrender.com/dashboard`);
     console.log(`🔍 Health: https://pollo-loco-supervision-kzxj.onrender.com/health`);
-    console.log(`🤖 Telegram webhook configured`);
-    console.log(`💾 Database: ${process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}`);
+    console.log(`🧪 Test APIs: https://pollo-loco-supervision-kzxj.onrender.com/test.html`);
+    console.log(`\n🎯 Features available:`);
+    console.log('   - Interactive dashboard with real data');
+    console.log('   - 82 locations with coordinates');
+    console.log('   - Dynamic filters and charts');
+    console.log('   - API endpoints for all data');
+    if (bot) console.log('   - Telegram bot integration');
+    console.log('\n✅ Server ready!');
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-    console.log('\n🔴 Shutting down server...');
+    console.log('\n🔴 Shutting down...');
     await pool.end();
     process.exit(0);
 });

@@ -404,7 +404,7 @@ class ElPolloLocoDashboard {
     initGruposChart() {
         const ctx = document.getElementById('gruposChart').getContext('2d');
         this.charts.grupos = new Chart(ctx, {
-            type: 'horizontalBar',
+            type: 'bar',
             data: {
                 labels: [],
                 datasets: [{
@@ -418,6 +418,7 @@ class ElPolloLocoDashboard {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                indexAxis: 'y',
                 scales: {
                     x: {
                         beginAtZero: true,

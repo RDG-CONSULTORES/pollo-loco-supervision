@@ -155,4 +155,4 @@ service-account.json
 
 # Backup files
 *.backup
-*.bak
+*.baktelegram-bot/web-app/node_modules/
