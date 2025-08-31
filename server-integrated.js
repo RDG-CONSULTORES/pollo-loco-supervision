@@ -262,7 +262,7 @@ app.get('/api/locations', async (req, res) => {
         const { grupo, estado, trimestre } = req.query;
         
         // Build dynamic WHERE clause
-        let whereConditions = ['porcentaje IS NOT NULL', 'latitud IS NOT NULL', 'longitud IS NOT NULL'];
+        let whereConditions = ['porcentaje IS NOT NULL'];
         let params = [];
         let paramIndex = 1;
         
@@ -285,11 +285,19 @@ app.get('/api/locations', async (req, res) => {
         const whereClause = whereConditions.join(' AND ');
         
         const query = `
-            SELECT 
+            SELECT DISTINCT
                 location_name as name,
                 grupo_operativo as "group",
-                CAST(latitud AS FLOAT) as lat,
-                CAST(longitud AS FLOAT) as lng,
+                CASE 
+                    WHEN latitud IS NOT NULL AND longitud IS NOT NULL 
+                    THEN CAST(latitud AS FLOAT) 
+                    ELSE 25.6866 
+                END as lat,
+                CASE 
+                    WHEN latitud IS NOT NULL AND longitud IS NOT NULL 
+                    THEN CAST(longitud AS FLOAT) 
+                    ELSE -100.3161 
+                END as lng,
                 ROUND(AVG(porcentaje), 2) as performance,
                 estado as state,
                 municipio as municipality,
@@ -299,6 +307,7 @@ app.get('/api/locations', async (req, res) => {
             WHERE ${whereClause}
             GROUP BY location_name, grupo_operativo, latitud, longitud, estado, municipio
             ORDER BY performance DESC
+            LIMIT 100
         `;
         
         console.log(`📍 API /locations: Executing query with ${params.length} params`);
@@ -404,6 +413,50 @@ app.get('/api/trimestres', async (req, res) => {
             { trimestre: "Q2 2025", evaluaciones: 52 },
             { trimestre: "Q3 2025", evaluaciones: 38 }
         ]);
+    }
+});
+
+// Debug endpoint for locations
+app.get('/api/debug/locations', async (req, res) => {
+    if (!dbConnected) {
+        return res.json({ error: 'Database not connected' });
+    }
+    
+    try {
+        // Count total locations
+        const countResult = await pool.query(`
+            SELECT 
+                COUNT(DISTINCT location_name) as total_locations,
+                COUNT(DISTINCT CASE WHEN latitud IS NOT NULL THEN location_name END) as with_coords,
+                COUNT(DISTINCT CASE WHEN latitud IS NULL THEN location_name END) as without_coords
+            FROM supervision_operativa_detalle
+        `);
+        
+        // Sample locations with and without coords
+        const sampleResult = await pool.query(`
+            SELECT DISTINCT
+                location_name,
+                grupo_operativo,
+                estado,
+                municipio,
+                latitud,
+                longitud
+            FROM supervision_operativa_detalle
+            ORDER BY latitud DESC NULLS LAST
+            LIMIT 10
+        `);
+        
+        res.json({
+            summary: countResult.rows[0],
+            sample_locations: sampleResult.rows,
+            database_connected: dbConnected
+        });
+        
+    } catch (error) {
+        res.json({ 
+            error: error.message,
+            database_connected: dbConnected 
+        });
     }
 });
 
