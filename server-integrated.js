@@ -207,17 +207,46 @@ app.get('/api/kpis', async (req, res) => {
     }
     
     try {
-        const result = await pool.query(`
+        const { grupo, estado, trimestre } = req.query;
+        
+        // Build dynamic WHERE clause
+        let whereConditions = ['porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+        
+        if (grupo) {
+            whereConditions.push(`grupo_operativo = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        if (estado) {
+            whereConditions.push(`estado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        if (trimestre) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(parseInt(trimestre));
+            paramIndex++;
+        }
+        
+        const whereClause = whereConditions.join(' AND ');
+        
+        const query = `
             SELECT 
                 ROUND(AVG(porcentaje), 2) as promedio_general,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
                 COUNT(DISTINCT location_name) as total_sucursales,
                 COUNT(DISTINCT estado) as total_estados,
+                COUNT(DISTINCT grupo_operativo) as total_grupos,
                 ROUND(MAX(porcentaje), 2) as max_calificacion,
                 ROUND(MIN(porcentaje), 2) as min_calificacion
             FROM supervision_operativa_detalle 
-            WHERE porcentaje IS NOT NULL
-        `);
+            WHERE ${whereClause}
+        `;
+        
+        console.log(`📊 API /kpis: Executing with ${params.length} filters`);
+        const result = await pool.query(query, params);
         res.json(result.rows[0]);
     } catch (error) {
         console.error('Error:', error);

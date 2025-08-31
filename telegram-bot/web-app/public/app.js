@@ -131,8 +131,23 @@ class ElPolloLocoDashboard {
 
     async loadKPIData() {
         try {
-            console.log('📈 API: Fetching /api/kpis...');
-            const response = await fetch('/api/kpis');
+            // Build query params from filters
+            const params = new URLSearchParams();
+            if (this.currentFilters.grupo) {
+                params.append('grupo', this.currentFilters.grupo);
+            }
+            if (this.currentFilters.estado) {
+                params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.trimestre) {
+                params.append('trimestre', this.currentFilters.trimestre);
+            }
+            
+            const queryString = params.toString();
+            const url = queryString ? `/api/kpis?${queryString}` : '/api/kpis';
+            
+            console.log('📈 API: Fetching', url);
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             this.data.overview = await response.json();
@@ -431,16 +446,26 @@ class ElPolloLocoDashboard {
                 networkPerf.textContent = `${this.data.overview.promedio_general}%`;
             }
 
-            // Total Locations
+            // Total Locations (from filtered data)
             const totalLocs = document.getElementById('totalLocations');
-            if (totalLocs && this.data.overview.total_sucursales) {
-                totalLocs.textContent = this.data.overview.total_sucursales;
+            if (totalLocs) {
+                // Use filtered total from KPIs or count locations
+                const count = this.data.overview.total_sucursales || this.data.locations.length;
+                totalLocs.textContent = count;
             }
 
-            // Active Groups  
+            // Active Groups (from filtered data)
             const activeGroups = document.getElementById('activeGroups');
-            if (activeGroups && this.data.groups) {
-                activeGroups.textContent = this.data.groups.length;
+            if (activeGroups) {
+                // If filtering by group, show 1, otherwise show total unique groups
+                if (this.currentFilters.grupo) {
+                    activeGroups.textContent = '1';
+                } else {
+                    // Count unique groups from overview or locations
+                    const uniqueGroups = this.data.overview.total_grupos || 
+                        new Set(this.data.locations.map(l => l.group)).size;
+                    activeGroups.textContent = uniqueGroups;
+                }
             }
 
             // Total Evaluations
@@ -576,9 +601,13 @@ class ElPolloLocoDashboard {
         // Show loading
         this.showLoading();
         
-        // Reload locations with filters
-        this.loadLocationData().then(() => {
-            // Update map with filtered locations
+        // Reload data with filters
+        Promise.all([
+            this.loadKPIData(),  // Load filtered KPIs
+            this.loadLocationData()  // Load filtered locations
+        ]).then(() => {
+            // Update all UI components
+            this.updateKPIs();
             this.updateMap();
             this.hideLoading();
         }).catch(error => {
@@ -596,8 +625,22 @@ class ElPolloLocoDashboard {
         
         this.currentFilters = { grupo: '', estado: '', trimestre: '' };
         
-        // Reload data without filters
-        this.loadAllData();
+        // Show loading
+        this.showLoading();
+        
+        // Reload all data without filters
+        Promise.all([
+            this.loadKPIData(),
+            this.loadLocationData()
+        ]).then(() => {
+            // Update all UI components
+            this.updateKPIs();
+            this.updateMap();
+            this.hideLoading();
+        }).catch(error => {
+            console.error('Error clearing filters:', error);
+            this.hideLoading();
+        });
     }
 
     // =====================================================
