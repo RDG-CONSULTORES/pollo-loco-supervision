@@ -92,6 +92,9 @@ class ElPolloLocoDashboard {
             // Load main data
             await this.loadAllData();
             
+            // Load filters after data is loaded
+            this.populateFilters();
+            
         } catch (error) {
             console.error('❌ Error loading initial data:', error);
             this.showError('Error cargando datos iniciales: ' + error.message);
@@ -158,8 +161,23 @@ class ElPolloLocoDashboard {
 
     async loadLocationData() {
         try {
-            console.log('📍 API: Fetching /api/locations...');
-            const response = await fetch('/api/locations');
+            // Build query params from filters
+            const params = new URLSearchParams();
+            if (this.currentFilters.grupo) {
+                params.append('grupo', this.currentFilters.grupo);
+            }
+            if (this.currentFilters.estado) {
+                params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.trimestre) {
+                params.append('trimestre', this.currentFilters.trimestre);
+            }
+            
+            const queryString = params.toString();
+            const url = queryString ? `/api/locations?${queryString}` : '/api/locations';
+            
+            console.log('📍 API: Fetching', url);
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             this.data.locations = await response.json();
@@ -502,6 +520,50 @@ class ElPolloLocoDashboard {
     // =====================================================
     // FILTERS
     // =====================================================
+    populateFilters() {
+        console.log('🔧 Llenando filtros...');
+        
+        try {
+            // Populate Grupo filter
+            const grupoFilter = document.getElementById('grupoFilter');
+            if (grupoFilter && this.data.groups) {
+                // Clear existing options except the first one
+                grupoFilter.innerHTML = '<option value="">Todos los grupos</option>';
+                
+                // Add unique groups
+                const uniqueGroups = [...new Set(this.data.groups.map(g => g.grupo_operativo))].sort();
+                uniqueGroups.forEach(grupo => {
+                    const option = document.createElement('option');
+                    option.value = grupo;
+                    option.textContent = grupo;
+                    grupoFilter.appendChild(option);
+                });
+                console.log(`✅ Filtro grupos llenado con ${uniqueGroups.length} opciones`);
+            }
+            
+            // Populate Estado filter
+            const estadoFilter = document.getElementById('estadoFilter');
+            if (estadoFilter && this.data.locations) {
+                // Clear existing options except the first one
+                estadoFilter.innerHTML = '<option value="">Todos los estados</option>';
+                
+                // Get unique states from locations
+                const uniqueStates = [...new Set(this.data.locations.map(l => l.state).filter(s => s))].sort();
+                uniqueStates.forEach(estado => {
+                    const option = document.createElement('option');
+                    option.value = estado;
+                    option.textContent = estado;
+                    estadoFilter.appendChild(option);
+                });
+                console.log(`✅ Filtro estados llenado con ${uniqueStates.length} opciones`);
+            }
+            
+            console.log('✅ Filtros poblados correctamente');
+        } catch (error) {
+            console.error('❌ Error llenando filtros:', error);
+        }
+    }
+    
     applyFilters() {
         console.log('🔍 Aplicando filtros...');
         
@@ -511,8 +573,18 @@ class ElPolloLocoDashboard {
         
         console.log('Filtros aplicados:', this.currentFilters);
         
-        // Reload data with filters
-        this.loadAllData();
+        // Show loading
+        this.showLoading();
+        
+        // Reload locations with filters
+        this.loadLocationData().then(() => {
+            // Update map with filtered locations
+            this.updateMap();
+            this.hideLoading();
+        }).catch(error => {
+            console.error('Error applying filters:', error);
+            this.hideLoading();
+        });
     }
 
     clearFilters() {
