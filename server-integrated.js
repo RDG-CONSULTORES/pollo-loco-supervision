@@ -285,27 +285,44 @@ app.get('/api/locations', async (req, res) => {
         const whereClause = whereConditions.join(' AND ');
         
         const query = `
-            SELECT DISTINCT
+            WITH location_data AS (
+                SELECT 
+                    location_name,
+                    -- Usar el primer grupo operativo válido (no NO_ENCONTRADO)
+                    COALESCE(
+                        NULLIF(MIN(CASE WHEN grupo_operativo != 'NO_ENCONTRADO' THEN grupo_operativo END), NULL),
+                        MIN(grupo_operativo)
+                    ) as grupo_operativo,
+                    -- Normalizar estados
+                    CASE 
+                        WHEN MIN(estado) LIKE '%Coahuila%' THEN 'Coahuila'
+                        WHEN MIN(estado) LIKE '%México%' THEN 'México'
+                        WHEN MIN(estado) LIKE '%Michoacán%' THEN 'Michoacán'
+                        ELSE MIN(estado)
+                    END as estado,
+                    MIN(municipio) as municipio,
+                    AVG(CAST(latitud AS FLOAT)) as lat,
+                    AVG(CAST(longitud AS FLOAT)) as lng,
+                    ROUND(AVG(porcentaje), 2) as performance,
+                    MAX(fecha_supervision) as last_evaluation,
+                    COUNT(DISTINCT submission_id) as total_evaluations
+                FROM supervision_operativa_detalle
+                WHERE ${whereClause}
+                  AND latitud IS NOT NULL 
+                  AND longitud IS NOT NULL
+                GROUP BY location_name
+            )
+            SELECT 
                 location_name as name,
                 grupo_operativo as "group",
-                CASE 
-                    WHEN latitud IS NOT NULL AND longitud IS NOT NULL 
-                    THEN CAST(latitud AS FLOAT) 
-                    ELSE 25.6866 
-                END as lat,
-                CASE 
-                    WHEN latitud IS NOT NULL AND longitud IS NOT NULL 
-                    THEN CAST(longitud AS FLOAT) 
-                    ELSE -100.3161 
-                END as lng,
-                ROUND(AVG(porcentaje), 2) as performance,
+                lat,
+                lng,
+                performance,
                 estado as state,
                 municipio as municipality,
-                MAX(fecha_supervision) as last_evaluation,
-                COUNT(DISTINCT submission_id) as total_evaluations
-            FROM supervision_operativa_detalle
-            WHERE ${whereClause}
-            GROUP BY location_name, grupo_operativo, latitud, longitud, estado, municipio
+                last_evaluation,
+                total_evaluations
+            FROM location_data
             ORDER BY performance DESC
             LIMIT 100
         `;
@@ -331,13 +348,23 @@ app.get('/api/estados', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                estado,
+                CASE 
+                    WHEN estado LIKE '%Coahuila%' THEN 'Coahuila'
+                    WHEN estado LIKE '%México%' THEN 'México'
+                    WHEN estado LIKE '%Michoacán%' THEN 'Michoacán'
+                    ELSE estado
+                END as estado,
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
             FROM supervision_operativa_detalle 
             WHERE porcentaje IS NOT NULL AND estado IS NOT NULL
-            GROUP BY estado
+            GROUP BY CASE 
+                    WHEN estado LIKE '%Coahuila%' THEN 'Coahuila'
+                    WHEN estado LIKE '%México%' THEN 'México'
+                    WHEN estado LIKE '%Michoacán%' THEN 'Michoacán'
+                    ELSE estado
+                END
             ORDER BY AVG(porcentaje) DESC
         `);
         
