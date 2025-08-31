@@ -1,0 +1,19 @@
+EMERGENCY DASHBOARD PATCH
+
+The problem: Render is using old code (commit 569e5bc) instead of latest fixes.
+
+QUICK FIX - Replace line 83 in server-integrated.js:
+
+FIND:
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard-react.html'));
+});
+
+REPLACE WITH:
+app.get('/dashboard-old', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dashboard-react.html'));
+});
+
+This single change will fix the main issue - dashboard will load the NEW version instead of old version.
+
+Then just commit in GitHub web interface and Render will auto-deploy.

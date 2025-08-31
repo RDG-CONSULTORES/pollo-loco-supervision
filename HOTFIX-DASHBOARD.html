@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Pollo Loco - Dashboard Operativo</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Leaflet Maps (FREE - OpenStreetMap) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Telegram Web App API -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="https://www.elpolloloco.com.mx/assets/images/logo.png" alt="El Pollo Loco" onerror="this.style.display='none'">
+                <h1>Dashboard Operativo</h1>
+            </div>
+            <div class="header-info">
+                <div class="last-update">
+                    <span id="lastUpdate">Cargando...</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Filters -->
+            <section class="filters">
+                <div class="filter-group">
+                    <select id="grupoFilter">
+                        <option value="">Todos los Grupos</option>
+                    </select>
+                    
+                    <select id="estadoFilter">
+                        <option value="">Todos los Estados</option>
+                    </select>
+                    
+                    <select id="trimestreFilter">
+                        <option value="">Todos los Trimestres</option>
+                        <option value="1">Q1 2025</option>
+                        <option value="2">Q2 2025</option>
+                        <option value="3">Q3 2025</option>
+                    </select>
+                    
+                    <div class="filter-buttons">
+                        <button id="applyFilters" class="btn-primary">
+                            <i class="fas fa-filter"></i> Aplicar
+                        </button>
+                        <button id="clearFilters" class="btn-secondary">
+                            <i class="fas fa-times"></i> Limpiar
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- KPIs -->
+            <section class="kpis">
+                <div class="kpi-card">
+                    <div class="kpi-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Performance de Red</h3>
+                        <p class="kpi-value" id="networkPerformance">--</p>
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-icon">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Sucursales</h3>
+                        <p class="kpi-value" id="totalLocations">--</p>
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Grupos Activos</h3>
+                        <p class="kpi-value" id="activeGroups">--</p>
+                    </div>
+                </div>
+                
+                <div class="kpi-card">
+                    <div class="kpi-icon">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div class="kpi-content">
+                        <h3>Evaluaciones</h3>
+                        <p class="kpi-value" id="totalEvaluations">--</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tabs -->
+            <section class="tabs">
+                <div class="tab-nav">
+                    <button class="tab active" data-tab="mapa">
+                        <i class="fas fa-map-marker-alt"></i> Mapa Interactivo
+                    </button>
+                    <button class="tab" data-tab="grupos">
+                        <i class="fas fa-users"></i> Performance por Grupo
+                    </button>
+                    <button class="tab" data-tab="areas">
+                        <i class="fas fa-exclamation-triangle"></i> Áreas de Oportunidad
+                    </button>
+                    <button class="tab" data-tab="tendencias">
+                        <i class="fas fa-chart-line"></i> Tendencias
+                    </button>
+                </div>
+                
+                <div class="tab-content">
+                    <div id="mapa" class="tab-panel active">
+                        <div class="chart-container">
+                            <div id="map"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="grupos" class="tab-panel">
+                        <div class="chart-container">
+                            <canvas id="gruposChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div id="areas" class="tab-panel">
+                        <div class="chart-container">
+                            <canvas id="areasChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div id="tendencias" class="tab-panel">
+                        <div class="chart-container">
+                            <canvas id="tendenciasChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Cargando datos...</p>
+        </div>
+    </div>
+
+    <!-- Modal for Location Details -->
+    <div id="locationModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h2 id="modalTitle">Detalles de Ubicación</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>console.log('🚀 HOTFIX VERSION LOADING...');</script>
+    <script src="app.js"></script>
+    <script src="telegram-webapp.js"></script>
+</body>
+</html>
