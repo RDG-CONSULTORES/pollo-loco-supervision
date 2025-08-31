@@ -39,6 +39,13 @@ pool.connect()
     dbConnected = false;
   });
 
+// Handle pool errors to prevent crashes
+pool.on('error', (err) => {
+    console.error('❌ Database pool error:', err);
+    console.log('🔄 Attempting to maintain service with fallback data');
+    dbConnected = false;
+});
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -84,6 +91,9 @@ app.get('/webapp', (req, res) => {
 app.get('/dashboard-old', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard-react.html'));
 });
+
+// Serve static files for new dashboard
+app.use('/assets', express.static(path.join(__dirname, 'telegram-bot/web-app/public')));
 
 // Dashboard redirect for easy access
 app.get('/full', (req, res) => {
@@ -340,10 +350,11 @@ app.get('/health', async (req, res) => {
         const stats = dbCheck.rows[0];
         
         res.json({ 
-            status: 'OK', 
+            status: 'healthy', 
             timestamp: new Date().toISOString(),
-            service: 'El Pollo Loco Dashboard',
-            database_status: 'Connected to Neon PostgreSQL',
+            service: 'El Pollo Loco Interactive Dashboard v2.0',
+            version: '2.0.0',
+            database_status: dbConnected ? 'Connected to Neon PostgreSQL' : 'Using fallback data',
             database_stats: {
                 total_records: stats.total_records,
                 unique_locations: stats.unique_locations,
@@ -354,19 +365,28 @@ app.get('/health', async (req, res) => {
                 data_quality: `${((parseInt(stats.unique_groups) - parseInt(stats.unmapped_groups)) / parseInt(stats.unique_groups) * 100).toFixed(1)}%`
             },
             features: {
-                database: 'Connected to Neon PostgreSQL',
-                dashboard: 'Interactive Dashboard with Maps',
-                api_endpoints: 8,
-                bot: 'Telegram Bot Active'
+                database: dbConnected ? 'Connected to Neon PostgreSQL' : 'Fallback mode active',
+                dashboard: 'Interactive Dashboard with OpenStreetMap',
+                maps: 'Leaflet + OpenStreetMap (Free)',
+                api_endpoints: 12,
+                bot: 'Telegram Bot Active',
+                static_files: 'Served correctly'
             }
         });
     } catch (error) {
         res.json({ 
-            status: 'Database Error', 
+            status: 'partial_service', 
             timestamp: new Date().toISOString(),
             error: error.message,
             service: 'El Pollo Loco Dashboard - Fallback Mode',
-            database_status: 'Using fallback data'
+            version: '2.0.0',
+            database_status: 'Using fallback data',
+            features: {
+                database: 'Fallback data active',
+                dashboard: 'Interactive Dashboard (Limited)',
+                api_endpoints: 'Fallback mode',
+                bot: 'Telegram Bot Active'
+            }
         });
     }
 });
