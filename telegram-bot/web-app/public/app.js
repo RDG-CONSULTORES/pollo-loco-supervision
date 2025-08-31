@@ -338,10 +338,31 @@ class ElPolloLocoDashboard {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                max: 100
+                                max: 100,
+                                ticks: {
+                                    maxTicksLimit: 6
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    maxTicksLimit: 10
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10
                             }
                         }
                     }
@@ -372,7 +393,25 @@ class ElPolloLocoDashboard {
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                position: 'right'
+                                position: 'right',
+                                labels: {
+                                    maxWidth: 200,
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10,
+                                left: 10,
+                                right: 10
+                            }
+                        },
+                        elements: {
+                            arc: {
+                                borderWidth: 2
                             }
                         }
                     }
@@ -398,9 +437,38 @@ class ElPolloLocoDashboard {
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            }
+                        },
                         scales: {
                             y: {
-                                beginAtZero: true
+                                beginAtZero: true,
+                                ticks: {
+                                    maxTicksLimit: 8
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 0
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        },
+                        elements: {
+                            point: {
+                                radius: 4,
+                                hoverRadius: 6
+                            },
+                            line: {
+                                tension: 0.2
                             }
                         }
                     }

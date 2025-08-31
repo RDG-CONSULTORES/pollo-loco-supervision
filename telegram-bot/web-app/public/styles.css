@@ -356,6 +356,11 @@ body {
 .chart-container {
     position: relative;
     padding: 20px 0;
+    height: 400px; /* Altura fija para evitar crecimiento infinito */
+}
+
+.chart-container canvas {
+    max-height: 350px !important; /* Asegurar que canvas no crezca infinitamente */
 }
 
 .chart-container h3 {
@@ -540,6 +545,14 @@ body {
     
     .map-container {
         height: 400px;
+    }
+    
+    .chart-container {
+        height: 300px; /* Altura más pequeña para mobile */
+    }
+    
+    .chart-container canvas {
+        max-height: 250px !important;
     }
     
     .chart-container h3 {
