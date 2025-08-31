@@ -39,7 +39,6 @@
     "compression": "^1.7.4",
     "node-telegram-bot-api": "^0.66.0",
     "axios": "^1.6.2",
-    "canvas": "^2.11.2",
     "openai": "^5.15.0"
   },
   "devDependencies": {

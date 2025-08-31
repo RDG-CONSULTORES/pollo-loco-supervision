@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Dashboard API</title>
+</head>
+<body>
+    <h1>Dashboard API Test</h1>
+    <div id="results"></div>
+    
+    <script>
+        const resultsDiv = document.getElementById('results');
+        
+        async function testAPIs() {
+            resultsDiv.innerHTML = '<h2>Testing APIs...</h2>';
+            
+            // Test KPIs
+            try {
+                const kpisResponse = await fetch('/api/kpis');
+                const kpis = await kpisResponse.json();
+                resultsDiv.innerHTML += `<h3>✅ KPIs:</h3><pre>${JSON.stringify(kpis, null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>❌ KPIs Error:</h3><pre>${error.message}</pre>`;
+            }
+            
+            // Test Grupos
+            try {
+                const gruposResponse = await fetch('/api/grupos');
+                const grupos = await gruposResponse.json();
+                resultsDiv.innerHTML += `<h3>✅ Grupos (${grupos.length} found):</h3><pre>${JSON.stringify(grupos.slice(0, 3), null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>❌ Grupos Error:</h3><pre>${error.message}</pre>`;
+            }
+            
+            // Test Locations
+            try {
+                const locationsResponse = await fetch('/api/locations');
+                const locations = await locationsResponse.json();
+                resultsDiv.innerHTML += `<h3>✅ Locations (${locations.length} found):</h3><pre>${JSON.stringify(locations.slice(0, 3), null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>❌ Locations Error:</h3><pre>${error.message}</pre>`;
+            }
+            
+            // Test Estados
+            try {
+                const estadosResponse = await fetch('/api/estados');
+                const estados = await estadosResponse.json();
+                resultsDiv.innerHTML += `<h3>✅ Estados (${estados.length} found):</h3><pre>${JSON.stringify(estados.slice(0, 3), null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>❌ Estados Error:</h3><pre>${error.message}</pre>`;
+            }
+            
+            // Test Indicadores
+            try {
+                const indicadoresResponse = await fetch('/api/indicadores');
+                const indicadores = await indicadoresResponse.json();
+                resultsDiv.innerHTML += `<h3>✅ Indicadores (${indicadores.length} found):</h3><pre>${JSON.stringify(indicadores.slice(0, 3), null, 2)}</pre>`;
+            } catch (error) {
+                resultsDiv.innerHTML += `<h3>❌ Indicadores Error:</h3><pre>${error.message}</pre>`;
+            }
+        }
+        
+        // Run tests
+        testAPIs();
+    </script>
+</body>
+</html>

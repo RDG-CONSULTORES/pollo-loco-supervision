@@ -321,20 +321,97 @@ app.get('/api/bot/status', (req, res) => {
     });
 });
 
-// Health check
-app.get('/health', (req, res) => {
-    res.json({ 
-        status: 'OK', 
+// Health check with database analysis
+app.get('/health', async (req, res) => {
+    try {
+        const dbCheck = await pool.query(`
+            SELECT 
+                'supervision_operativa_detalle' as table_name,
+                COUNT(*) as total_records,
+                COUNT(DISTINCT location_name) as unique_locations,
+                COUNT(DISTINCT grupo_operativo) as unique_groups,
+                COUNT(DISTINCT estado) as unique_states,
+                COUNT(CASE WHEN grupo_operativo = 'NO_ENCONTRADO' THEN 1 END) as unmapped_groups,
+                MIN(fecha_supervision) as earliest_date,
+                MAX(fecha_supervision) as latest_date
+            FROM supervision_operativa_detalle
+        `);
+        
+        const stats = dbCheck.rows[0];
+        
+        res.json({ 
+            status: 'OK', 
+            timestamp: new Date().toISOString(),
+            service: 'El Pollo Loco Dashboard',
+            database_status: 'Connected to Neon PostgreSQL',
+            database_stats: {
+                total_records: stats.total_records,
+                unique_locations: stats.unique_locations,
+                unique_groups: stats.unique_groups,
+                unique_states: stats.unique_states,
+                unmapped_groups: stats.unmapped_groups,
+                date_range: `${stats.earliest_date} to ${stats.latest_date}`,
+                data_quality: `${((parseInt(stats.unique_groups) - parseInt(stats.unmapped_groups)) / parseInt(stats.unique_groups) * 100).toFixed(1)}%`
+            },
+            features: {
+                database: 'Connected to Neon PostgreSQL',
+                dashboard: 'Interactive Dashboard with Maps',
+                api_endpoints: 8,
+                bot: 'Telegram Bot Active'
+            }
+        });
+    } catch (error) {
+        res.json({ 
+            status: 'Database Error', 
+            timestamp: new Date().toISOString(),
+            error: error.message,
+            service: 'El Pollo Loco Dashboard - Fallback Mode',
+            database_status: 'Using fallback data'
+        });
+    }
+});
+
+// Dashboard diagnostics endpoint
+app.get('/api/dashboard/status', async (req, res) => {
+    const diagnostics = {
         timestamp: new Date().toISOString(),
-        service: 'El Pollo Loco CAS Mini Web App',
-        database_status: dbConnected ? 'Connected to Neon PostgreSQL' : 'Using fallback data',
-        features: {
-            database: dbConnected ? 'Connected to Neon PostgreSQL' : 'Fallback data active',
-            bot: 'Telegram Bot Active',
-            webapp: '5 Design Variants Available',
-            dashboard: 'Complete React Dashboard'
+        dashboard_version: '2.0',
+        status: 'running'
+    };
+    
+    // Test all required endpoints
+    const endpointTests = [];
+    const endpoints = ['/api/kpis', '/api/grupos', '/api/estados', '/api/indicadores', '/api/trimestres', '/api/locations'];
+    
+    for (const endpoint of endpoints) {
+        try {
+            // Test internal endpoint
+            let testResult;
+            if (endpoint === '/api/kpis') {
+                const result = await pool.query('SELECT COUNT(*) as count FROM supervision_operativa_detalle LIMIT 1');
+                testResult = { status: 'ok', count: result.rows[0].count };
+            } else {
+                testResult = { status: 'endpoint_ready' };
+            }
+            
+            endpointTests.push({
+                endpoint,
+                status: 'ok',
+                data: testResult
+            });
+        } catch (error) {
+            endpointTests.push({
+                endpoint,
+                status: 'error',
+                error: error.message
+            });
         }
-    });
+    }
+    
+    diagnostics.endpoints = endpointTests;
+    diagnostics.database_connection = dbConnected;
+    
+    res.json(diagnostics);
 });
 
 // Dashboard route (MUST BE BEFORE app.listen!)

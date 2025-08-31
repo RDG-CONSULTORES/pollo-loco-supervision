@@ -114,18 +114,36 @@ class ElPolloLocoDashboard {
 
     async loadFilterOptions() {
         try {
+            console.log('🔍 Loading filter options...');
+            
             // Load groups - Using existing /api/grupos endpoint
             const groupsResponse = await fetch('/api/grupos');
+            console.log('📊 Groups API response:', groupsResponse.status);
+            
+            if (!groupsResponse.ok) {
+                throw new Error(`Groups API failed: ${groupsResponse.status}`);
+            }
+            
             const groups = await groupsResponse.json();
+            console.log('📊 Groups data:', groups.length, 'items loaded');
             this.populateSelect('grupoFilter', groups.map(g => ({ value: g.grupo_operativo, text: g.grupo_operativo })));
 
             // Load states - Using existing /api/estados endpoint
             const statesResponse = await fetch('/api/estados');
+            console.log('🗺️ States API response:', statesResponse.status);
+            
+            if (!statesResponse.ok) {
+                throw new Error(`States API failed: ${statesResponse.status}`);
+            }
+            
             const states = await statesResponse.json();
+            console.log('🗺️ States data:', states.length, 'items loaded');
             this.populateSelect('estadoFilter', states.map(s => ({ value: s.estado, text: s.estado })));
 
+            console.log('✅ Filter options loaded successfully');
         } catch (error) {
-            console.error('Error cargando opciones de filtros:', error);
+            console.error('❌ Error loading filter options:', error);
+            console.error('Stack trace:', error.stack);
         }
     }
 
@@ -142,35 +160,78 @@ class ElPolloLocoDashboard {
         });
     }
 
+    
     async loadAllData() {
         const queryParams = new URLSearchParams(this.currentFilters).toString();
+        console.log('🔄 Loading all data with filters:', this.currentFilters);
         
         try {
             // Load all data in parallel - Using existing endpoints
+            console.log('📡 Fetching data from APIs...');
             const [locationsRes, overviewRes, groupsRes, areasRes, trendsRes] = await Promise.all([
-                fetch(`/api/locations?${queryParams}`),
-                fetch('/api/kpis'), // Using existing endpoint
-                fetch('/api/grupos'), // Using existing endpoint
-                fetch('/api/indicadores'), // Using existing endpoint for areas
-                fetch('/api/trimestres') // Using existing endpoint for trends
+                fetch(`/api/locations?${queryParams}`).then(r => { console.log('Locations status:', r.status); return r; }),
+                fetch('/api/kpis').then(r => { console.log('KPIs status:', r.status); return r; }),
+                fetch('/api/grupos').then(r => { console.log('Grupos status:', r.status); return r; }),
+                fetch('/api/indicadores').then(r => { console.log('Indicadores status:', r.status); return r; }),
+                fetch('/api/trimestres').then(r => { console.log('Trimestres status:', r.status); return r; })
             ]);
 
-            this.data.locations = await locationsRes.json();
-            const kpisData = await overviewRes.json();
-            this.data.overview = {
-                network_performance: kpisData.promedio_general,
-                total_locations: kpisData.total_sucursales,
-                active_groups: this.data.locations.length ? new Set(this.data.locations.map(l => l.group)).size : 0,
-                total_evaluations: kpisData.total_supervisiones
-            };
-            this.data.groups = await groupsRes.json();
-            this.data.areas = await areasRes.json();
-            this.data.trends = await trendsRes.json();
+            // Parse responses with error handling
+            console.log('📊 Parsing responses...');
+            try {
+                this.data.locations = await locationsRes.json();
+                console.log('✅ Locations loaded:', this.data.locations.length);
+            } catch (e) {
+                console.error('❌ Error parsing locations:', e);
+                this.data.locations = [];
+            }
+            
+            try {
+                const kpisData = await overviewRes.json();
+                console.log('✅ KPIs loaded:', kpisData);
+                this.data.overview = {
+                    network_performance: kpisData.promedio_general,
+                    total_locations: kpisData.total_sucursales,
+                    active_groups: this.data.locations.length ? new Set(this.data.locations.map(l => l.group)).size : 0,
+                    total_evaluations: kpisData.total_supervisiones,
+                    last_update: new Date().toISOString()
+                };
+            } catch (e) {
+                console.error('❌ Error parsing KPIs:', e);
+                this.data.overview = {};
+            }
+            
+            try {
+                this.data.groups = await groupsRes.json();
+                console.log('✅ Groups loaded:', this.data.groups.length);
+            } catch (e) {
+                console.error('❌ Error parsing groups:', e);
+                this.data.groups = [];
+            }
+            
+            try {
+                this.data.areas = await areasRes.json();
+                console.log('✅ Areas loaded:', this.data.areas.length);
+            } catch (e) {
+                console.error('❌ Error parsing areas:', e);
+                this.data.areas = [];
+            }
+            
+            try {
+                this.data.trends = await trendsRes.json();
+                console.log('✅ Trends loaded:', this.data.trends.length);
+            } catch (e) {
+                console.error('❌ Error parsing trends:', e);
+                this.data.trends = [];
+            }
 
+            console.log('📈 Updating UI components...');
             // Update UI
             this.updateKPIs();
             this.updateMap();
             this.updateCharts();
+            
+            console.log('✅ All data loaded successfully!');
 
             // Notify Telegram Web App
             if (window.telegramWebApp?.isInTelegram) {
@@ -182,7 +243,9 @@ class ElPolloLocoDashboard {
             }
 
         } catch (error) {
-            console.error('Error cargando datos:', error);
+            console.error('❌ Critical error loading data:', error);
+            console.error('Stack trace:', error.stack);
+            this.showError('Error loading dashboard data: ' + error.message);
             throw error;
         }
     }
