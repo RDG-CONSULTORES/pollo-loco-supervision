@@ -35,14 +35,14 @@ class ElPolloLocoDashboard {
         // Setup event listeners
         this.setupEventListeners();
         
-        // Load initial data
-        await this.loadInitialData();
+        // Initialize charts FIRST
+        this.initCharts();
         
-        // Initialize map
+        // Initialize map FIRST  
         this.initMap();
         
-        // Initialize charts
-        this.initCharts();
+        // THEN load data
+        await this.loadInitialData();
         
         console.log('✅ Dashboard inicializado correctamente');
     }
@@ -168,13 +168,24 @@ class ElPolloLocoDashboard {
         try {
             // Load all data in parallel - Using existing endpoints
             console.log('📡 Fetching data from APIs...');
-            const [locationsRes, overviewRes, groupsRes, areasRes, trendsRes] = await Promise.all([
-                fetch(`/api/locations?${queryParams}`).then(r => { console.log('Locations status:', r.status); return r; }),
-                fetch('/api/kpis').then(r => { console.log('KPIs status:', r.status); return r; }),
-                fetch('/api/grupos').then(r => { console.log('Grupos status:', r.status); return r; }),
-                fetch('/api/indicadores').then(r => { console.log('Indicadores status:', r.status); return r; }),
-                fetch('/api/trimestres').then(r => { console.log('Trimestres status:', r.status); return r; })
-            ]);
+            
+            // Test individual endpoints first
+            console.log('🔍 Testing API endpoints individually...');
+            
+            const locationsRes = await fetch(`/api/locations?${queryParams}`);
+            console.log('📍 Locations API:', locationsRes.status, locationsRes.ok);
+            
+            const overviewRes = await fetch('/api/kpis');
+            console.log('📊 KPIs API:', overviewRes.status, overviewRes.ok);
+            
+            const groupsRes = await fetch('/api/grupos');
+            console.log('👥 Grupos API:', groupsRes.status, groupsRes.ok);
+            
+            const areasRes = await fetch('/api/indicadores');
+            console.log('🎯 Indicadores API:', areasRes.status, areasRes.ok);
+            
+            const trendsRes = await fetch('/api/trimestres');
+            console.log('📈 Trimestres API:', trendsRes.status, trendsRes.ok);
 
             // Parse responses with error handling
             console.log('📊 Parsing responses...');
@@ -287,6 +298,12 @@ class ElPolloLocoDashboard {
 
     initLeafletMap() {
         const mapContainer = document.getElementById('map');
+        
+        // Check if map already exists
+        if (this.map) {
+            console.log('📍 Map already initialized, skipping...');
+            return;
+        }
         
         // Initialize Leaflet map centered on Nuevo León, Mexico
         this.map = L.map(mapContainer).setView([25.6866, -100.3161], 8);
@@ -598,21 +615,46 @@ class ElPolloLocoDashboard {
     }
 
     updateCharts() {
-        this.updateGruposChart();
-        this.updateAreasChart();
-        this.updateTendenciasChart();
+        console.log('📊 Updating charts with data:', {
+            groups: this.data.groups?.length || 0,
+            areas: this.data.areas?.length || 0,
+            trends: this.data.trends?.length || 0
+        });
+        
+        if (this.charts && this.charts.grupos) {
+            this.updateGruposChart();
+        } else {
+            console.log('⚠️ Charts not initialized yet');
+        }
+        
+        if (this.charts && this.charts.areas) {
+            this.updateAreasChart();
+        }
+        
+        if (this.charts && this.charts.tendencias) {
+            this.updateTendenciasChart();
+        }
     }
 
     updateGruposChart() {
+        if (!this.data.groups || this.data.groups.length === 0) {
+            console.log('⚠️ No groups data available');
+            return;
+        }
+        
         const groups = this.data.groups.slice(0, 15); // Top 15 groups
         const labels = groups.map(g => g.grupo_operativo || g.name);
         const data = groups.map(g => parseFloat(g.promedio || g.performance || 0));
         const colors = data.map(value => this.getPerformanceColor(value));
 
-        this.charts.grupos.data.labels = labels;
-        this.charts.grupos.data.datasets[0].data = data;
-        this.charts.grupos.data.datasets[0].backgroundColor = colors;
-        this.charts.grupos.update();
+        console.log('📊 Updating groups chart:', { labels, data });
+
+        if (this.charts?.grupos) {
+            this.charts.grupos.data.labels = labels;
+            this.charts.grupos.data.datasets[0].data = data;
+            this.charts.grupos.data.datasets[0].backgroundColor = colors;
+            this.charts.grupos.update();
+        }
     }
 
     updateAreasChart() {
