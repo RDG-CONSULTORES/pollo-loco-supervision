@@ -118,6 +118,16 @@ const fallbackData = {
         { grupo_operativo: "OGAS", promedio: "97.60", supervisiones: 16, sucursales: 8 },
         { grupo_operativo: "PLOG QUERÉTARO", promedio: "97.00", supervisiones: 4, sucursales: 4 },
         { grupo_operativo: "TEC", promedio: "93.10", supervisiones: 8, sucursales: 4 }
+    ],
+    estados: [
+        { estado: "Nuevo León", promedio: "96.80", supervisiones: 45, sucursales: 25 },
+        { estado: "Querétaro", promedio: "95.40", supervisiones: 28, sucursales: 18 },
+        { estado: "Jalisco", promedio: "93.70", supervisiones: 32, sucursales: 20 }
+    ],
+    indicadores: [
+        { indicador: "LIMPIEZA GENERAL", promedio: "94.50", evaluaciones: 89 },
+        { indicador: "SERVICIO AL CLIENTE", promedio: "92.80", evaluaciones: 76 },
+        { indicador: "COCINA", promedio: "91.30", evaluaciones: 82 }
     ]
 };
 
@@ -152,7 +162,7 @@ app.get('/health', async (req, res) => {
                 unique_states: stats.unique_states,
                 unmapped_groups: stats.unmapped_groups,
                 date_range: `${stats.earliest_date} to ${stats.latest_date}`,
-                data_quality: `${((parseInt(stats.unique_groups) - parseInt(stats.unmapped_groups)) / parseInt(stats.unique_groups) * 100).toFixed(1)}%`
+                data_quality: stats.unique_groups > 0 ? `${Math.max(0, ((parseInt(stats.unique_groups) - parseInt(stats.unmapped_groups)) / parseInt(stats.unique_groups) * 100)).toFixed(1)}%` : '100%'
             },
             features: {
                 database: dbConnected ? 'Connected to Neon PostgreSQL' : 'Fallback mode active',
@@ -239,19 +249,63 @@ app.get('/api/grupos', async (req, res) => {
     }
 });
 
-// NEW API - Locations with coordinates
+// NEW API - Locations with REAL coordinates from database
 app.get('/api/locations', async (req, res) => {
+    if (!dbConnected) {
+        console.log('⚠️ DB not connected, using fallback locations');
+        return res.json([
+            {name: "Sucursal Centro", group: "OGAS", lat: 25.6866, lng: -100.3161, performance: 95.5, state: "Nuevo León", municipality: "Monterrey", last_evaluation: new Date(), total_evaluations: 15}
+        ]);
+    }
+    
     try {
-        // Sample locations with Mexico coordinates
-        const sampleLocations = [
-            {name: "Sucursal Centro", group: "OGAS", lat: 25.6866, lng: -100.3161, performance: 95.5, state: "Nuevo León", municipality: "Monterrey", last_evaluation: new Date(), total_evaluations: 15},
-            {name: "Plaza Norte", group: "PLOG QUERÉTARO", lat: 20.5888, lng: -100.3899, performance: 87.2, state: "Querétaro", municipality: "Querétaro", last_evaluation: new Date(), total_evaluations: 12},
-            {name: "Centro Comercial", group: "TEC", lat: 20.6597, lng: -103.3496, performance: 92.1, state: "Jalisco", municipality: "Guadalajara", last_evaluation: new Date(), total_evaluations: 18},
-            {name: "Plaza San Luis", group: "OGAS", lat: 22.1565, lng: -100.9855, performance: 88.7, state: "San Luis Potosí", municipality: "San Luis Potosí", last_evaluation: new Date(), total_evaluations: 10}
-        ];
+        const { grupo, estado, trimestre } = req.query;
         
-        console.log(`📍 API /locations: Serving ${sampleLocations.length} locations`);
-        res.json(sampleLocations);
+        // Build dynamic WHERE clause
+        let whereConditions = ['porcentaje IS NOT NULL', 'latitud IS NOT NULL', 'longitud IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+        
+        if (grupo) {
+            whereConditions.push(`grupo_operativo = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        if (estado) {
+            whereConditions.push(`estado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        if (trimestre) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(parseInt(trimestre));
+            paramIndex++;
+        }
+        
+        const whereClause = whereConditions.join(' AND ');
+        
+        const query = `
+            SELECT 
+                location_name as name,
+                grupo_operativo as "group",
+                CAST(latitud AS FLOAT) as lat,
+                CAST(longitud AS FLOAT) as lng,
+                ROUND(AVG(porcentaje), 2) as performance,
+                estado as state,
+                municipio as municipality,
+                MAX(fecha_supervision) as last_evaluation,
+                COUNT(DISTINCT submission_id) as total_evaluations
+            FROM supervision_operativa_detalle
+            WHERE ${whereClause}
+            GROUP BY location_name, grupo_operativo, latitud, longitud, estado, municipio
+            ORDER BY performance DESC
+        `;
+        
+        console.log(`📍 API /locations: Executing query with ${params.length} params`);
+        const result = await pool.query(query, params);
+        
+        console.log(`✅ API /locations: Found ${result.rows.length} real locations`);
+        res.json(result.rows);
         
     } catch (error) {
         console.error('❌ API /locations error:', error.message);
@@ -259,43 +313,97 @@ app.get('/api/locations', async (req, res) => {
     }
 });
 
-// Additional APIs for dashboard
+// Additional APIs for dashboard - ESTADOS REALES
 app.get('/api/estados', async (req, res) => {
+    if (!dbConnected) {
+        return res.json(fallbackData.estados || []);
+    }
+    
     try {
-        const estados = [
-            { estado: "Nuevo León", promedio: "96.80", supervisiones: 45, sucursales: 25 },
-            { estado: "Querétaro", promedio: "95.40", supervisiones: 28, sucursales: 18 },
-            { estado: "Jalisco", promedio: "93.70", supervisiones: 32, sucursales: 20 }
-        ];
-        res.json(estados);
+        const result = await pool.query(`
+            SELECT 
+                estado,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                COUNT(DISTINCT location_name) as sucursales
+            FROM supervision_operativa_detalle 
+            WHERE porcentaje IS NOT NULL AND estado IS NOT NULL
+            GROUP BY estado
+            ORDER BY AVG(porcentaje) DESC
+        `);
+        
+        console.log(`📊 API /estados: Found ${result.rows.length} states`);
+        res.json(result.rows);
     } catch (error) {
-        res.json([]);
+        console.error('❌ API /estados error:', error);
+        res.json(fallbackData.estados || []);
     }
 });
 
 app.get('/api/indicadores', async (req, res) => {
+    if (!dbConnected) {
+        return res.json(fallbackData.indicadores || []);
+    }
+    
     try {
-        const indicadores = [
-            { indicador: "LIMPIEZA GENERAL", promedio: "94.50", evaluaciones: 89 },
-            { indicador: "SERVICIO AL CLIENTE", promedio: "92.80", evaluaciones: 76 },
-            { indicador: "COCINA", promedio: "91.30", evaluaciones: 82 }
-        ];
-        res.json(indicadores);
+        const result = await pool.query(`
+            SELECT 
+                area_evaluacion as indicador,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(*) as evaluaciones
+            FROM supervision_operativa_detalle 
+            WHERE porcentaje IS NOT NULL 
+            AND area_evaluacion IS NOT NULL
+            AND area_evaluacion != ''
+            AND area_evaluacion != 'PUNTOS MAXIMOS'
+            GROUP BY area_evaluacion
+            ORDER BY AVG(porcentaje) ASC
+            LIMIT 20
+        `);
+        
+        console.log(`📊 API /indicadores: Found ${result.rows.length} evaluation areas`);
+        res.json(result.rows);
     } catch (error) {
-        res.json([]);
+        console.error('❌ API /indicadores error:', error);
+        res.json(fallbackData.indicadores || []);
     }
 });
 
 app.get('/api/trimestres', async (req, res) => {
-    try {
-        const trimestres = [
+    if (!dbConnected) {
+        return res.json([
             { trimestre: "Q1 2025", evaluaciones: 45 },
             { trimestre: "Q2 2025", evaluaciones: 52 },
             { trimestre: "Q3 2025", evaluaciones: 38 }
-        ];
-        res.json(trimestres);
+        ]);
+    }
+    
+    try {
+        const result = await pool.query(`
+            SELECT 
+                CASE 
+                    WHEN EXTRACT(QUARTER FROM fecha_supervision) = 1 THEN 'Q1 2025'
+                    WHEN EXTRACT(QUARTER FROM fecha_supervision) = 2 THEN 'Q2 2025'
+                    WHEN EXTRACT(QUARTER FROM fecha_supervision) = 3 THEN 'Q3 2025'
+                    WHEN EXTRACT(QUARTER FROM fecha_supervision) = 4 THEN 'Q4 2025'
+                END as trimestre,
+                COUNT(DISTINCT submission_id) as evaluaciones
+            FROM supervision_operativa_detalle 
+            WHERE fecha_supervision IS NOT NULL
+            AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+            GROUP BY EXTRACT(QUARTER FROM fecha_supervision)
+            ORDER BY EXTRACT(QUARTER FROM fecha_supervision)
+        `);
+        
+        console.log(`📊 API /trimestres: Found ${result.rows.length} quarters`);
+        res.json(result.rows);
     } catch (error) {
-        res.json([]);
+        console.error('❌ API /trimestres error:', error);
+        res.json([
+            { trimestre: "Q1 2025", evaluaciones: 45 },
+            { trimestre: "Q2 2025", evaluaciones: 52 },
+            { trimestre: "Q3 2025", evaluaciones: 38 }
+        ]);
     }
 });
 
