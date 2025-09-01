@@ -48,6 +48,13 @@ SELECT
     WHEN location_name = '33 - Eloy Cavazos' THEN 'EXPO'
     WHEN location_name = '26 - Cadereyta' THEN 'EXPO'
     
+    -- MAPEO FINAL - 5 SUCURSALES RESTANTES CONFIRMADAS POR USUARIO
+    WHEN location_name = '25 - Juarez' THEN 'EXPO'
+    WHEN location_name = '30 - Carrizo' THEN 'EXPO'
+    WHEN location_name = '29 - Pablo Livas' THEN 'EXPO'
+    WHEN location_name = '28 - Guerrero' THEN 'EXPO'
+    WHEN location_name = 'Sucursal SC - Santa Catarina' THEN 'TEPEYAC'
+    
     -- COAHUILA - GRUPO SALTILLO (5 sucursales confirmadas)
     WHEN location_name = '52 - Venustiano Carranza' THEN 'GRUPO SALTILLO'
     WHEN location_name = '54 - Ramos Arizpe' THEN 'GRUPO SALTILLO'
