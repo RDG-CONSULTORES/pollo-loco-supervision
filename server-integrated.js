@@ -911,6 +911,89 @@ app.get('/api/periodos-cas', async (req, res) => {
     }
 });
 
+// =====================================================
+// SUCURSALES RANKING - Nueva gráfica de barras
+// =====================================================
+app.get('/api/sucursales-ranking', async (req, res) => {
+    if (!dbConnected) {
+        return res.json([
+            { sucursal: "Demo Sucursal 1", grupo_operativo: "GRUPO DEMO", estado: "Nuevo León", promedio: 92.5, evaluaciones: 15 },
+            { sucursal: "Demo Sucursal 2", grupo_operativo: "GRUPO DEMO", estado: "Nuevo León", promedio: 88.3, evaluaciones: 12 }
+        ]);
+    }
+    
+    const { grupo, estado, trimestre, periodoCas, limit = 20 } = req.query;
+    
+    try {
+        let whereConditions = [
+            'porcentaje IS NOT NULL', 
+            'location_name IS NOT NULL',
+            'grupo_operativo_limpio IS NOT NULL'
+        ];
+        let params = [];
+        let paramIndex = 1;
+        
+        // Add existing filters
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        
+        if (trimestre) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(trimestre);
+            paramIndex++;
+        }
+        
+        // Add Período CAS filter
+        if (periodoCas && periodoCas !== 'all') {
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
+        }
+        
+        // Add limit parameter
+        params.push(parseInt(limit) || 20);
+        const limitParam = `$${paramIndex}`;
+        
+        const whereClause = whereConditions.join(' AND ');
+        
+        const result = await pool.query(`
+            SELECT 
+                location_name as sucursal,
+                grupo_operativo_limpio as grupo_operativo,
+                estado_normalizado as estado,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones
+            FROM supervision_operativa_clean 
+            WHERE ${whereClause}
+            GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
+            HAVING COUNT(DISTINCT area_evaluacion) >= 5
+            ORDER BY AVG(porcentaje) DESC
+            LIMIT ${limitParam}
+        `, params);
+        
+        console.log(`🏪 API /sucursales-ranking: Found ${result.rows.length} sucursales with filters:`, { grupo, estado, trimestre, periodoCas, limit });
+        res.json(result.rows);
+        
+    } catch (error) {
+        console.error('❌ API /sucursales-ranking error:', error);
+        res.json([
+            { sucursal: "Error - Sucursal Demo", grupo_operativo: "GRUPO DEMO", estado: "Nuevo León", promedio: 85.0, evaluaciones: 10 }
+        ]);
+    }
+});
+
 // Webhook endpoint for Telegram
 app.post('/webhook', (req, res) => {
     if (process.env.NODE_ENV === 'production' && global.telegramBot) {

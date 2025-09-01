@@ -19,7 +19,8 @@ class ElPolloLocoDashboard {
             groups: [],
             areas: [],
             trends: [],
-            periodsCas: []
+            periodsCas: [],
+            sucursalesRanking: []  // NEW: Para la gráfica de sucursales
         };
         
         this.init();
@@ -116,7 +117,8 @@ class ElPolloLocoDashboard {
                 this.loadLocationData(),
                 this.loadAreaData(),
                 this.loadTrendData(),
-                this.loadPeriodsCasData()
+                this.loadPeriodsCasData(),
+                this.loadSucursalesRanking()  // NEW: Load sucursales ranking
             ];
             
             await Promise.all(promises);
@@ -309,6 +311,39 @@ class ElPolloLocoDashboard {
         }
     }
 
+    async loadSucursalesRanking() {
+        try {
+            // Build query params from filters
+            const params = new URLSearchParams();
+            if (this.currentFilters.grupo) {
+                params.append('grupo', this.currentFilters.grupo);
+            }
+            if (this.currentFilters.estado) {
+                params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.trimestre) {
+                params.append('trimestre', this.currentFilters.trimestre);
+            }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
+            
+            const queryString = params.toString();
+            const url = queryString ? `/api/sucursales-ranking?${queryString}` : '/api/sucursales-ranking';
+            
+            console.log('🏪 API: Fetching', url);
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            this.data.sucursalesRanking = await response.json();
+            console.log(`✅ API: Sucursales ranking loaded (${this.data.sucursalesRanking.length}):`, this.data.sucursalesRanking);
+            
+        } catch (error) {
+            console.error('❌ API: Error loading sucursales ranking:', error);
+            throw error;
+        }
+    }
+
     // =====================================================
     // MAPA (LEAFLET + OPENSTREETMAP - GRATIS!)
     // =====================================================
@@ -394,6 +429,9 @@ class ElPolloLocoDashboard {
     initCharts() {
         console.log('📊 Inicializando gráficos...');
         
+        // Register Chart.js annotation plugin
+        Chart.register(ChartAnnotation);
+        
         try {
             // Performance por Grupo (Bar Chart)
             const gruposCtx = document.getElementById('gruposChart');
@@ -417,6 +455,23 @@ class ElPolloLocoDashboard {
                             legend: {
                                 display: true,
                                 position: 'top'
+                            },
+                            annotation: {
+                                annotations: {
+                                    metaLine: {
+                                        type: 'line',
+                                        yMin: 90,
+                                        yMax: 90,
+                                        borderColor: 'rgba(231, 76, 60, 1)',
+                                        borderWidth: 2,
+                                        borderDash: [5, 5],
+                                        label: {
+                                            content: 'Meta CAS 90%',
+                                            enabled: true,
+                                            position: 'end'
+                                        }
+                                    }
+                                }
                             }
                         },
                         scales: {
@@ -549,6 +604,72 @@ class ElPolloLocoDashboard {
                     }
                 });
             }
+
+            // NEW: Sucursales Ranking (Bar Chart with 90% meta line)
+            const sucursalesCtx = document.getElementById('sucursalesChart');
+            if (sucursalesCtx) {
+                this.charts.sucursales = new Chart(sucursalesCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: [],
+                        datasets: [{
+                            label: 'Performance (%)',
+                            data: [],
+                            backgroundColor: 'rgba(46, 204, 113, 0.7)',
+                            borderColor: 'rgba(46, 204, 113, 1)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            annotation: {
+                                annotations: {
+                                    metaLine: {
+                                        type: 'line',
+                                        yMin: 90,
+                                        yMax: 90,
+                                        borderColor: 'rgba(231, 76, 60, 1)',
+                                        borderWidth: 2,
+                                        borderDash: [5, 5],
+                                        label: {
+                                            content: 'Meta CAS 90%',
+                                            enabled: true,
+                                            position: 'end'
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    maxTicksLimit: 6
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    maxTicksLimit: 20
+                                }
+                            }
+                        },
+                        layout: {
+                            padding: {
+                                top: 10,
+                                bottom: 10
+                            }
+                        }
+                    }
+                });
+            }
             
             console.log('✅ Gráficos inicializados correctamente');
             
@@ -650,6 +771,14 @@ class ElPolloLocoDashboard {
                 this.charts.tendencias.data.datasets[0].data = this.data.trends.map(t => parseInt(t.evaluaciones));
                 this.charts.tendencias.update();
                 console.log('✅ Gráfico de tendencias actualizado');
+            }
+
+            // NEW: Update Sucursales Ranking Chart
+            if (this.charts.sucursales && this.data.sucursalesRanking && this.data.sucursalesRanking.length > 0) {
+                this.charts.sucursales.data.labels = this.data.sucursalesRanking.map(s => s.sucursal);
+                this.charts.sucursales.data.datasets[0].data = this.data.sucursalesRanking.map(s => parseFloat(s.promedio));
+                this.charts.sucursales.update();
+                console.log('✅ Gráfico de sucursales actualizado');
             }
             
         } catch (error) {
@@ -765,11 +894,12 @@ class ElPolloLocoDashboard {
         
         // Reload data with filters
         Promise.all([
-            this.loadKPIData(),      // Load filtered KPIs
-            this.loadGroupData(),    // Load filtered groups - FIXED!
-            this.loadLocationData(), // Load filtered locations
-            this.loadAreaData(),     // Load filtered areas
-            this.loadTrendData()     // Load filtered trends
+            this.loadKPIData(),           // Load filtered KPIs
+            this.loadGroupData(),         // Load filtered groups - FIXED!
+            this.loadLocationData(),      // Load filtered locations
+            this.loadAreaData(),          // Load filtered areas
+            this.loadTrendData(),         // Load filtered trends
+            this.loadSucursalesRanking()  // NEW: Load filtered sucursales ranking
         ]).then(() => {
             // Update all UI components
             this.updateKPIs();
@@ -798,10 +928,11 @@ class ElPolloLocoDashboard {
         // Reload all data without filters
         Promise.all([
             this.loadKPIData(),
-            this.loadGroupData(),    // Load groups without filters - FIXED!
+            this.loadGroupData(),         // Load groups without filters - FIXED!
             this.loadLocationData(),
             this.loadAreaData(),
-            this.loadTrendData()
+            this.loadTrendData(),
+            this.loadSucursalesRanking()  // NEW: Load sucursales ranking without filters
         ]).then(() => {
             // Update all UI components
             this.updateKPIs();
