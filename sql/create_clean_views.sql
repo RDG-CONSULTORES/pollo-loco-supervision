@@ -136,8 +136,39 @@ SELECT
     WHEN (estado = 'Coahuila' OR estado = 'Coahuila de Zaragoza') AND municipio = 'Monclova' THEN 'GRUPO SALTILLO'
     WHEN (estado = 'Coahuila' OR estado = 'Coahuila de Zaragoza') AND municipio = 'Saltillo' THEN 'GRUPO SALTILLO'
     
-    -- Casos sin mapear después de análisis
-    ELSE 'REQUIERE_MAPEO_MANUAL'
+    -- MAPEO FINAL - 22 SUCURSALES NO_ENCONTRADO CONFIRMADAS POR USUARIO
+    -- GRUPO EXPO (11 sucursales: Nuevo León + Tamaulipas)
+    WHEN location_name = '31 - Las Quintas' THEN 'EXPO'
+    WHEN location_name = '32 - Allende' THEN 'EXPO'
+    WHEN location_name = '24 - Exposicion' THEN 'EXPO'
+    WHEN location_name = '27 - Santiago' THEN 'EXPO'
+    WHEN location_name = '34 - Montemorelos' THEN 'EXPO'
+    WHEN location_name = '26 - Cadereyta' THEN 'EXPO'
+    WHEN location_name = '25 - Juarez' THEN 'EXPO'
+    WHEN location_name = '33 - Eloy Cavazos' THEN 'EXPO'
+    WHEN location_name = '29 - Pablo Livas' THEN 'EXPO'
+    WHEN location_name = '30 - Carrizo' THEN 'EXPO'
+    WHEN location_name = '28 - Guerrero' THEN 'EXPO'
+    
+    -- GRUPO RAP (3 sucursales: Reynosa, Tamaulipas)
+    WHEN location_name = '76 - Aeropuerto (Reynosa)' THEN 'RAP'
+    WHEN location_name = '78 - Alcala' THEN 'RAP'
+    WHEN location_name = '77 - Boulevard Morelos' THEN 'RAP'
+    
+    -- GRUPO CRR (3 sucursales: Reynosa, Tamaulipas) 
+    WHEN location_name = '74 - Hidalgo (Reynosa)' THEN 'CRR'
+    WHEN location_name = '75 - Libramiento (Reynosa)' THEN 'CRR'
+    WHEN location_name = '73 - Anzalduas' THEN 'CRR'
+    
+    -- GRUPO SALTILLO (5 sucursales: Coahuila)
+    WHEN location_name = '57 - Harold R. Pape' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '56 - Luis Echeverria' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '52 - Venustiano Carranza' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '54 - Ramos Arizpe' THEN 'GRUPO SALTILLO'
+    WHEN location_name = '55 - Eulalio Gutierrez' THEN 'GRUPO SALTILLO'
+    
+    -- Sin casos pendientes
+    ELSE grupo_operativo
   END as grupo_operativo_limpio,
   
   director_operativo,

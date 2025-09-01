@@ -19,9 +19,10 @@ class DataService {
 
   // Obtener KPIs principales
   async getMainKPIs(filters = {}) {
-    let whereClause = 'WHERE porcentaje IS NOT NULL';
-    const params = [];
-    let paramCount = 0;
+    try {
+      let whereClause = 'WHERE porcentaje IS NOT NULL';
+      const params = [];
+      let paramCount = 0;
 
     if (filters.grupo) {
       params.push(filters.grupo);
@@ -51,8 +52,21 @@ class DataService {
       ${whereClause}
     `;
     
-    const result = await pool.query(query, params);
-    return result.rows[0];
+      const result = await pool.query(query, params);
+      return result.rows[0];
+    } catch (error) {
+      console.error('Error in getMainKPIs:', error.message);
+      // Retornar valores por defecto en caso de error
+      return {
+        promedio_general: 0,
+        total_supervisiones: 0,
+        total_sucursales: 0,
+        total_grupos: 0,
+        total_estados: 0,
+        min_calificacion: 0,
+        max_calificacion: 0
+      };
+    }
   }
 
   // Obtener datos por grupo operativo

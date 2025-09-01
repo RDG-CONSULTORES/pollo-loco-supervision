@@ -18,6 +18,11 @@ if (process.env.NODE_ENV === 'production' && !process.env.TELEGRAM_BOT_TOKEN) {
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// SAFETY SWITCH - Change this to switch between clean view and raw table
+const USE_CLEAN_VIEW = process.env.USE_CLEAN_VIEW === 'true' || false;
+const DATA_SOURCE = USE_CLEAN_VIEW ? 'supervision_operativa_clean' : 'supervision_operativa_detalle';
+console.log(`🔧 Using data source: ${DATA_SOURCE}`);
+
 // Database connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
@@ -469,6 +474,60 @@ app.get('/api/trimestres', async (req, res) => {
             { trimestre: "Q2 2025", evaluaciones: 52 },
             { trimestre: "Q3 2025", evaluaciones: 38 }
         ]);
+    }
+});
+
+// Test endpoint for clean view (SAFE - doesn't break anything)
+app.get('/api/test/clean', async (req, res) => {
+    if (!dbConnected) {
+        return res.json({ error: 'Database not connected' });
+    }
+    
+    try {
+        // Test if clean view exists
+        const testQuery = await pool.query(`
+            SELECT COUNT(*) as total
+            FROM supervision_operativa_clean
+            LIMIT 1
+        `).catch(err => ({ error: err.message }));
+        
+        if (testQuery.error) {
+            return res.json({ 
+                clean_view_exists: false,
+                error: 'Clean view not found',
+                message: 'supervision_operativa_clean view does not exist',
+                recommendation: 'Create the view first'
+            });
+        }
+        
+        // If view exists, get sample data
+        const sampleData = await pool.query(`
+            SELECT 
+                location_name,
+                grupo_operativo_limpio,
+                estado_normalizado,
+                municipio,
+                latitud,
+                longitud,
+                COUNT(*) OVER() as total_locations
+            FROM supervision_operativa_clean
+            WHERE grupo_operativo_limpio != 'REQUIERE_MAPEO_MANUAL'
+            ORDER BY location_name
+            LIMIT 5
+        `);
+        
+        res.json({
+            clean_view_exists: true,
+            total_locations: sampleData.rows[0]?.total_locations || 0,
+            sample_data: sampleData.rows,
+            message: 'Clean view is available and working'
+        });
+        
+    } catch (error) {
+        res.json({ 
+            error: error.message,
+            clean_view_exists: false 
+        });
     }
 });
 
