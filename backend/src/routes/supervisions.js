@@ -11,12 +11,12 @@ router.get('/', async (req, res) => {
     
     if (req.query.grupo) {
       params.push(req.query.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (req.query.estado) {
       params.push(req.query.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (req.query.trimestre) {
@@ -42,10 +42,10 @@ router.get('/', async (req, res) => {
         location_name,
         sucursal_clean,
         municipio,
-        estado,
+        estado_normalizado as estado,
         latitud,
         longitud,
-        grupo_operativo,
+        grupo_operativo_limpio as grupo_operativo,
         director_operativo,
         supervisor_campo,
         fecha_supervision,
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
         porcentaje,
         metodo_mapeo,
         confianza_mapeo
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
       ORDER BY fecha_supervision DESC, location_name, area_evaluacion
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
@@ -66,7 +66,7 @@ router.get('/', async (req, res) => {
     // Get total count
     const countQuery = `
       SELECT COUNT(*) as total
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
     `;
     const countResult = await pool.query(countQuery, params.slice(0, -2));
@@ -95,10 +95,10 @@ router.get('/:submission_id', async (req, res) => {
         location_name,
         sucursal_clean,
         municipio,
-        estado,
+        estado_normalizado as estado,
         latitud,
         longitud,
-        grupo_operativo,
+        grupo_operativo_limpio as grupo_operativo,
         director_operativo,
         supervisor_campo,
         fecha_supervision,
@@ -106,7 +106,7 @@ router.get('/:submission_id', async (req, res) => {
         puntos_maximos,
         puntos_obtenidos,
         porcentaje
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       WHERE submission_id = $1
       ORDER BY area_evaluacion
     `;

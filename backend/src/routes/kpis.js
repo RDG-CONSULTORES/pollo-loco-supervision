@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dataService = require('../services/dataService');
+const dataService = require('../services/dataServiceFixed');
 
 // GET /api/kpis - Obtener KPIs principales
 router.get('/', async (req, res) => {
