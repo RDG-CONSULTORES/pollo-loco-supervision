@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dataService = require('../services/dataService');
+const dataServiceFixed = require('../services/dataServiceFixed');
 
 // GET /api/map/data - Obtener datos para el mapa
 router.get('/data', async (req, res) => {
@@ -11,7 +11,7 @@ router.get('/data', async (req, res) => {
       trimestre: req.query.trimestre
     };
     
-    const mapData = await dataService.getMapData(filters);
+    const mapData = await dataServiceFixed.getMapData(filters);
     
     // Formatear para GeoJSON
     const geojson = {
@@ -52,7 +52,7 @@ router.get('/heatmap', async (req, res) => {
       trimestre: req.query.trimestre
     };
     
-    const mapData = await dataService.getMapData(filters);
+    const mapData = await dataServiceFixed.getMapData(filters);
     
     // Formatear para heatmap (latitud, longitud, intensidad)
     const heatmapData = mapData.map(location => ({

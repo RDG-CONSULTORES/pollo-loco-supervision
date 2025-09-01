@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dataService = require('../services/dataService');
+const dataServiceFixed = require('../services/dataServiceFixed');
 
 // GET /api/estados - Obtener datos por estado
 router.get('/', async (req, res) => {
@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
       trimestre: req.query.trimestre
     };
     
-    const estados = await dataService.getDataByEstado(filters);
+    const estados = await dataServiceFixed.getDataByEstado(filters);
     res.json(estados);
   } catch (error) {
     console.error('Error fetching estados:', error);

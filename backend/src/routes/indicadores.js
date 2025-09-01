@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dataService = require('../services/dataService');
+const dataServiceFixed = require('../services/dataServiceFixed');
 
 // GET /api/indicadores - Obtener lista de indicadores con promedios
 router.get('/', async (req, res) => {
@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
       trimestre: req.query.trimestre
     };
     
-    const indicadores = await dataService.getIndicadores(filters);
+    const indicadores = await dataServiceFixed.getIndicadores(filters);
     res.json(indicadores);
   } catch (error) {
     console.error('Error fetching indicadores:', error);

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const dataService = require('../services/dataService');
+const dataServiceFixed = require('../services/dataServiceFixed');
 
 // GET /api/grupos - Obtener datos por grupo operativo
 router.get('/', async (req, res) => {
@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
       trimestre: req.query.trimestre
     };
     
-    const grupos = await dataService.getDataByGrupo(filters);
+    const grupos = await dataServiceFixed.getDataByGrupo(filters);
     res.json(grupos);
   } catch (error) {
     console.error('Error fetching grupos:', error);
@@ -28,7 +28,7 @@ router.get('/ranking', async (req, res) => {
     };
     const limit = parseInt(req.query.limit) || 10;
     
-    const ranking = await dataService.getTopBottomSucursales(filters, limit);
+    const ranking = await dataServiceFixed.getTopBottomSucursales(filters, limit);
     res.json(ranking);
   } catch (error) {
     console.error('Error fetching ranking:', error);
