@@ -243,6 +243,54 @@
 
                 <!-- Tendencias Tab -->
                 <div id="tendencias" class="tab-panel">
+                    <!-- NEW: Cards informativos - NO TOCAMOS LA GRÁFICA -->
+                    <div class="trends-summary-cards">
+                        <div class="trend-card performance-card">
+                            <div class="trend-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="trend-content">
+                                <h4>Performance Actual</h4>
+                                <p class="trend-value" id="currentPerformance">---%</p>
+                                <p class="trend-label">Promedio General</p>
+                            </div>
+                        </div>
+                        
+                        <div class="trend-card meta-card">
+                            <div class="trend-icon">
+                                <i class="fas fa-bullseye"></i>
+                            </div>
+                            <div class="trend-content">
+                                <h4>Meta CAS</h4>
+                                <p class="trend-value">90%</p>
+                                <p class="trend-label" id="metaGap">Diferencia: ---%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="trend-card compliance-card">
+                            <div class="trend-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="trend-content">
+                                <h4>Cumplimiento</h4>
+                                <p class="trend-value" id="complianceRate">---%</p>
+                                <p class="trend-label">Sucursales en meta</p>
+                            </div>
+                        </div>
+                        
+                        <div class="trend-card period-card">
+                            <div class="trend-icon">
+                                <i class="fas fa-calendar-alt"></i>
+                            </div>
+                            <div class="trend-content">
+                                <h4>Período Actual</h4>
+                                <p class="trend-value" id="currentPeriod">2025</p>
+                                <p class="trend-label" id="periodDetail">Q1-Q3</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- EXISTING: Gráfica actual NO SE TOCA -->
                     <div class="chart-container">
                         <h3><i class="fas fa-trending-up"></i> Evolución Trimestral 2025</h3>
                         <canvas id="tendenciasChart"></canvas>

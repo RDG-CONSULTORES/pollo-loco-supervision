@@ -790,6 +790,9 @@ class ElPolloLocoDashboard {
             // NEW: Call Areas visualization update
             this.updateAreasVisualization();
             
+            // NEW: Update trends cards (NO TOCA LA GRÁFICA)
+            this.updateTrendsCards();
+            
         } catch (error) {
             console.error('❌ Error actualizando gráficos:', error);
         }
@@ -968,6 +971,74 @@ class ElPolloLocoDashboard {
             
         } catch (error) {
             console.error('❌ Error updating areas bar chart:', error);
+        }
+    }
+
+    // =====================================================
+    // TENDENCIAS v2.0 - CARDS INFORMATIVOS (NO TOCA GRÁFICA)
+    // =====================================================
+    updateTrendsCards() {
+        try {
+            // Solo actualizar cards, NO tocar la gráfica existente
+            console.log('📊 Actualizando cards de tendencias...');
+            
+            // Usar datos existentes del overview para no hacer calls adicionales
+            if (this.data.overview && this.data.overview.promedio_general) {
+                // Performance actual
+                const currentPerf = document.getElementById('currentPerformance');
+                if (currentPerf) {
+                    currentPerf.textContent = `${this.data.overview.promedio_general}%`;
+                }
+                
+                // Meta gap
+                const metaGap = document.getElementById('metaGap');
+                if (metaGap) {
+                    const gap = parseFloat(this.data.overview.promedio_general) - 90;
+                    const gapText = gap >= 0 ? `+${gap.toFixed(1)}%` : `${gap.toFixed(1)}%`;
+                    const gapColor = gap >= 0 ? 'var(--excellent)' : 'var(--critical)';
+                    metaGap.textContent = `Diferencia: ${gapText}`;
+                    metaGap.style.color = gapColor;
+                }
+                
+                // Compliance rate (usando datos de locations)
+                const complianceRate = document.getElementById('complianceRate');
+                if (complianceRate && this.data.locations && this.data.locations.length > 0) {
+                    const sucursalesEnMeta = this.data.locations.filter(loc => 
+                        parseFloat(loc.performance) >= 90
+                    ).length;
+                    const totalSucursales = this.data.locations.length;
+                    const compliance = totalSucursales > 0 ? 
+                        ((sucursalesEnMeta / totalSucursales) * 100).toFixed(1) : '0';
+                    complianceRate.textContent = `${compliance}%`;
+                }
+                
+                // Período actual (adaptativo a filtros)
+                const currentPeriod = document.getElementById('currentPeriod');
+                const periodDetail = document.getElementById('periodDetail');
+                if (currentPeriod && periodDetail) {
+                    if (this.currentFilters.periodoCas) {
+                        // Mostrar período CAS específico
+                        const periodMap = {
+                            'nl_t1': 'T1 NL',
+                            'nl_t2': 'T2 NL', 
+                            'nl_t3': 'T3 NL',
+                            'for_s1': 'S1 Foráneas',
+                            'for_s2': 'S2 Foráneas'
+                        };
+                        currentPeriod.textContent = periodMap[this.currentFilters.periodoCas] || this.currentFilters.periodoCas;
+                        periodDetail.textContent = 'Período CAS';
+                    } else {
+                        // Vista general
+                        currentPeriod.textContent = '2025';
+                        periodDetail.textContent = 'Q1-Q3';
+                    }
+                }
+            }
+            
+            console.log('✅ Cards de tendencias actualizados');
+            
+        } catch (error) {
+            console.error('❌ Error actualizando cards de tendencias:', error);
         }
     }
 
