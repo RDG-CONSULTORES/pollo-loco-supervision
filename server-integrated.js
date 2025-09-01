@@ -141,15 +141,15 @@ app.get('/health', async (req, res) => {
     try {
         const dbCheck = await pool.query(`
             SELECT 
-                'supervision_operativa_detalle' as table_name,
+                'supervision_operativa_clean' as table_name,
                 COUNT(*) as total_records,
                 COUNT(DISTINCT location_name) as unique_locations,
-                COUNT(DISTINCT grupo_operativo) as unique_groups,
-                COUNT(DISTINCT estado) as unique_states,
-                COUNT(CASE WHEN grupo_operativo = 'NO_ENCONTRADO' THEN 1 END) as unmapped_groups,
+                COUNT(DISTINCT grupo_operativo_limpio) as unique_groups,
+                COUNT(DISTINCT estado_normalizado) as unique_states,
+                COUNT(CASE WHEN grupo_operativo_limpio = 'NO_ENCONTRADO' THEN 1 END) as unmapped_groups,
                 MIN(fecha_supervision) as earliest_date,
                 MAX(fecha_supervision) as latest_date
-            FROM supervision_operativa_detalle
+            FROM supervision_operativa_clean
         `);
         
         const stats = dbCheck.rows[0];
@@ -220,12 +220,12 @@ app.get('/api/kpis', async (req, res) => {
         let paramIndex = 1;
         
         if (grupo) {
-            whereConditions.push(`grupo_operativo = $${paramIndex}`);
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
             params.push(grupo);
             paramIndex++;
         }
         if (estado) {
-            whereConditions.push(`estado = $${paramIndex}`);
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
             paramIndex++;
         }
@@ -242,11 +242,11 @@ app.get('/api/kpis', async (req, res) => {
                 ROUND(AVG(porcentaje), 2) as promedio_general,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
                 COUNT(DISTINCT location_name) as total_sucursales,
-                COUNT(DISTINCT estado) as total_estados,
-                COUNT(DISTINCT grupo_operativo) as total_grupos,
+                COUNT(DISTINCT estado_normalizado) as total_estados,
+                COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
                 ROUND(MAX(porcentaje), 2) as max_calificacion,
                 ROUND(MIN(porcentaje), 2) as min_calificacion
-            FROM supervision_operativa_detalle 
+            FROM supervision_operativa_clean 
             WHERE ${whereClause}
         `;
         
@@ -267,13 +267,13 @@ app.get('/api/grupos', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                grupo_operativo,
+                grupo_operativo_limpio as grupo_operativo,
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
-            FROM supervision_operativa_detalle 
-            WHERE porcentaje IS NOT NULL AND grupo_operativo IS NOT NULL
-            GROUP BY grupo_operativo
+            FROM supervision_operativa_clean 
+            WHERE porcentaje IS NOT NULL AND grupo_operativo_limpio IS NOT NULL
+            GROUP BY grupo_operativo_limpio
             ORDER BY AVG(porcentaje) DESC
         `);
         res.json(result.rows);
@@ -301,12 +301,12 @@ app.get('/api/locations', async (req, res) => {
         let paramIndex = 1;
         
         if (grupo) {
-            whereConditions.push(`grupo_operativo = $${paramIndex}`);
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
             params.push(grupo);
             paramIndex++;
         }
         if (estado) {
-            whereConditions.push(`estado = $${paramIndex}`);
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
             paramIndex++;
         }
@@ -322,25 +322,17 @@ app.get('/api/locations', async (req, res) => {
             WITH location_data AS (
                 SELECT 
                     location_name,
-                    -- Usar el primer grupo operativo válido (no NO_ENCONTRADO)
-                    COALESCE(
-                        NULLIF(MIN(CASE WHEN grupo_operativo != 'NO_ENCONTRADO' THEN grupo_operativo END), NULL),
-                        MIN(grupo_operativo)
-                    ) as grupo_operativo,
-                    -- Normalizar estados
-                    CASE 
-                        WHEN MIN(estado) LIKE '%Coahuila%' THEN 'Coahuila'
-                        WHEN MIN(estado) LIKE '%México%' THEN 'México'
-                        WHEN MIN(estado) LIKE '%Michoacán%' THEN 'Michoacán'
-                        ELSE MIN(estado)
-                    END as estado,
+                    -- Usar grupo operativo limpio (ya está mapeado)
+                    MIN(grupo_operativo_limpio) as grupo_operativo,
+                    -- Estado ya está normalizado en la clean view
+                    MIN(estado_normalizado) as estado,
                     MIN(municipio) as municipio,
                     AVG(CAST(latitud AS FLOAT)) as lat,
                     AVG(CAST(longitud AS FLOAT)) as lng,
                     ROUND(AVG(porcentaje), 2) as performance,
                     MAX(fecha_supervision) as last_evaluation,
                     COUNT(DISTINCT submission_id) as total_evaluations
-                FROM supervision_operativa_detalle
+                FROM supervision_operativa_clean
                 WHERE ${whereClause}
                   AND latitud IS NOT NULL 
                   AND longitud IS NOT NULL
@@ -382,23 +374,13 @@ app.get('/api/estados', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT 
-                CASE 
-                    WHEN estado LIKE '%Coahuila%' THEN 'Coahuila'
-                    WHEN estado LIKE '%México%' THEN 'México'
-                    WHEN estado LIKE '%Michoacán%' THEN 'Michoacán'
-                    ELSE estado
-                END as estado,
+                estado_normalizado as estado,
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
-            FROM supervision_operativa_detalle 
-            WHERE porcentaje IS NOT NULL AND estado IS NOT NULL
-            GROUP BY CASE 
-                    WHEN estado LIKE '%Coahuila%' THEN 'Coahuila'
-                    WHEN estado LIKE '%México%' THEN 'México'
-                    WHEN estado LIKE '%Michoacán%' THEN 'Michoacán'
-                    ELSE estado
-                END
+            FROM supervision_operativa_clean 
+            WHERE porcentaje IS NOT NULL AND estado_normalizado IS NOT NULL
+            GROUP BY estado_normalizado
             ORDER BY AVG(porcentaje) DESC
         `);
         
@@ -421,7 +403,7 @@ app.get('/api/indicadores', async (req, res) => {
                 area_evaluacion as indicador,
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(*) as evaluaciones
-            FROM supervision_operativa_detalle 
+            FROM supervision_operativa_clean 
             WHERE porcentaje IS NOT NULL 
             AND area_evaluacion IS NOT NULL
             AND area_evaluacion != ''
@@ -458,7 +440,7 @@ app.get('/api/trimestres', async (req, res) => {
                     WHEN EXTRACT(QUARTER FROM fecha_supervision) = 4 THEN 'Q4 2025'
                 END as trimestre,
                 COUNT(DISTINCT submission_id) as evaluaciones
-            FROM supervision_operativa_detalle 
+            FROM supervision_operativa_clean 
             WHERE fecha_supervision IS NOT NULL
             AND EXTRACT(YEAR FROM fecha_supervision) = 2025
             GROUP BY EXTRACT(QUARTER FROM fecha_supervision)
@@ -544,19 +526,19 @@ app.get('/api/debug/locations', async (req, res) => {
                 COUNT(DISTINCT location_name) as total_locations,
                 COUNT(DISTINCT CASE WHEN latitud IS NOT NULL THEN location_name END) as with_coords,
                 COUNT(DISTINCT CASE WHEN latitud IS NULL THEN location_name END) as without_coords
-            FROM supervision_operativa_detalle
+            FROM supervision_operativa_clean
         `);
         
         // Sample locations with and without coords
         const sampleResult = await pool.query(`
             SELECT DISTINCT
                 location_name,
-                grupo_operativo,
-                estado,
+                grupo_operativo_limpio,
+                estado_normalizado,
                 municipio,
                 latitud,
                 longitud
-            FROM supervision_operativa_detalle
+            FROM supervision_operativa_clean
             ORDER BY latitud DESC NULLS LAST
             LIMIT 10
         `);
