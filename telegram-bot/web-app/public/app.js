@@ -10,14 +10,16 @@ class ElPolloLocoDashboard {
         this.currentFilters = {
             grupo: '',
             estado: '',
-            trimestre: ''
+            trimestre: '',
+            periodoCas: ''
         };
         this.data = {
             locations: [],
             overview: {},
             groups: [],
             areas: [],
-            trends: []
+            trends: [],
+            periodsCas: []
         };
         
         this.init();
@@ -113,7 +115,8 @@ class ElPolloLocoDashboard {
                 this.loadGroupData(),
                 this.loadLocationData(),
                 this.loadAreaData(),
-                this.loadTrendData()
+                this.loadTrendData(),
+                this.loadPeriodsCasData()
             ];
             
             await Promise.all(promises);
@@ -230,6 +233,21 @@ class ElPolloLocoDashboard {
             
         } catch (error) {
             console.error('❌ API: Error loading trends:', error);
+            throw error;
+        }
+    }
+
+    async loadPeriodsCasData() {
+        try {
+            console.log('📅 API: Fetching /api/periodos-cas...');
+            const response = await fetch('/api/periodos-cas');
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            
+            this.data.periodsCas = await response.json();
+            console.log(`✅ API: Períodos CAS loaded (${this.data.periodsCas.length}):`, this.data.periodsCas);
+            
+        } catch (error) {
+            console.error('❌ API: Error loading períodos CAS:', error);
             throw error;
         }
     }
@@ -651,6 +669,24 @@ class ElPolloLocoDashboard {
                 console.log(`✅ Filtro estados llenado con ${uniqueStates.length} opciones`);
             }
             
+            // Populate Período CAS filter
+            const periodoCasFilter = document.getElementById('periodoCasFilter');
+            if (periodoCasFilter && this.data.periodsCas) {
+                // Clear existing options except the first one
+                periodoCasFilter.innerHTML = '<option value="">Todos los períodos</option>';
+                
+                // Add períodos CAS (skip "all" option since we already have "Todos los períodos")
+                this.data.periodsCas
+                    .filter(periodo => periodo.periodo !== 'all')
+                    .forEach(periodo => {
+                        const option = document.createElement('option');
+                        option.value = periodo.periodo;
+                        option.textContent = `${periodo.nombre} (${periodo.count})`;
+                        periodoCasFilter.appendChild(option);
+                    });
+                console.log(`✅ Filtro períodos CAS llenado con ${this.data.periodsCas.length - 1} opciones`);
+            }
+            
             console.log('✅ Filtros poblados correctamente');
         } catch (error) {
             console.error('❌ Error llenando filtros:', error);
@@ -663,6 +699,7 @@ class ElPolloLocoDashboard {
         this.currentFilters.grupo = document.getElementById('grupoFilter').value;
         this.currentFilters.estado = document.getElementById('estadoFilter').value;
         this.currentFilters.trimestre = document.getElementById('trimestreFilter').value;
+        this.currentFilters.periodoCas = document.getElementById('periodoCasFilter').value;
         
         console.log('Filtros aplicados:', this.currentFilters);
         
@@ -690,8 +727,9 @@ class ElPolloLocoDashboard {
         document.getElementById('grupoFilter').value = '';
         document.getElementById('estadoFilter').value = '';
         document.getElementById('trimestreFilter').value = '';
+        document.getElementById('periodoCasFilter').value = '';
         
-        this.currentFilters = { grupo: '', estado: '', trimestre: '' };
+        this.currentFilters = { grupo: '', estado: '', trimestre: '', periodoCas: '' };
         
         // Show loading
         this.showLoading();
