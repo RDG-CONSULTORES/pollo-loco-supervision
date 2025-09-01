@@ -335,12 +335,31 @@ app.get('/api/grupos', async (req, res) => {
     }
     
     try {
-        const { periodoCas } = req.query;
+        const { grupo, estado, trimestre, periodoCas } = req.query;
         
         // Build WHERE conditions
         let whereConditions = ['porcentaje IS NOT NULL', 'grupo_operativo_limpio IS NOT NULL'];
         let params = [];
         let paramIndex = 1;
+        
+        // Add existing filters
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        
+        if (trimestre) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(trimestre);
+            paramIndex++;
+        }
         
         // Add Período CAS filter
         if (periodoCas && periodoCas !== 'all') {
@@ -366,10 +385,10 @@ app.get('/api/grupos', async (req, res) => {
             ORDER BY AVG(porcentaje) DESC
         `, params);
         
-        console.log(`👥 API /grupos: Found ${result.rows.length} groups with periodoCas filter: ${periodoCas || 'none'}`);
+        console.log(`👥 API /grupos: Found ${result.rows.length} groups with filters:`, { grupo, estado, trimestre, periodoCas });
         res.json(result.rows);
     } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ API /grupos error:', error);
         res.json(fallbackData.grupos);
     }
 });

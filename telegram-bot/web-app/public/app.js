@@ -167,8 +167,26 @@ class ElPolloLocoDashboard {
 
     async loadGroupData() {
         try {
-            console.log('👥 API: Fetching /api/grupos...');
-            const response = await fetch('/api/grupos');
+            // Build query params from filters
+            const params = new URLSearchParams();
+            if (this.currentFilters.grupo) {
+                params.append('grupo', this.currentFilters.grupo);
+            }
+            if (this.currentFilters.estado) {
+                params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.trimestre) {
+                params.append('trimestre', this.currentFilters.trimestre);
+            }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
+            
+            const queryString = params.toString();
+            const url = queryString ? `/api/grupos?${queryString}` : '/api/grupos';
+            
+            console.log('👥 API: Fetching', url);
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             this.data.groups = await response.json();
@@ -747,10 +765,11 @@ class ElPolloLocoDashboard {
         
         // Reload data with filters
         Promise.all([
-            this.loadKPIData(),  // Load filtered KPIs
-            this.loadLocationData(),  // Load filtered locations
-            this.loadAreaData(),  // Load filtered areas
-            this.loadTrendData()  // Load filtered trends
+            this.loadKPIData(),      // Load filtered KPIs
+            this.loadGroupData(),    // Load filtered groups - FIXED!
+            this.loadLocationData(), // Load filtered locations
+            this.loadAreaData(),     // Load filtered areas
+            this.loadTrendData()     // Load filtered trends
         ]).then(() => {
             // Update all UI components
             this.updateKPIs();
@@ -779,6 +798,7 @@ class ElPolloLocoDashboard {
         // Reload all data without filters
         Promise.all([
             this.loadKPIData(),
+            this.loadGroupData(),    // Load groups without filters - FIXED!
             this.loadLocationData(),
             this.loadAreaData(),
             this.loadTrendData()
