@@ -340,7 +340,9 @@ class ElPolloLocoDashboard {
             
         } catch (error) {
             console.error('❌ API: Error loading sucursales ranking:', error);
-            throw error;
+            // SAFE: Don't throw error to prevent blocking dashboard load
+            this.data.sucursalesRanking = []; // Set empty array as fallback
+            console.warn('⚠️ Dashboard will continue without sucursales ranking data');
         }
     }
 
@@ -429,8 +431,44 @@ class ElPolloLocoDashboard {
     initCharts() {
         console.log('📊 Inicializando gráficos...');
         
-        // Register Chart.js annotation plugin
-        Chart.register(ChartAnnotation);
+        // SAFE: Register Chart.js annotation plugin only if available
+        try {
+            if (typeof ChartAnnotation !== 'undefined' && ChartAnnotation) {
+                Chart.register(ChartAnnotation);
+                console.log('✅ ChartAnnotation plugin registered successfully');
+            } else {
+                console.warn('⚠️ ChartAnnotation plugin not loaded, meta lines will be disabled');
+            }
+        } catch (error) {
+            console.warn('⚠️ Error registering ChartAnnotation plugin:', error.message);
+        }
+        
+        // Helper function for safe annotation config
+        const getSafeAnnotationConfig = () => {
+            if (typeof ChartAnnotation !== 'undefined' && ChartAnnotation) {
+                return {
+                    annotation: {
+                        annotations: {
+                            metaLine: {
+                                type: 'line',
+                                yMin: 90,
+                                yMax: 90,
+                                borderColor: 'rgba(231, 76, 60, 1)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                label: {
+                                    content: 'Meta CAS 90%',
+                                    enabled: true,
+                                    position: 'end'
+                                }
+                            }
+                        }
+                    }
+                };
+            } else {
+                return {}; // Return empty config if plugin not available
+            }
+        };
         
         try {
             // Performance por Grupo (Bar Chart)
@@ -456,23 +494,7 @@ class ElPolloLocoDashboard {
                                 display: true,
                                 position: 'top'
                             },
-                            annotation: {
-                                annotations: {
-                                    metaLine: {
-                                        type: 'line',
-                                        yMin: 90,
-                                        yMax: 90,
-                                        borderColor: 'rgba(231, 76, 60, 1)',
-                                        borderWidth: 2,
-                                        borderDash: [5, 5],
-                                        label: {
-                                            content: 'Meta CAS 90%',
-                                            enabled: true,
-                                            position: 'end'
-                                        }
-                                    }
-                                }
-                            }
+                            ...getSafeAnnotationConfig()  // SAFE: Add annotation only if plugin available
                         },
                         scales: {
                             y: {
@@ -628,23 +650,7 @@ class ElPolloLocoDashboard {
                                 display: true,
                                 position: 'top'
                             },
-                            annotation: {
-                                annotations: {
-                                    metaLine: {
-                                        type: 'line',
-                                        yMin: 90,
-                                        yMax: 90,
-                                        borderColor: 'rgba(231, 76, 60, 1)',
-                                        borderWidth: 2,
-                                        borderDash: [5, 5],
-                                        label: {
-                                            content: 'Meta CAS 90%',
-                                            enabled: true,
-                                            position: 'end'
-                                        }
-                                    }
-                                }
-                            }
+                            ...getSafeAnnotationConfig()  // SAFE: Add annotation only if plugin available
                         },
                         scales: {
                             y: {
