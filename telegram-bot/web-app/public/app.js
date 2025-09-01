@@ -145,6 +145,9 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
             
             const queryString = params.toString();
             const url = queryString ? `/api/kpis?${queryString}` : '/api/kpis';
@@ -190,6 +193,9 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
             
             const queryString = params.toString();
             const url = queryString ? `/api/locations?${queryString}` : '/api/locations';
@@ -209,8 +215,26 @@ class ElPolloLocoDashboard {
 
     async loadAreaData() {
         try {
-            console.log('🎯 API: Fetching /api/indicadores...');
-            const response = await fetch('/api/indicadores');
+            // Build query params from filters
+            const params = new URLSearchParams();
+            if (this.currentFilters.grupo) {
+                params.append('grupo', this.currentFilters.grupo);
+            }
+            if (this.currentFilters.estado) {
+                params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.trimestre) {
+                params.append('trimestre', this.currentFilters.trimestre);
+            }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
+            
+            const queryString = params.toString();
+            const url = queryString ? `/api/indicadores?${queryString}` : '/api/indicadores';
+            
+            console.log('🎯 API: Fetching', url);
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             this.data.areas = await response.json();
@@ -224,8 +248,23 @@ class ElPolloLocoDashboard {
 
     async loadTrendData() {
         try {
-            console.log('📈 API: Fetching /api/trimestres...');
-            const response = await fetch('/api/trimestres');
+            // Build query params from filters
+            const params = new URLSearchParams();
+            if (this.currentFilters.grupo) {
+                params.append('grupo', this.currentFilters.grupo);
+            }
+            if (this.currentFilters.estado) {
+                params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
+            
+            const queryString = params.toString();
+            const url = queryString ? `/api/trimestres?${queryString}` : '/api/trimestres';
+            
+            console.log('📈 API: Fetching', url);
+            const response = await fetch(url);
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             
             this.data.trends = await response.json();
@@ -709,10 +748,13 @@ class ElPolloLocoDashboard {
         // Reload data with filters
         Promise.all([
             this.loadKPIData(),  // Load filtered KPIs
-            this.loadLocationData()  // Load filtered locations
+            this.loadLocationData(),  // Load filtered locations
+            this.loadAreaData(),  // Load filtered areas
+            this.loadTrendData()  // Load filtered trends
         ]).then(() => {
             // Update all UI components
             this.updateKPIs();
+            this.updateCharts();
             this.updateMap();
             this.hideLoading();
         }).catch(error => {
@@ -737,10 +779,13 @@ class ElPolloLocoDashboard {
         // Reload all data without filters
         Promise.all([
             this.loadKPIData(),
-            this.loadLocationData()
+            this.loadLocationData(),
+            this.loadAreaData(),
+            this.loadTrendData()
         ]).then(() => {
             // Update all UI components
             this.updateKPIs();
+            this.updateCharts();
             this.updateMap();
             this.hideLoading();
         }).catch(error => {

@@ -51,6 +51,43 @@ pool.on('error', (err) => {
     dbConnected = false;
 });
 
+// Helper function for Período CAS filtering
+function buildPeriodoCasCondition(periodoCas, paramIndex) {
+    if (!periodoCas || periodoCas === 'all') {
+        return { condition: '', params: [] };
+    }
+    
+    const condition = `
+        CASE 
+            -- Locales: períodos trimestrales NL
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'nl_t1'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'nl_t2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19'
+                THEN 'nl_t3'
+            -- Foráneas: períodos semestrales
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                THEN 'for_s1'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                THEN 'for_s2'
+            ELSE 'otros'
+        END = $${paramIndex}
+    `;
+    
+    return { condition, params: [periodoCas] };
+}
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -298,6 +335,25 @@ app.get('/api/grupos', async (req, res) => {
     }
     
     try {
+        const { periodoCas } = req.query;
+        
+        // Build WHERE conditions
+        let whereConditions = ['porcentaje IS NOT NULL', 'grupo_operativo_limpio IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+        
+        // Add Período CAS filter
+        if (periodoCas && periodoCas !== 'all') {
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
+        }
+        
+        const whereClause = whereConditions.join(' AND ');
+        
         const result = await pool.query(`
             SELECT 
                 grupo_operativo_limpio as grupo_operativo,
@@ -305,10 +361,12 @@ app.get('/api/grupos', async (req, res) => {
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
             FROM supervision_operativa_clean 
-            WHERE porcentaje IS NOT NULL AND grupo_operativo_limpio IS NOT NULL
+            WHERE ${whereClause}
             GROUP BY grupo_operativo_limpio
             ORDER BY AVG(porcentaje) DESC
-        `);
+        `, params);
+        
+        console.log(`👥 API /grupos: Found ${result.rows.length} groups with periodoCas filter: ${periodoCas || 'none'}`);
         res.json(result.rows);
     } catch (error) {
         console.error('Error:', error);
@@ -326,7 +384,7 @@ app.get('/api/locations', async (req, res) => {
     }
     
     try {
-        const { grupo, estado, trimestre } = req.query;
+        const { grupo, estado, trimestre, periodoCas } = req.query;
         
         // Build dynamic WHERE clause
         let whereConditions = ['porcentaje IS NOT NULL'];
@@ -347,6 +405,16 @@ app.get('/api/locations', async (req, res) => {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
             params.push(parseInt(trimestre));
             paramIndex++;
+        }
+        
+        // Add Período CAS filter
+        if (periodoCas && periodoCas !== 'all') {
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
         }
         
         const whereClause = whereConditions.join(' AND ');
@@ -404,7 +472,38 @@ app.get('/api/estados', async (req, res) => {
         return res.json(fallbackData.estados || []);
     }
     
+    const { grupo, estado, trimestre, periodoCas } = req.query;
+    
     try {
+        let whereConditions = ['porcentaje IS NOT NULL', 'estado_normalizado IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+        
+        // Add existing filters
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (trimestre) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(trimestre);
+            paramIndex++;
+        }
+        
+        // Add Período CAS filter
+        if (periodoCas && periodoCas !== 'all') {
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
+        }
+        
+        const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+        
         const result = await pool.query(`
             SELECT 
                 estado_normalizado as estado,
@@ -412,12 +511,12 @@ app.get('/api/estados', async (req, res) => {
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
             FROM supervision_operativa_clean 
-            WHERE porcentaje IS NOT NULL AND estado_normalizado IS NOT NULL
+            ${whereClause}
             GROUP BY estado_normalizado
             ORDER BY AVG(porcentaje) DESC
-        `);
+        `, params);
         
-        console.log(`📊 API /estados: Found ${result.rows.length} states`);
+        console.log(`📊 API /estados: Found ${result.rows.length} states with filters:`, { grupo, estado, trimestre, periodoCas });
         res.json(result.rows);
     } catch (error) {
         console.error('❌ API /estados error:', error);
@@ -430,23 +529,62 @@ app.get('/api/indicadores', async (req, res) => {
         return res.json(fallbackData.indicadores || []);
     }
     
+    const { grupo, estado, trimestre, periodoCas } = req.query;
+    
     try {
+        let whereConditions = [
+            'porcentaje IS NOT NULL', 
+            'area_evaluacion IS NOT NULL',
+            'area_evaluacion != \'\' ',
+            'area_evaluacion != \'PUNTOS MAXIMOS\''
+        ];
+        let params = [];
+        let paramIndex = 1;
+        
+        // Add existing filters
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        
+        if (trimestre) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(trimestre);
+            paramIndex++;
+        }
+        
+        // Add Período CAS filter
+        if (periodoCas && periodoCas !== 'all') {
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
+        }
+        
+        const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+        
         const result = await pool.query(`
             SELECT 
                 area_evaluacion as indicador,
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(*) as evaluaciones
             FROM supervision_operativa_clean 
-            WHERE porcentaje IS NOT NULL 
-            AND area_evaluacion IS NOT NULL
-            AND area_evaluacion != ''
-            AND area_evaluacion != 'PUNTOS MAXIMOS'
+            ${whereClause}
             GROUP BY area_evaluacion
             ORDER BY AVG(porcentaje) ASC
             LIMIT 20
-        `);
+        `, params);
         
-        console.log(`📊 API /indicadores: Found ${result.rows.length} evaluation areas`);
+        console.log(`📊 API /indicadores: Found ${result.rows.length} evaluation areas with filters:`, { grupo, estado, trimestre, periodoCas });
         res.json(result.rows);
     } catch (error) {
         console.error('❌ API /indicadores error:', error);
@@ -463,7 +601,38 @@ app.get('/api/trimestres', async (req, res) => {
         ]);
     }
     
+    const { grupo, estado, periodoCas } = req.query;
+    
     try {
+        let whereConditions = ['fecha_supervision IS NOT NULL', 'EXTRACT(YEAR FROM fecha_supervision) = 2025'];
+        let params = [];
+        let paramIndex = 1;
+        
+        // Add existing filters
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        
+        // Add Período CAS filter
+        if (periodoCas && periodoCas !== 'all') {
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
+        }
+        
+        const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+        
         const result = await pool.query(`
             SELECT 
                 CASE 
@@ -474,13 +643,12 @@ app.get('/api/trimestres', async (req, res) => {
                 END as trimestre,
                 COUNT(DISTINCT submission_id) as evaluaciones
             FROM supervision_operativa_clean 
-            WHERE fecha_supervision IS NOT NULL
-            AND EXTRACT(YEAR FROM fecha_supervision) = 2025
+            ${whereClause}
             GROUP BY EXTRACT(QUARTER FROM fecha_supervision)
             ORDER BY EXTRACT(QUARTER FROM fecha_supervision)
-        `);
+        `, params);
         
-        console.log(`📊 API /trimestres: Found ${result.rows.length} quarters`);
+        console.log(`📊 API /trimestres: Found ${result.rows.length} quarters with filters:`, { grupo, estado, periodoCas });
         res.json(result.rows);
     } catch (error) {
         console.error('❌ API /trimestres error:', error);
