@@ -595,12 +595,21 @@ app.get('/api/indicadores', async (req, res) => {
             SELECT 
                 area_evaluacion as indicador,
                 ROUND(AVG(porcentaje), 2) as promedio,
-                COUNT(*) as evaluaciones
+                COUNT(*) as evaluaciones,
+                -- NEW: Add color classification for heat map
+                CASE 
+                    WHEN AVG(porcentaje) >= 90 THEN 'excellent'
+                    WHEN AVG(porcentaje) >= 80 THEN 'good'
+                    WHEN AVG(porcentaje) >= 70 THEN 'regular'
+                    ELSE 'critical'
+                END as color_category,
+                -- NEW: Add rank for better ordering
+                RANK() OVER (ORDER BY AVG(porcentaje) DESC) as rank_position
             FROM supervision_operativa_clean 
             ${whereClause}
             GROUP BY area_evaluacion
-            ORDER BY AVG(porcentaje) ASC
-            LIMIT 20
+            ORDER BY AVG(porcentaje) DESC
+            -- REMOVED LIMIT to get all 29 areas for new visualizations
         `, params);
         
         console.log(`📊 API /indicadores: Found ${result.rows.length} evaluation areas with filters:`, { grupo, estado, trimestre, periodoCas });

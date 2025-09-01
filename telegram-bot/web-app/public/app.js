@@ -787,8 +787,187 @@ class ElPolloLocoDashboard {
                 console.log('✅ Gráfico de sucursales actualizado');
             }
             
+            // NEW: Call Areas visualization update
+            this.updateAreasVisualization();
+            
         } catch (error) {
             console.error('❌ Error actualizando gráficos:', error);
+        }
+    }
+
+    // =====================================================
+    // AREAS DE OPORTUNIDAD v2.0 - NEW ENHANCED VISUALIZATION
+    // =====================================================
+    updateAreasVisualization() {
+        try {
+            if (this.data.areas && this.data.areas.length > 0) {
+                console.log('🎯 Actualizando visualización Areas de Oportunidad v2.0...');
+                
+                // Update Heat Map
+                this.renderHeatMap();
+                
+                // Update Top/Bottom Cards
+                this.renderTopBottomCards();
+                
+                // Update existing bar chart with dynamic colors
+                this.updateAreasBarChart();
+                
+                console.log('✅ Visualización Areas de Oportunidad v2.0 actualizada');
+            }
+        } catch (error) {
+            console.error('❌ Error actualizando Areas de Oportunidad v2.0:', error);
+        }
+    }
+
+    renderHeatMap() {
+        const heatMapContainer = document.getElementById('areasHeatMap');
+        if (!heatMapContainer || !this.data.areas) return;
+        
+        try {
+            // Clear existing content
+            heatMapContainer.innerHTML = '';
+            
+            // Create heat map items for all 29 areas
+            this.data.areas.forEach((area, index) => {
+                const item = document.createElement('div');
+                item.className = `heat-map-item heat-map-${area.color_category || 'critical'}`;
+                
+                item.innerHTML = `
+                    <div class="area-rank">#${area.rank_position || index + 1}</div>
+                    <div class="area-name">${area.indicador}</div>
+                    <div class="area-value">${parseFloat(area.promedio).toFixed(1)}%</div>
+                `;
+                
+                // Add tooltip on hover
+                item.title = `${area.indicador}: ${parseFloat(area.promedio).toFixed(1)}% (${area.evaluaciones} evaluaciones)`;
+                
+                heatMapContainer.appendChild(item);
+            });
+            
+            console.log(`✅ Heat map rendered with ${this.data.areas.length} areas`);
+            
+        } catch (error) {
+            console.error('❌ Error rendering heat map:', error);
+        }
+    }
+
+    renderTopBottomCards() {
+        const topPerformersContainer = document.getElementById('topPerformersCards');
+        const criticalAreasContainer = document.getElementById('criticalAreasCards');
+        
+        if (!topPerformersContainer || !criticalAreasContainer || !this.data.areas) return;
+        
+        try {
+            // Sort areas by performance (descending)
+            const sortedAreas = [...this.data.areas].sort((a, b) => parseFloat(b.promedio) - parseFloat(a.promedio));
+            
+            // Top 5 performers
+            const top5 = sortedAreas.slice(0, 5);
+            topPerformersContainer.innerHTML = '';
+            
+            top5.forEach((area, index) => {
+                const card = document.createElement('div');
+                card.className = 'performance-card';
+                card.innerHTML = `
+                    <span class="name">${index + 1}. ${area.indicador}</span>
+                    <span class="value">${parseFloat(area.promedio).toFixed(1)}%</span>
+                `;
+                card.title = `${area.evaluaciones} evaluaciones`;
+                topPerformersContainer.appendChild(card);
+            });
+            
+            // Bottom 5 critical areas
+            const bottom5 = sortedAreas.slice(-5).reverse();
+            criticalAreasContainer.innerHTML = '';
+            
+            bottom5.forEach((area, index) => {
+                const card = document.createElement('div');
+                card.className = 'critical-card';
+                card.innerHTML = `
+                    <span class="name">${sortedAreas.length - 4 + index}. ${area.indicador}</span>
+                    <span class="value">${parseFloat(area.promedio).toFixed(1)}%</span>
+                `;
+                card.title = `${area.evaluaciones} evaluaciones - REQUIERE ATENCIÓN`;
+                criticalAreasContainer.appendChild(card);
+            });
+            
+            console.log('✅ Top/Bottom cards rendered');
+            
+        } catch (error) {
+            console.error('❌ Error rendering top/bottom cards:', error);
+        }
+    }
+
+    updateAreasBarChart() {
+        if (!this.charts.areas || !this.data.areas) return;
+        
+        try {
+            // Enhanced areas chart with dynamic colors based on performance
+            const colors = this.data.areas.map(area => {
+                const avg = parseFloat(area.promedio);
+                if (avg >= 90) return 'rgba(0, 184, 148, 0.8)';        // Excellent - Green
+                if (avg >= 80) return 'rgba(0, 206, 201, 0.8)';        // Good - Teal  
+                if (avg >= 70) return 'rgba(253, 203, 110, 0.8)';      // Regular - Yellow
+                return 'rgba(225, 112, 85, 0.8)';                      // Critical - Red
+            });
+            
+            const borderColors = this.data.areas.map(area => {
+                const avg = parseFloat(area.promedio);
+                if (avg >= 90) return 'rgba(0, 184, 148, 1)';          // Excellent
+                if (avg >= 80) return 'rgba(0, 206, 201, 1)';          // Good  
+                if (avg >= 70) return 'rgba(253, 203, 110, 1)';        // Regular
+                return 'rgba(225, 112, 85, 1)';                        // Critical
+            });
+            
+            // Update chart type to bar for better visibility of colors
+            this.charts.areas.config.type = 'bar';
+            this.charts.areas.data.labels = this.data.areas.map(a => a.indicador);
+            this.charts.areas.data.datasets = [{
+                label: 'Performance (%)',
+                data: this.data.areas.map(a => parseFloat(a.promedio)),
+                backgroundColor: colors,
+                borderColor: borderColors,
+                borderWidth: 1
+            }];
+            
+            // Update chart options for bar chart
+            this.charts.areas.options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            maxTicksLimit: 6
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            maxTicksLimit: 29
+                        }
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 10,
+                        bottom: 10
+                    }
+                }
+            };
+            
+            this.charts.areas.update();
+            console.log('✅ Areas bar chart updated with dynamic colors');
+            
+        } catch (error) {
+            console.error('❌ Error updating areas bar chart:', error);
         }
     }
 

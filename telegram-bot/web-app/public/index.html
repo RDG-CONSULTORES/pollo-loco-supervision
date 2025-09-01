@@ -190,10 +190,53 @@
                     </div>
                 </div>
 
-                <!-- Areas Tab -->
+                <!-- Areas Tab - ENHANCED VERSION -->
                 <div id="areas" class="tab-panel">
+                    <!-- NEW: Executive Summary Section -->
+                    <div class="executive-summary">
+                        <div class="top-performers">
+                            <h3><i class="fas fa-trophy"></i> Top 5 Mejores</h3>
+                            <div class="performance-cards" id="topPerformersCards">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                        <div class="critical-areas">
+                            <h3><i class="fas fa-exclamation-triangle"></i> 5 Áreas Críticas</h3>
+                            <div class="critical-cards" id="criticalAreasCards">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- NEW: Heat Map Section -->
+                    <div class="heat-map-container">
+                        <h3><i class="fas fa-th"></i> Mapa de Calor - 29 Áreas de Supervisión</h3>
+                        <div class="heat-map-grid" id="areasHeatMap">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                        <div class="heat-map-legend">
+                            <div class="legend-item">
+                                <div class="legend-color heat-map-excellent"></div>
+                                <span>Excelente (≥90%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color heat-map-good"></div>
+                                <span>Buena (80-89%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color heat-map-regular"></div>
+                                <span>Regular (70-79%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color heat-map-critical"></div>
+                                <span>Crítica (<70%)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- EXISTING: Bar Chart (Enhanced with colors) -->
                     <div class="chart-container">
-                        <h3><i class="fas fa-exclamation-triangle"></i> Áreas con Mayor Oportunidad</h3>
+                        <h3><i class="fas fa-chart-bar"></i> Ranking Completo - 29 Áreas</h3>
                         <canvas id="areasChart"></canvas>
                     </div>
                 </div>
