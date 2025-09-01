@@ -8,7 +8,7 @@ class DataService {
         'Q' || EXTRACT(QUARTER FROM fecha_supervision) || ' ' || EXTRACT(YEAR FROM fecha_supervision) as trimestre,
         EXTRACT(YEAR FROM fecha_supervision) as año,
         EXTRACT(QUARTER FROM fecha_supervision) as trimestre_num
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       WHERE fecha_supervision IS NOT NULL
       ORDER BY año DESC, trimestre_num DESC
     `;
@@ -25,12 +25,12 @@ class DataService {
 
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -43,11 +43,11 @@ class DataService {
         ROUND(AVG(porcentaje)::numeric, 2) as promedio_general,
         COUNT(DISTINCT submission_id) as total_supervisiones,
         COUNT(DISTINCT location_id) as total_sucursales,
-        COUNT(DISTINCT grupo_operativo) as total_grupos,
-        COUNT(DISTINCT estado) as total_estados,
+        COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
+        COUNT(DISTINCT estado_normalizado) as total_estados,
         ROUND(MIN(porcentaje)::numeric, 2) as min_calificacion,
         ROUND(MAX(porcentaje)::numeric, 2) as max_calificacion
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
     `;
     
@@ -57,13 +57,13 @@ class DataService {
 
   // Obtener datos por grupo operativo
   async getDataByGrupo(filters = {}) {
-    let whereClause = 'WHERE grupo_operativo IS NOT NULL AND porcentaje IS NOT NULL';
+    let whereClause = 'WHERE grupo_operativo_limpio IS NOT NULL AND porcentaje IS NOT NULL';
     const params = [];
     let paramCount = 0;
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -73,13 +73,13 @@ class DataService {
 
     const query = `
       SELECT 
-        grupo_operativo,
+        grupo_operativo_limpio as grupo_operativo,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio,
         COUNT(DISTINCT submission_id) as supervisiones,
         COUNT(DISTINCT location_id) as sucursales
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
-      GROUP BY grupo_operativo
+      GROUP BY grupo_operativo_limpio
       ORDER BY promedio DESC
     `;
     
@@ -89,13 +89,13 @@ class DataService {
 
   // Obtener datos por estado
   async getDataByEstado(filters = {}) {
-    let whereClause = 'WHERE estado IS NOT NULL AND porcentaje IS NOT NULL';
+    let whereClause = 'WHERE estado_normalizado IS NOT NULL AND porcentaje IS NOT NULL';
     const params = [];
     let paramCount = 0;
     
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -105,13 +105,13 @@ class DataService {
 
     const query = `
       SELECT 
-        estado,
+        estado_normalizado as estado,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio,
         COUNT(DISTINCT submission_id) as supervisiones,
         COUNT(DISTINCT location_id) as sucursales
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
-      GROUP BY estado
+      GROUP BY estado_normalizado
       ORDER BY promedio DESC
     `;
     
@@ -130,12 +130,12 @@ class DataService {
     
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -153,7 +153,7 @@ class DataService {
           WHEN AVG(porcentaje) >= 70 THEN 'warning'
           ELSE 'danger'
         END as status
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
       GROUP BY TRIM(area_evaluacion)
       ORDER BY promedio DESC
@@ -171,12 +171,12 @@ class DataService {
     
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -190,14 +190,14 @@ class DataService {
     const topQuery = `
       SELECT 
         location_name as sucursal,
-        grupo_operativo,
-        estado,
+        grupo_operativo_limpio as grupo_operativo,
+        estado_normalizado as estado,
         municipio,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio,
         COUNT(DISTINCT area_evaluacion) as areas_evaluadas
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
-      GROUP BY location_name, grupo_operativo, estado, municipio
+      GROUP BY location_name, grupo_operativo_limpio, estado_normalizado, municipio
       HAVING COUNT(DISTINCT area_evaluacion) > 10
       ORDER BY promedio DESC
       LIMIT ${limitParam}
@@ -206,14 +206,14 @@ class DataService {
     const bottomQuery = `
       SELECT 
         location_name as sucursal,
-        grupo_operativo,
-        estado,
+        grupo_operativo_limpio as grupo_operativo,
+        estado_normalizado as estado,
         municipio,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio,
         COUNT(DISTINCT area_evaluacion) as areas_evaluadas
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
-      GROUP BY location_name, grupo_operativo, estado, municipio
+      GROUP BY location_name, grupo_operativo_limpio, estado_normalizado, municipio
       HAVING COUNT(DISTINCT area_evaluacion) > 10
       ORDER BY promedio ASC
       LIMIT ${limitParam}
@@ -238,12 +238,12 @@ class DataService {
     
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -255,8 +255,8 @@ class DataService {
       SELECT 
         location_id,
         location_name as sucursal,
-        grupo_operativo,
-        estado,
+        grupo_operativo_limpio as grupo_operativo,
+        estado_normalizado as estado,
         municipio,
         latitud::float,
         longitud::float,
@@ -268,9 +268,9 @@ class DataService {
           WHEN AVG(porcentaje) >= 70 THEN 'warning'
           ELSE 'danger'
         END as status
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
-      GROUP BY location_id, location_name, grupo_operativo, estado, municipio, latitud, longitud
+      GROUP BY location_id, location_name, grupo_operativo_limpio, estado_normalizado, municipio, latitud, longitud
       HAVING COUNT(DISTINCT area_evaluacion) > 5
     `;
     
@@ -286,12 +286,12 @@ class DataService {
     
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
 
     const query = `
@@ -302,7 +302,7 @@ class DataService {
         ROUND(AVG(porcentaje)::numeric, 2) as promedio,
         COUNT(DISTINCT submission_id) as supervisiones,
         COUNT(DISTINCT location_id) as sucursales
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
       GROUP BY año, trimestre_num
       ORDER BY año DESC, trimestre_num DESC
@@ -324,12 +324,12 @@ class DataService {
     
     if (filters.grupo) {
       params.push(filters.grupo);
-      whereClause += ` AND grupo_operativo = $${++paramCount}`;
+      whereClause += ` AND grupo_operativo_limpio = $${++paramCount}`;
     }
     
     if (filters.estado) {
       params.push(filters.estado);
-      whereClause += ` AND estado = $${++paramCount}`;
+      whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -341,13 +341,13 @@ class DataService {
       SELECT 
         TRIM(area_evaluacion) as indicador,
         location_name as sucursal,
-        grupo_operativo,
-        estado,
+        grupo_operativo_limpio as grupo_operativo,
+        estado_normalizado as estado,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio,
         COUNT(*) as evaluaciones
-      FROM supervision_operativa_detalle
+      FROM supervision_operativa_clean
       ${whereClause}
-      GROUP BY TRIM(area_evaluacion), location_name, grupo_operativo, estado
+      GROUP BY TRIM(area_evaluacion), location_name, grupo_operativo_limpio, estado_normalizado
       HAVING AVG(porcentaje) < $1
       ORDER BY promedio ASC
       LIMIT 50
