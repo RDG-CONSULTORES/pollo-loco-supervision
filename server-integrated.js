@@ -1020,19 +1020,30 @@ app.listen(PORT, async () => {
         if (process.env.TELEGRAM_BOT_TOKEN) {
             global.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
             
-            // Dashboard command - simplified (Menu Button will handle the dashboard access)
+            // Dashboard command - with fallback inline keyboard
             global.telegramBot.onText(/\/dashboard/, async (msg) => {
                 const chatId = msg.chat.id;
+                const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
                 
                 console.log(`📊 Dashboard command received from chat ${chatId}`);
                 
                 try {
+                    // Check if Menu Button should work or provide inline keyboard as backup
+                    const keyboard = {
+                        reply_markup: {
+                            inline_keyboard: [[{
+                                text: "📊 Abrir Dashboard",
+                                web_app: { url: `${dashboardUrl}/dashboard` }
+                            }]]
+                        }
+                    };
+                    
                     await global.telegramBot.sendMessage(chatId, 
-                        '📊 **Dashboard Interactivo v2.0**\n\n¡Usa el botón azul "Dashboard" junto al campo de texto para acceder!',
-                        { parse_mode: 'Markdown' }
+                        '📊 **Dashboard Interactivo v2.0**\n\n🔹 **Opción 1:** Usa el botón azul "Dashboard" junto al campo de texto\n🔹 **Opción 2:** Usa el botón de abajo ⬇️',
+                        { parse_mode: 'Markdown', ...keyboard }
                     );
                     
-                    console.log('✅ Dashboard message sent successfully');
+                    console.log('✅ Dashboard message with fallback keyboard sent successfully');
                 } catch (error) {
                     console.error('❌ Error sending dashboard message:', error);
                     await global.telegramBot.sendMessage(chatId, 'Error al mostrar información del dashboard.');
@@ -1065,14 +1076,18 @@ app.listen(PORT, async () => {
             // Set Menu Button for all chats
             try {
                 const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
-                await global.telegramBot.setChatMenuButton({
+                const menuButton = {
                     type: 'web_app',
                     text: 'Dashboard',
                     web_app: { url: `${dashboardUrl}/dashboard` }
-                });
+                };
+                
+                // Set default Menu Button for all users
+                await global.telegramBot.setChatMenuButton(menuButton);
                 console.log('✅ Menu Button configured successfully');
             } catch (error) {
-                console.error('❌ Error setting Menu Button:', error);
+                console.error('❌ Error setting Menu Button:', error.message);
+                console.log('🔄 Menu Button failed, will use inline keyboard as fallback');
             }
             
             console.log('✅ Telegram bot configured with commands, dashboard available');
