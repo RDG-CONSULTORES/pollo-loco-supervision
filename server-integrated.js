@@ -1029,7 +1029,7 @@ app.listen(PORT, async () => {
             // Dashboard command
             global.telegramBot.onText(/\/dashboard/, async (msg) => {
                 const chatId = msg.chat.id;
-                const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision.onrender.com';
+                const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
                 
                 const keyboard = {
                     reply_markup: {
@@ -1043,6 +1043,15 @@ app.listen(PORT, async () => {
                 await global.telegramBot.sendMessage(chatId, 
                     '📊 **Dashboard Interactivo v2.0**\n\n¡Nueva versión con mapa OpenStreetMap y filtros!\n\n👆 Toca el botón para abrir',
                     { parse_mode: 'Markdown', ...keyboard }
+                );
+            });
+            
+            // Start command
+            global.telegramBot.onText(/\/start/, async (msg) => {
+                const chatId = msg.chat.id;
+                await global.telegramBot.sendMessage(chatId, 
+                    '¡Hola! Soy el bot de El Pollo Loco.\n\nUsa /dashboard para ver el dashboard interactivo.',
+                    { parse_mode: 'Markdown' }
                 );
             });
             
