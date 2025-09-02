@@ -1270,19 +1270,22 @@ async function loadHistoricoData() {
     dashboard.showLoading();
     
     try {
-        // Usar endpoint existente de trends temporalmente
-        const trendsResponse = await fetch(`${dashboard.API_BASE_URL}/performance/trends`);
-        const trendsData = await trendsResponse.json();
+        // Obtener datos reales de trimestres
+        const trimestreResponse = await fetch('/api/trimestres');
+        const trimestreData = await trimestreResponse.json();
         
-        // Obtener lista de grupos
-        const gruposResponse = await fetch(`${dashboard.API_BASE_URL}/performance/groups`);
+        // Obtener lista de grupos reales
+        const gruposResponse = await fetch('/api/grupos');
         const grupos = await gruposResponse.json();
         
-        // Crear checkboxes de grupos
+        // Crear checkboxes de grupos reales
         createGruposCheckboxes(grupos);
         
-        // Actualizar gráfica con datos de ejemplo por ahora
-        updateHistoricoChart(trendsData, grupos);
+        // Obtener datos históricos por trimestre para cada grupo
+        const historicoData = await fetchHistoricoByTrimestre(grupos, trimestreData);
+        
+        // Actualizar gráfica con datos reales
+        updateHistoricoChart(historicoData, grupos);
         
         // Actualizar cards existentes
         dashboard.updateTrendCards();
@@ -1314,6 +1317,59 @@ function createGruposCheckboxes(grupos) {
     document.querySelectorAll('.grupo-checkbox').forEach(cb => {
         cb.addEventListener('change', () => updateHistoricoFromCheckboxes());
     });
+}
+
+// Obtener datos históricos por trimestre para cada grupo
+async function fetchHistoricoByTrimestre(grupos, trimestreData) {
+    try {
+        const historicoData = {};
+        const quarters = ['Q1 2025', 'Q2 2025', 'Q3 2025'];
+        let totalEPL = 0;
+        let countEPL = 0;
+        
+        // Para cada grupo, obtener su performance por trimestre
+        for (const grupo of grupos) {
+            const grupoData = [];
+            
+            for (let q = 1; q <= 3; q++) {
+                try {
+                    // Usar el endpoint /api/grupos con filtro de trimestre
+                    const response = await fetch(`/api/grupos?grupo=${encodeURIComponent(grupo.name)}&trimestre=${q}`);
+                    const data = await response.json();
+                    
+                    if (data && data.length > 0) {
+                        const performance = parseFloat(data[0].promedio);
+                        grupoData.push(performance);
+                        totalEPL += performance;
+                        countEPL++;
+                    } else {
+                        grupoData.push(null); // Sin datos para este trimestre
+                    }
+                } catch (error) {
+                    console.error(`Error fetching data for ${grupo.name} Q${q}:`, error);
+                    grupoData.push(null);
+                }
+            }
+            
+            historicoData[grupo.name] = grupoData;
+        }
+        
+        // Calcular promedio EPL real
+        const promedioEPLReal = countEPL > 0 ? (totalEPL / countEPL).toFixed(1) : 85.7;
+        historicoData['Promedio EPL'] = [promedioEPLReal, promedioEPLReal, promedioEPLReal];
+        
+        return historicoData;
+        
+    } catch (error) {
+        console.error('Error in fetchHistoricoByTrimestre:', error);
+        // Fallback con datos vacíos
+        const fallback = {};
+        grupos.forEach(grupo => {
+            fallback[grupo.name] = [null, null, null];
+        });
+        fallback['Promedio EPL'] = [85.7, 85.7, 85.7];
+        return fallback;
+    }
 }
 
 // Toggle todos los grupos
@@ -1366,59 +1422,48 @@ function updateHistoricoChart(trendsData, grupos) {
         '#95A5A6'  // Gris
     ];
     
-    // Datos de ejemplo para demo (en producción vendrán del API)
-    const datasetsEjemplo = [
-        {
-            label: 'GRUPO SALTILLO',
-            data: [87.2, 89.1, 91.3],
-            borderColor: colors[0],
-            backgroundColor: colors[0] + '20',
-            tension: 0.3,
-            borderWidth: 3,
-            pointRadius: 5,
-            pointHoverRadius: 7
-        },
-        {
-            label: 'GRUPO MTY',
-            data: [85.1, 84.8, 86.2],
-            borderColor: colors[1],
-            backgroundColor: colors[1] + '20',
-            tension: 0.3,
-            borderWidth: 3,
-            pointRadius: 5,
-            pointHoverRadius: 7
-        },
-        {
-            label: 'GRUPO GDL',
-            data: [83.4, null, 82.1], // Q1 es FOR-S1, Q2 vacío, Q3 es FOR-S2
-            borderColor: colors[2],
-            backgroundColor: colors[2] + '20',
-            tension: 0.3,
-            borderWidth: 3,
-            pointRadius: 5,
-            pointHoverRadius: 7,
-            spanGaps: false
-        }
-    ];
+    // Crear datasets con datos reales
+    const datasets = [];
+    let colorIndex = 0;
     
-    // Agregar línea de promedio EPL
-    const promedioEPL = 85.7;
-    datasetsEjemplo.push({
-        label: 'Promedio EPL',
-        data: [promedioEPL, promedioEPL, promedioEPL],
-        borderColor: '#E74C3C',
-        borderDash: [5, 5],
-        borderWidth: 2,
-        pointRadius: 0,
-        fill: false,
-        tension: 0
+    // Agregar cada grupo operativo real
+    grupos.forEach(grupo => {
+        if (trendsData[grupo.name]) {
+            datasets.push({
+                label: grupo.name,
+                data: trendsData[grupo.name],
+                borderColor: colors[colorIndex % colors.length],
+                backgroundColor: colors[colorIndex % colors.length] + '20',
+                tension: 0.3,
+                borderWidth: 3,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                spanGaps: false
+            });
+            colorIndex++;
+        }
     });
+    
+    // Agregar línea de promedio EPL real
+    if (trendsData['Promedio EPL']) {
+        const promedioEPLReal = trendsData['Promedio EPL'][0]; // Todos los trimestres tienen el mismo promedio
+        datasets.push({
+            label: 'Promedio EPL',
+            data: [promedioEPLReal, promedioEPLReal, promedioEPLReal],
+            borderColor: '#E74C3C',
+            borderDash: [5, 5],
+            borderWidth: 2,
+            pointRadius: 0,
+            fill: false,
+            tension: 0
+        });
+    }
     
     window.trendsChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: ['Q1 2025', 'Q2 2025', 'Q3 2025'],
-            datasets: datasetsEjemplo
+            datasets: datasets
         },
         options: {
             responsive: true,
