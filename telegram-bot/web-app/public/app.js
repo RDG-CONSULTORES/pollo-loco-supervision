@@ -1068,6 +1068,12 @@ class ElPolloLocoDashboard {
                 }
             }, 100);
         }
+        
+        // Special handling for tendencias (histórico) tab
+        if (tabName === 'tendencias') {
+            // Llamar a la nueva función de histórico
+            loadHistoricoData();
+        }
     }
 
     // =====================================================
@@ -1250,6 +1256,241 @@ class ElPolloLocoDashboard {
         // Could implement toast notifications here
         alert('Error: ' + message);
     }
+}
+
+// =====================================================
+// NUEVAS FUNCIONES PARA TAB HISTÓRICO
+// =====================================================
+
+// Variable global para el chart histórico
+let historicoChart = null;
+
+// Función para cargar datos históricos
+async function loadHistoricoData() {
+    dashboard.showLoading();
+    
+    try {
+        // Usar endpoint existente de trends temporalmente
+        const trendsResponse = await fetch(`${dashboard.API_BASE_URL}/performance/trends`);
+        const trendsData = await trendsResponse.json();
+        
+        // Obtener lista de grupos
+        const gruposResponse = await fetch(`${dashboard.API_BASE_URL}/performance/groups`);
+        const grupos = await gruposResponse.json();
+        
+        // Crear checkboxes de grupos
+        createGruposCheckboxes(grupos);
+        
+        // Actualizar gráfica con datos de ejemplo por ahora
+        updateHistoricoChart(trendsData, grupos);
+        
+        // Actualizar cards existentes
+        dashboard.updateTrendCards();
+        
+    } catch (error) {
+        console.error('Error loading historico:', error);
+    } finally {
+        dashboard.hideLoading();
+    }
+}
+
+// Crear checkboxes dinámicamente
+function createGruposCheckboxes(grupos) {
+    const container = document.getElementById('gruposCheckboxes');
+    if (!container) return;
+    
+    container.innerHTML = grupos.map(grupo => `
+        <label style="display: flex; align-items: center; cursor: pointer;">
+            <input type="checkbox" 
+                   class="grupo-checkbox" 
+                   value="${grupo.name}" 
+                   checked
+                   style="margin-right: 5px;">
+            <span>${grupo.name}</span>
+        </label>
+    `).join('');
+    
+    // Event listeners
+    document.querySelectorAll('.grupo-checkbox').forEach(cb => {
+        cb.addEventListener('change', () => updateHistoricoFromCheckboxes());
+    });
+}
+
+// Toggle todos los grupos
+function toggleAllGroups(checked) {
+    document.querySelectorAll('.grupo-checkbox').forEach(cb => {
+        cb.checked = checked;
+    });
+    updateHistoricoFromCheckboxes();
+}
+
+// Actualizar gráfica basada en checkboxes
+function updateHistoricoFromCheckboxes() {
+    const selectedGroups = Array.from(document.querySelectorAll('.grupo-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    // Filtrar datasets basado en grupos seleccionados
+    if (window.trendsChart) {
+        window.trendsChart.data.datasets.forEach(dataset => {
+            if (dataset.label === 'Promedio EPL') {
+                dataset.hidden = false; // Siempre mostrar promedio
+            } else {
+                dataset.hidden = !selectedGroups.includes(dataset.label);
+            }
+        });
+        window.trendsChart.update();
+    }
+}
+
+// Actualizar gráfica de líneas
+function updateHistoricoChart(trendsData, grupos) {
+    const ctx = document.getElementById('tendenciasChart');
+    if (!ctx) return;
+    
+    // Destruir chart anterior si existe
+    if (window.trendsChart) {
+        window.trendsChart.destroy();
+    }
+    
+    // Colores para cada grupo
+    const colors = [
+        '#27AE60', // Verde
+        '#3498DB', // Azul
+        '#E74C3C', // Rojo
+        '#F39C12', // Naranja
+        '#9B59B6', // Morado
+        '#1ABC9C', // Turquesa
+        '#34495E', // Gris oscuro
+        '#E67E22', // Naranja oscuro
+        '#2ECC71', // Verde claro
+        '#95A5A6'  // Gris
+    ];
+    
+    // Datos de ejemplo para demo (en producción vendrán del API)
+    const datasetsEjemplo = [
+        {
+            label: 'GRUPO SALTILLO',
+            data: [87.2, 89.1, 91.3],
+            borderColor: colors[0],
+            backgroundColor: colors[0] + '20',
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        },
+        {
+            label: 'GRUPO MTY',
+            data: [85.1, 84.8, 86.2],
+            borderColor: colors[1],
+            backgroundColor: colors[1] + '20',
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        },
+        {
+            label: 'GRUPO GDL',
+            data: [83.4, null, 82.1], // Q1 es FOR-S1, Q2 vacío, Q3 es FOR-S2
+            borderColor: colors[2],
+            backgroundColor: colors[2] + '20',
+            tension: 0.3,
+            borderWidth: 3,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            spanGaps: false
+        }
+    ];
+    
+    // Agregar línea de promedio EPL
+    const promedioEPL = 85.7;
+    datasetsEjemplo.push({
+        label: 'Promedio EPL',
+        data: [promedioEPL, promedioEPL, promedioEPL],
+        borderColor: '#E74C3C',
+        borderDash: [5, 5],
+        borderWidth: 2,
+        pointRadius: 0,
+        fill: false,
+        tension: 0
+    });
+    
+    window.trendsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Q1 2025', 'Q2 2025', 'Q3 2025'],
+            datasets: datasetsEjemplo
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Evolución Histórica por Trimestre - Performance CAS',
+                    font: { size: 16, weight: 'bold' },
+                    padding: 20
+                },
+                legend: {
+                    display: true,
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            if (context.parsed.y !== null) {
+                                label += context.parsed.y.toFixed(1) + '%';
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    min: 75,
+                    max: 95,
+                    ticks: {
+                        stepSize: 5,
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: '#e0e0e0'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Performance (%)',
+                        font: { size: 14 }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    title: {
+                        display: true,
+                        text: 'Período',
+                        font: { size: 14 }
+                    }
+                }
+            }
+        }
+    });
 }
 
 // =====================================================

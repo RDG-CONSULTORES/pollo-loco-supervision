@@ -143,7 +143,7 @@
                     <i class="fas fa-list"></i> Áreas de Oportunidad
                 </button>
                 <button class="tab" data-tab="tendencias">
-                    <i class="fas fa-chart-line"></i> Tendencias
+                    <i class="fas fa-chart-line"></i> Histórico
                 </button>
             </div>
 
@@ -290,9 +290,33 @@
                         </div>
                     </div>
                     
+                    <!-- NUEVOS CONTROLES PARA HISTÓRICO -->
+                    <div class="historico-controls" style="margin: 20px 0; padding: 15px; background: #f5f5f5; border-radius: 8px;">
+                        <div class="control-group" style="margin-bottom: 15px;">
+                            <label style="font-weight: bold; display: flex; align-items: center;">
+                                <input type="checkbox" id="vistaUnificada" checked style="margin-right: 8px;">
+                                Vista unificada (Trimestral)
+                            </label>
+                            <span style="color: #666; margin-left: 10px; font-size: 14px;">
+                                ℹ️ Foráneas: S1→Q2, S2→Q3
+                            </span>
+                        </div>
+                        
+                        <div class="grupos-selector">
+                            <h4 style="margin-bottom: 10px; color: #333;">Seleccionar Grupos:</h4>
+                            <div id="gruposCheckboxes" style="display: flex; flex-wrap: wrap; gap: 15px;">
+                                <!-- Se llena dinámicamente -->
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <button onclick="toggleAllGroups(true)" style="margin-right: 10px; padding: 5px 10px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">Seleccionar Todos</button>
+                                <button onclick="toggleAllGroups(false)" style="padding: 5px 10px; background: #95a5a6; color: white; border: none; border-radius: 4px; cursor: pointer;">Quitar Todos</button>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <!-- EXISTING: Gráfica actual NO SE TOCA -->
                     <div class="chart-container">
-                        <h3><i class="fas fa-trending-up"></i> Evolución Trimestral 2025</h3>
+                        <h3><i class="fas fa-chart-line"></i> Evolución Histórica - Performance CAS</h3>
                         <canvas id="tendenciasChart"></canvas>
                     </div>
                 </div>
