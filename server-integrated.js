@@ -1050,13 +1050,42 @@ app.listen(PORT, async () => {
                 }
             });
             
-            // Start command
+            // Start command with individual Menu Button setup
             global.telegramBot.onText(/\/start/, async (msg) => {
                 const chatId = msg.chat.id;
-                await global.telegramBot.sendMessage(chatId, 
-                    '¡Hola! Soy el bot de El Pollo Loco.\n\n📊 **Dashboard Operativo disponible:**\n• Usa el botón azul "Dashboard" junto al campo de texto\n• O envía /dashboard para más información',
-                    { parse_mode: 'Markdown' }
-                );
+                const userName = msg.from.first_name || msg.from.username || 'Usuario';
+                
+                console.log(`👋 /start command from user ${userName} (${chatId})`);
+                
+                // Set Menu Button for this specific user
+                try {
+                    const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
+                    const menuButtonParams = {
+                        chat_id: chatId,
+                        menu_button: {
+                            type: 'web_app',
+                            text: 'Dashboard',
+                            web_app: { url: `${dashboardUrl}/dashboard` }
+                        }
+                    };
+                    
+                    console.log(`🔧 Setting individual Menu Button for user ${userName} (${chatId})`);
+                    await global.telegramBot.setChatMenuButton(menuButtonParams);
+                    console.log(`✅ Menu Button set for user ${userName}`);
+                    
+                    await global.telegramBot.sendMessage(chatId, 
+                        `¡Hola ${userName}! Soy el bot de El Pollo Loco.\n\n📊 **Dashboard Operativo configurado:**\n• ✅ Botón azul "Dashboard" activado junto al campo de texto\n• 📱 También puedes usar /dashboard`,
+                        { parse_mode: 'Markdown' }
+                    );
+                } catch (error) {
+                    console.error(`❌ Error setting Menu Button for user ${userName}:`, error.message);
+                    
+                    // Fallback message if Menu Button fails
+                    await global.telegramBot.sendMessage(chatId, 
+                        `¡Hola ${userName}! Soy el bot de El Pollo Loco.\n\n📊 **Dashboard Operativo disponible:**\n• Usa /dashboard para acceder al dashboard\n• (Menu Button en configuración...)`,
+                        { parse_mode: 'Markdown' }
+                    );
+                }
             });
             
             // Basic message handler
@@ -1073,20 +1102,26 @@ app.listen(PORT, async () => {
                 );
             });
             
-            // Set Menu Button for all chats
+            // Set Menu Button for all users (global default)
             try {
                 const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
-                const menuButton = {
-                    type: 'web_app',
-                    text: 'Dashboard',
-                    web_app: { url: `${dashboardUrl}/dashboard` }
+                
+                // CORRECT IMPLEMENTATION according to Telegram Bot API docs
+                const menuButtonParams = {
+                    menu_button: {
+                        type: 'web_app',
+                        text: 'Dashboard',
+                        web_app: { url: `${dashboardUrl}/dashboard` }
+                    }
+                    // No chat_id = applies to all users by default
                 };
                 
-                // Set default Menu Button for all users
-                await global.telegramBot.setChatMenuButton(menuButton);
-                console.log('✅ Menu Button configured successfully');
+                console.log('🔧 Setting Menu Button with params:', JSON.stringify(menuButtonParams, null, 2));
+                await global.telegramBot.setChatMenuButton(menuButtonParams);
+                console.log('✅ Global Menu Button configured successfully');
             } catch (error) {
-                console.error('❌ Error setting Menu Button:', error.message);
+                console.error('❌ Error setting global Menu Button:', error.message);
+                console.error('❌ Full error:', error);
                 console.log('🔄 Menu Button failed, will use inline keyboard as fallback');
             }
             
