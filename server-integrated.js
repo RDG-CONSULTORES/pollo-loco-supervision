@@ -1057,21 +1057,40 @@ app.listen(PORT, async () => {
                 
                 console.log(`👋 /start command from user ${userName} (${chatId})`);
                 
-                // Set Menu Button for this specific user
+                // Set Menu Button for this specific user using DIRECT Telegram API
                 try {
                     const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
-                    const menuButtonParams = {
+                    
+                    console.log(`🔧 Setting individual Menu Button for user ${userName} (${chatId}) using direct API`);
+                    
+                    // DIRECT API CALL to Telegram (bypass node-telegram-bot-api bug)
+                    const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setChatMenuButton`;
+                    const payload = {
                         chat_id: chatId,
-                        menu_button: {
+                        menu_button: JSON.stringify({
                             type: 'web_app',
                             text: 'Dashboard',
                             web_app: { url: `${dashboardUrl}/dashboard` }
-                        }
+                        })
                     };
                     
-                    console.log(`🔧 Setting individual Menu Button for user ${userName} (${chatId})`);
-                    await global.telegramBot.setChatMenuButton(menuButtonParams);
-                    console.log(`✅ Menu Button set for user ${userName}`);
+                    console.log('🌐 Direct API payload:', JSON.stringify(payload, null, 2));
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    
+                    const result = await response.json();
+                    console.log('📡 Telegram API response:', JSON.stringify(result, null, 2));
+                    
+                    if (result.ok) {
+                        console.log(`✅ Menu Button SUCCESSFULLY configured for user ${userName} via direct API`);
+                    } else {
+                        console.error(`❌ Direct API failed:`, result.description);
+                        throw new Error(result.description);
+                    }
                     
                     await global.telegramBot.sendMessage(chatId, 
                         `¡Hola ${userName}! Soy el bot de El Pollo Loco.\n\n📊 **Dashboard Operativo configurado:**\n• ✅ Botón azul "Dashboard" activado junto al campo de texto\n• 📱 También puedes usar /dashboard`,
@@ -1102,27 +1121,43 @@ app.listen(PORT, async () => {
                 );
             });
             
-            // Set Menu Button for all users (global default)
+            // Set Menu Button for all users (global default) using DIRECT API
             try {
                 const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
                 
-                // CORRECT IMPLEMENTATION according to Telegram Bot API docs
-                const menuButtonParams = {
-                    menu_button: {
+                console.log('🔧 Setting global Menu Button using direct Telegram API');
+                
+                // DIRECT API CALL to Telegram (bypass node-telegram-bot-api)
+                const apiUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/setChatMenuButton`;
+                const payload = {
+                    // No chat_id = applies to all users by default
+                    menu_button: JSON.stringify({
                         type: 'web_app',
                         text: 'Dashboard',
                         web_app: { url: `${dashboardUrl}/dashboard` }
-                    }
-                    // No chat_id = applies to all users by default
+                    })
                 };
                 
-                console.log('🔧 Setting Menu Button with params:', JSON.stringify(menuButtonParams, null, 2));
-                await global.telegramBot.setChatMenuButton(menuButtonParams);
-                console.log('✅ Global Menu Button configured successfully');
+                console.log('🌐 Global Menu Button payload:', JSON.stringify(payload, null, 2));
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const result = await response.json();
+                console.log('📡 Global Menu Button API response:', JSON.stringify(result, null, 2));
+                
+                if (result.ok) {
+                    console.log('✅ Global Menu Button configured successfully via direct API');
+                } else {
+                    console.error('❌ Global Menu Button failed:', result.description);
+                    throw new Error(result.description);
+                }
             } catch (error) {
                 console.error('❌ Error setting global Menu Button:', error.message);
-                console.error('❌ Full error:', error);
-                console.log('🔄 Menu Button failed, will use inline keyboard as fallback');
+                console.log('🔄 Menu Button failed, individual setup will be used in /start');
             }
             
             console.log('✅ Telegram bot configured with commands, dashboard available');
