@@ -1020,34 +1020,22 @@ app.listen(PORT, async () => {
         if (process.env.TELEGRAM_BOT_TOKEN) {
             global.telegramBot = new TelegramBot(process.env.TELEGRAM_BOT_TOKEN, { polling: false });
             
-            // Dashboard command
+            // Dashboard command - simplified (Menu Button will handle the dashboard access)
             global.telegramBot.onText(/\/dashboard/, async (msg) => {
                 const chatId = msg.chat.id;
-                const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
                 
                 console.log(`📊 Dashboard command received from chat ${chatId}`);
                 
                 try {
-                    const keyboard = {
-                        reply_markup: {
-                            inline_keyboard: [[{
-                                text: "📊 Ver Dashboard Interactivo",
-                                web_app: { url: `${dashboardUrl}/dashboard` }
-                            }]]
-                        }
-                    };
-                    
-                    console.log(`📊 Sending dashboard message with web_app URL: ${dashboardUrl}/dashboard`);
-                    
                     await global.telegramBot.sendMessage(chatId, 
-                        '📊 **Dashboard Interactivo v2.0**\n\n¡Nueva versión con mapa OpenStreetMap y filtros!\n\n👆 Toca el botón para abrir',
-                        { parse_mode: 'Markdown', ...keyboard }
+                        '📊 **Dashboard Interactivo v2.0**\n\n¡Usa el botón azul "Dashboard" junto al campo de texto para acceder!',
+                        { parse_mode: 'Markdown' }
                     );
                     
                     console.log('✅ Dashboard message sent successfully');
                 } catch (error) {
                     console.error('❌ Error sending dashboard message:', error);
-                    await global.telegramBot.sendMessage(chatId, 'Error al cargar el dashboard. Intenta más tarde.');
+                    await global.telegramBot.sendMessage(chatId, 'Error al mostrar información del dashboard.');
                 }
             });
             
@@ -1055,7 +1043,7 @@ app.listen(PORT, async () => {
             global.telegramBot.onText(/\/start/, async (msg) => {
                 const chatId = msg.chat.id;
                 await global.telegramBot.sendMessage(chatId, 
-                    '¡Hola! Soy el bot de El Pollo Loco.\n\nUsa /dashboard para ver el dashboard interactivo.',
+                    '¡Hola! Soy el bot de El Pollo Loco.\n\n📊 **Dashboard Operativo disponible:**\n• Usa el botón azul "Dashboard" junto al campo de texto\n• O envía /dashboard para más información',
                     { parse_mode: 'Markdown' }
                 );
             });
@@ -1073,6 +1061,19 @@ app.listen(PORT, async () => {
                     'Usa /dashboard para ver el dashboard interactivo o /start para más información.'
                 );
             });
+            
+            // Set Menu Button for all chats
+            try {
+                const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
+                await global.telegramBot.setChatMenuButton({
+                    type: 'web_app',
+                    text: 'Dashboard',
+                    web_app: { url: `${dashboardUrl}/dashboard` }
+                });
+                console.log('✅ Menu Button configured successfully');
+            } catch (error) {
+                console.error('❌ Error setting Menu Button:', error);
+            }
             
             console.log('✅ Telegram bot configured with commands, dashboard available');
             
