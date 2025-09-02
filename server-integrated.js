@@ -1003,13 +1003,7 @@ app.get('/api/sucursales-ranking', async (req, res) => {
     }
 });
 
-// Webhook endpoint for Telegram
-app.post('/webhook', (req, res) => {
-    if (process.env.NODE_ENV === 'production' && global.telegramBot) {
-        global.telegramBot.processUpdate(req.body);
-    }
-    res.sendStatus(200);
-});
+// Webhook endpoint for Telegram - MOVED TO AFTER BOT INITIALIZATION
 
 // Start server
 app.listen(PORT, async () => {
@@ -1081,6 +1075,19 @@ app.listen(PORT, async () => {
             });
             
             console.log('✅ Telegram bot configured with commands, dashboard available');
+            
+            // Add webhook endpoint AFTER bot initialization
+            app.post('/webhook', (req, res) => {
+                console.log('🔗 Webhook received:', req.body.message ? `Message from ${req.body.message.from.id}` : 'Update');
+                if (global.telegramBot) {
+                    global.telegramBot.processUpdate(req.body);
+                } else {
+                    console.error('❌ No bot instance available for webhook');
+                }
+                res.status(200).json({ ok: true });
+            });
+            
+            console.log('🔗 Webhook endpoint /webhook registered');
         }
         
         // Set webhook in production
