@@ -1023,7 +1023,7 @@ app.listen(PORT, async () => {
             // Dashboard command
             global.telegramBot.onText(/\/dashboard/, async (msg) => {
                 const chatId = msg.chat.id;
-                const dashboardUrl = 'https://pollo-loco-supervision-kzxj.onrender.com';
+                const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
                 
                 console.log(`📊 Dashboard command received from chat ${chatId}`);
                 
@@ -1092,7 +1092,7 @@ app.listen(PORT, async () => {
         
         // Set webhook in production
         if (process.env.NODE_ENV === 'production' && process.env.TELEGRAM_BOT_TOKEN) {
-            const webhookUrl = 'https://pollo-loco-supervision-kzxj.onrender.com/webhook';
+            const webhookUrl = 'https://pollo-loco-supervision.onrender.com/webhook';
             console.log(`🔗 Setting webhook to: ${webhookUrl}`);
             
             try {
