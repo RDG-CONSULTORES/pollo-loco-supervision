@@ -1029,7 +1029,7 @@ app.listen(PORT, async () => {
             // Dashboard command
             global.telegramBot.onText(/\/dashboard/, async (msg) => {
                 const chatId = msg.chat.id;
-                const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
+                const dashboardUrl = 'https://pollo-loco-supervision-kzxj.onrender.com';
                 
                 const keyboard = {
                     reply_markup: {
@@ -1055,12 +1055,26 @@ app.listen(PORT, async () => {
                 );
             });
             
+            // Basic message handler
+            global.telegramBot.on('message', async (msg) => {
+                const chatId = msg.chat.id;
+                const text = msg.text || '';
+                
+                // Skip if it's a command
+                if (text.startsWith('/')) return;
+                
+                // Default response
+                await global.telegramBot.sendMessage(chatId, 
+                    'Usa /dashboard para ver el dashboard interactivo o /start para más información.'
+                );
+            });
+            
             console.log('✅ Telegram bot configured with commands, dashboard available');
         }
         
         // Set webhook in production
-        if (process.env.NODE_ENV === 'production' && process.env.RENDER_EXTERNAL_URL && process.env.TELEGRAM_BOT_TOKEN) {
-            const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/webhook`;
+        if (process.env.NODE_ENV === 'production' && process.env.TELEGRAM_BOT_TOKEN) {
+            const webhookUrl = 'https://pollo-loco-supervision-kzxj.onrender.com/webhook';
             console.log(`🔗 Setting webhook to: ${webhookUrl}`);
             
             try {
