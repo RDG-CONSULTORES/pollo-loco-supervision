@@ -1031,19 +1031,30 @@ app.listen(PORT, async () => {
                 const chatId = msg.chat.id;
                 const dashboardUrl = 'https://pollo-loco-supervision-kzxj.onrender.com';
                 
-                const keyboard = {
-                    reply_markup: {
-                        inline_keyboard: [[{
-                            text: "📊 Ver Dashboard Interactivo",
-                            web_app: { url: `${dashboardUrl}/dashboard` }
-                        }]]
-                    }
-                };
+                console.log(`📊 Dashboard command received from chat ${chatId}`);
                 
-                await global.telegramBot.sendMessage(chatId, 
-                    '📊 **Dashboard Interactivo v2.0**\n\n¡Nueva versión con mapa OpenStreetMap y filtros!\n\n👆 Toca el botón para abrir',
-                    { parse_mode: 'Markdown', ...keyboard }
-                );
+                try {
+                    const keyboard = {
+                        reply_markup: {
+                            inline_keyboard: [[{
+                                text: "📊 Ver Dashboard Interactivo",
+                                web_app: { url: `${dashboardUrl}/dashboard` }
+                            }]]
+                        }
+                    };
+                    
+                    console.log(`📊 Sending dashboard message with web_app URL: ${dashboardUrl}/dashboard`);
+                    
+                    await global.telegramBot.sendMessage(chatId, 
+                        '📊 **Dashboard Interactivo v2.0**\n\n¡Nueva versión con mapa OpenStreetMap y filtros!\n\n👆 Toca el botón para abrir',
+                        { parse_mode: 'Markdown', ...keyboard }
+                    );
+                    
+                    console.log('✅ Dashboard message sent successfully');
+                } catch (error) {
+                    console.error('❌ Error sending dashboard message:', error);
+                    await global.telegramBot.sendMessage(chatId, 'Error al cargar el dashboard. Intenta más tarde.');
+                }
             });
             
             // Start command
