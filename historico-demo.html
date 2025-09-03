@@ -1,0 +1,974 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Opciones de Diseño Histórico</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #FF6B35;
+            margin-bottom: 30px;
+            font-size: 24px;
+        }
+        
+        .option-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .option-title {
+            font-size: 20px;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .option-title .badge {
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        
+        .recommended {
+            background: #27ae60;
+        }
+        
+        /* OPCIÓN 1: Selector de Grupos */
+        .group-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .group-selector label {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        
+        .group-selector label:hover {
+            background: #e9ecef;
+        }
+        
+        .group-selector input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-top: 20px;
+        }
+        
+        /* OPCIÓN 2: Vista por Categorías */
+        .category-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+            padding-bottom: 10px;
+        }
+        
+        .category-tab {
+            padding: 10px 20px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+        }
+        
+        .category-tab:hover {
+            background: #e9ecef;
+        }
+        
+        .category-tab.active {
+            background: #3498db;
+            color: white;
+            border-color: #2980b9;
+        }
+        
+        /* OPCIÓN 3: Área Apilada */
+        .legend-stacked {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        
+        /* OPCIÓN 4: Heat Map */
+        .heatmap-container {
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        
+        .heatmap-table th,
+        .heatmap-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+        
+        .heatmap-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .heatmap-table .group-name {
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            left: 0;
+            background: white;
+            z-index: 1;
+        }
+        
+        .heat-cell {
+            font-size: 24px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .heat-cell:hover {
+            transform: scale(1.2);
+        }
+        
+        /* OPCIÓN 5: Cards Comparativos */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .comparison-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            transition: box-shadow 0.3s;
+        }
+        
+        .comparison-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .card-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .card-change {
+            font-size: 18px;
+            font-weight: 700;
+        }
+        
+        .change-positive {
+            color: #27ae60;
+        }
+        
+        .change-negative {
+            color: #e74c3c;
+        }
+        
+        .card-values {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .mini-chart {
+            height: 40px;
+            margin-top: 10px;
+        }
+        
+        /* OPCIÓN 6: Sparklines */
+        .sparklines-container {
+            margin: 20px 0;
+        }
+        
+        .sparkline-row {
+            display: grid;
+            grid-template-columns: 120px 100px 80px 60px;
+            gap: 10px;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        
+        .sparkline-row:hover {
+            background: #f8f9fa;
+        }
+        
+        .sparkline-name {
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .sparkline-chart {
+            height: 30px;
+        }
+        
+        .sparkline-value {
+            text-align: right;
+            font-weight: 600;
+        }
+        
+        .sparkline-trend {
+            text-align: right;
+            font-size: 16px;
+        }
+        
+        /* Resumen Cards */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        
+        .summary-card.mejora {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+        
+        .summary-card.caida {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+        
+        .summary-card.mejor {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .summary-icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .summary-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .summary-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            h1 {
+                font-size: 20px;
+            }
+            
+            .option-section {
+                padding: 15px;
+            }
+            
+            .option-title {
+                font-size: 18px;
+            }
+            
+            .chart-container {
+                height: 250px;
+            }
+            
+            .group-selector {
+                grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+                gap: 8px;
+            }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .sparkline-row {
+                grid-template-columns: 100px 80px 60px 40px;
+                font-size: 12px;
+            }
+            
+            .summary-cards {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        
+        /* Toggle Switch */
+        .view-toggle {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            gap: 10px;
+        }
+        
+        .toggle-btn {
+            padding: 8px 16px;
+            border: 2px solid #3498db;
+            background: white;
+            color: #3498db;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .toggle-btn.active {
+            background: #3498db;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Demo de Opciones - Tab Histórico</h1>
+        
+        <!-- OPCIÓN 1: Selector de Grupos -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Opción 1: Selector de Grupos (Máx 5)
+                <span class="badge recommended">⭐ Recomendada</span>
+            </h2>
+            <div class="group-selector">
+                <label><input type="checkbox" checked> OGAS</label>
+                <label><input type="checkbox" checked> TEPEYAC</label>
+                <label><input type="checkbox" checked> RAP</label>
+                <label><input type="checkbox"> CRR</label>
+                <label><input type="checkbox"> EXPO</label>
+                <label><input type="checkbox"> EPL SO</label>
+                <label><input type="checkbox"> TEC</label>
+                <label><input type="checkbox"> EFM</label>
+                <label><input type="checkbox"> PLOG QUERÉTARO</label>
+                <label><input type="checkbox"> GRUPO MATAMOROS</label>
+            </div>
+            <div class="chart-container">
+                <canvas id="chartOption1"></canvas>
+            </div>
+        </div>
+        
+        <!-- OPCIÓN 2: Vista por Categorías -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Opción 2: Vista por Categorías
+            </h2>
+            <div class="category-tabs">
+                <div class="category-tab active">🏆 Top 5 Mejores</div>
+                <div class="category-tab">⚠️ Top 5 Críticos</div>
+                <div class="category-tab">📊 Promedio General</div>
+                <div class="category-tab">📈 Mayor Mejora</div>
+                <div class="category-tab">📉 Mayor Caída</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="chartOption2"></canvas>
+            </div>
+        </div>
+        
+        <!-- OPCIÓN 3: Gráfica de Áreas Apiladas -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Opción 3: Gráfica de Áreas Apiladas por Rangos
+            </h2>
+            <div class="chart-container">
+                <canvas id="chartOption3"></canvas>
+            </div>
+            <div class="legend-stacked">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #27ae60;"></div>
+                    <span>Excelente (≥95%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>Bueno (85-94%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>Regular (75-84%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>Crítico (<75%)</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- OPCIÓN 4: Heat Map Temporal -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Opción 4: Heat Map Temporal
+            </h2>
+            <div class="view-toggle">
+                <button class="toggle-btn active" onclick="toggleHeatMapView('emojis')">Emojis</button>
+                <button class="toggle-btn" onclick="toggleHeatMapView('numeros')">Números</button>
+            </div>
+            <div class="heatmap-container">
+                <table class="heatmap-table" id="heatmapTable">
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>NL-T1</th>
+                            <th>FOR-S1</th>
+                            <th>NL-T2</th>
+                            <th>FOR-S2</th>
+                            <th>NL-T3</th>
+                        </tr>
+                    </thead>
+                    <tbody id="heatmapBody">
+                        <!-- Se llena con JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- OPCIÓN 5: Cards Comparativos -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Opción 5: Cards Comparativos con Evolución
+            </h2>
+            <div class="cards-grid" id="comparisonCards">
+                <!-- Se llena con JavaScript -->
+            </div>
+        </div>
+        
+        <!-- OPCIÓN 6: Sparklines -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Opción 6: Vista Sparklines Compacta
+            </h2>
+            <div class="sparklines-container" id="sparklinesContainer">
+                <!-- Se llena con JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Cards de Resumen -->
+        <div class="option-section">
+            <h2 class="option-title">
+                Bonus: Cards de Resumen Ejecutivo
+            </h2>
+            <div class="summary-cards">
+                <div class="summary-card mejora">
+                    <div class="summary-icon">📈</div>
+                    <div class="summary-label">MAYOR MEJORA</div>
+                    <div class="summary-value">CRR: +6.75%</div>
+                </div>
+                <div class="summary-card caida">
+                    <div class="summary-icon">📉</div>
+                    <div class="summary-label">MAYOR CAÍDA</div>
+                    <div class="summary-value">SALTILLO: -7.27%</div>
+                </div>
+                <div class="summary-card mejor">
+                    <div class="summary-icon">🏆</div>
+                    <div class="summary-label">MEJOR PERFORMANCE</div>
+                    <div class="summary-value">OGAS: 99.72%</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon">📊</div>
+                    <div class="summary-label">PROMEDIO GENERAL</div>
+                    <div class="summary-value">EPL: 88.6%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Datos de ejemplo basados en los datos reales
+        const gruposData = {
+            'OGAS': [97, null, 98.17, null, 99.72],
+            'TEPEYAC': [91.18, null, 93.17, null, 90.47],
+            'RAP': [null, 89.26, null, 90.46, null],
+            'CRR': [null, 80.26, null, 87.01, null],
+            'EXPO': [88.95, 75.02, 89.29, null, 94.97],
+            'EPL SO': [95.29, null, 93.77, null, null],
+            'TEC': [93.34, null, 93.47, null, 94.66],
+            'EFM': [85.48, null, 92.13, null, 87.19],
+            'PLOG QUERÉTARO': [null, 96.97, null, null, null],
+            'GRUPO MATAMOROS': [null, 90.57, null, 90.84, null],
+            'PLOG LAGUNA': [null, 89.78, null, null, null],
+            'GRUPO RIO BRAVO': [null, 88.3, null, 92.58, null],
+            'GRUPO PIEDRAS NEGRAS': [null, 85.86, null, 94.9, null],
+            'PLOG NUEVO LEON': [92.8, null, 83.03, null, 89.15],
+            'GRUPO CANTERA ROSA': [null, 87.8, null, null, null],
+            'OCHTER TAMPICO': [null, 87.2, null, null, null],
+            'GRUPO SABINAS HIDALGO': [82.58, null, 88.24, null, null],
+            'GRUPO CENTRITO': [null, null, 85.82, null, 83.18],
+            'GRUPO NUEVO LAREDO': [null, 74.56, null, null, null],
+            'GRUPO SALTILLO': [null, null, 71.24, 63.97, null]
+        };
+        
+        const periodos = ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'];
+        
+        // OPCIÓN 1: Gráfica de líneas con selector
+        function createOption1Chart() {
+            const ctx = document.getElementById('chartOption1').getContext('2d');
+            const selectedGroups = ['OGAS', 'TEPEYAC', 'RAP'];
+            const colors = ['#27ae60', '#3498db', '#e74c3c', '#f39c12', '#9b59b6'];
+            
+            const datasets = selectedGroups.map((grupo, index) => ({
+                label: grupo,
+                data: gruposData[grupo],
+                borderColor: colors[index],
+                backgroundColor: colors[index] + '20',
+                borderWidth: 3,
+                tension: 0.3,
+                pointRadius: 5
+            }));
+            
+            // Agregar promedio EPL
+            datasets.push({
+                label: 'Promedio EPL',
+                data: [88.6, 88.6, 88.6, 88.6, 88.6],
+                borderColor: '#e74c3c',
+                borderDash: [5, 5],
+                borderWidth: 2,
+                pointRadius: 0,
+                fill: false
+            });
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: periodos,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Evolución por Período CAS - Grupos Seleccionados'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 85,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // OPCIÓN 2: Vista por categorías (Top 5)
+        function createOption2Chart() {
+            const ctx = document.getElementById('chartOption2').getContext('2d');
+            
+            // Calcular promedios y obtener top 5
+            const promedios = Object.entries(gruposData).map(([grupo, data]) => {
+                const valores = data.filter(v => v !== null);
+                const promedio = valores.reduce((a, b) => a + b, 0) / valores.length;
+                return { grupo, promedio, data };
+            }).sort((a, b) => b.promedio - a.promedio).slice(0, 5);
+            
+            const datasets = promedios.map((item, index) => ({
+                label: item.grupo,
+                data: item.data,
+                borderColor: `hsl(${index * 60}, 70%, 50%)`,
+                backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.1)`,
+                borderWidth: 2,
+                tension: 0.3
+            }));
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: periodos,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 5 Mejores Grupos - Performance Histórica'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 70,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // OPCIÓN 3: Áreas apiladas
+        function createOption3Chart() {
+            const ctx = document.getElementById('chartOption3').getContext('2d');
+            
+            // Contar grupos por rango en cada período
+            const rangos = {
+                excelente: [],
+                bueno: [],
+                regular: [],
+                critico: []
+            };
+            
+            periodos.forEach((periodo, idx) => {
+                let excelente = 0, bueno = 0, regular = 0, critico = 0;
+                
+                Object.values(gruposData).forEach(data => {
+                    const valor = data[idx];
+                    if (valor !== null) {
+                        if (valor >= 95) excelente++;
+                        else if (valor >= 85) bueno++;
+                        else if (valor >= 75) regular++;
+                        else critico++;
+                    }
+                });
+                
+                rangos.excelente.push(excelente);
+                rangos.bueno.push(bueno);
+                rangos.regular.push(regular);
+                rangos.critico.push(critico);
+            });
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: periodos,
+                    datasets: [
+                        {
+                            label: 'Excelente (≥95%)',
+                            data: rangos.excelente,
+                            backgroundColor: '#27ae60'
+                        },
+                        {
+                            label: 'Bueno (85-94%)',
+                            data: rangos.bueno,
+                            backgroundColor: '#3498db'
+                        },
+                        {
+                            label: 'Regular (75-84%)',
+                            data: rangos.regular,
+                            backgroundColor: '#f39c12'
+                        },
+                        {
+                            label: 'Crítico (<75%)',
+                            data: rangos.critico,
+                            backgroundColor: '#e74c3c'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            stacked: true
+                        },
+                        y: {
+                            stacked: true,
+                            title: {
+                                display: true,
+                                text: 'Número de Grupos'
+                            }
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Distribución de Performance por Período'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // OPCIÓN 4: Heat Map
+        function createHeatMap(mode = 'emojis') {
+            const tbody = document.getElementById('heatmapBody');
+            tbody.innerHTML = '';
+            
+            Object.entries(gruposData).forEach(([grupo, data]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td class="group-name">${grupo}</td>`;
+                
+                data.forEach(valor => {
+                    const cell = document.createElement('td');
+                    cell.className = 'heat-cell';
+                    
+                    if (valor === null) {
+                        cell.innerHTML = mode === 'emojis' ? '⚪' : '-';
+                        cell.style.color = '#ccc';
+                    } else {
+                        if (mode === 'emojis') {
+                            if (valor >= 95) {
+                                cell.innerHTML = '🟢';
+                                cell.title = `${valor}% - Excelente`;
+                            } else if (valor >= 85) {
+                                cell.innerHTML = '🟡';
+                                cell.title = `${valor}% - Bueno`;
+                            } else if (valor >= 75) {
+                                cell.innerHTML = '🟠';
+                                cell.title = `${valor}% - Regular`;
+                            } else {
+                                cell.innerHTML = '🔴';
+                                cell.title = `${valor}% - Crítico`;
+                            }
+                        } else {
+                            cell.innerHTML = `${valor.toFixed(1)}%`;
+                            cell.style.backgroundColor = getColorForValue(valor);
+                            cell.style.color = valor < 80 ? 'white' : 'black';
+                        }
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                tbody.appendChild(row);
+            });
+        }
+        
+        function getColorForValue(value) {
+            if (value >= 95) return '#27ae60';
+            if (value >= 85) return '#3498db';
+            if (value >= 75) return '#f39c12';
+            return '#e74c3c';
+        }
+        
+        // OPCIÓN 5: Cards comparativos
+        function createComparisonCards() {
+            const container = document.getElementById('comparisonCards');
+            const topGroups = ['OGAS', 'TEPEYAC', 'RAP', 'CRR', 'EXPO', 'TEC'];
+            
+            topGroups.forEach(grupo => {
+                const data = gruposData[grupo];
+                const valores = data.filter(v => v !== null);
+                const inicial = valores[0];
+                const final = valores[valores.length - 1];
+                const cambio = final - inicial;
+                
+                const card = document.createElement('div');
+                card.className = 'comparison-card';
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="card-title">${grupo}</div>
+                        <div class="card-change ${cambio >= 0 ? 'change-positive' : 'change-negative'}">
+                            ${cambio >= 0 ? '↗️' : '↘️'} ${cambio > 0 ? '+' : ''}${cambio.toFixed(2)}%
+                        </div>
+                    </div>
+                    <div class="card-values">
+                        ${inicial.toFixed(1)}% → ${final.toFixed(1)}%
+                    </div>
+                    <div class="mini-chart">
+                        <canvas id="miniChart${grupo}"></canvas>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+                
+                // Crear mini gráfica
+                setTimeout(() => {
+                    const miniCtx = document.getElementById(`miniChart${grupo}`).getContext('2d');
+                    new Chart(miniCtx, {
+                        type: 'line',
+                        data: {
+                            labels: periodos,
+                            datasets: [{
+                                data: data,
+                                borderColor: cambio >= 0 ? '#27ae60' : '#e74c3c',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.3,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { display: false },
+                                y: { display: false }
+                            }
+                        }
+                    });
+                }, 100);
+            });
+        }
+        
+        // OPCIÓN 6: Sparklines
+        function createSparklines() {
+            const container = document.getElementById('sparklinesContainer');
+            
+            Object.entries(gruposData).forEach(([grupo, data]) => {
+                const valores = data.filter(v => v !== null);
+                if (valores.length < 2) return;
+                
+                const inicial = valores[0];
+                const final = valores[valores.length - 1];
+                const cambio = final - inicial;
+                
+                const row = document.createElement('div');
+                row.className = 'sparkline-row';
+                row.innerHTML = `
+                    <div class="sparkline-name">${grupo}</div>
+                    <div class="sparkline-chart">
+                        <canvas id="spark${grupo.replace(/\s/g, '')}"></canvas>
+                    </div>
+                    <div class="sparkline-value">${final.toFixed(1)}%</div>
+                    <div class="sparkline-trend ${cambio >= 0 ? 'change-positive' : 'change-negative'}">
+                        ${cambio >= 0 ? '↗️' : '↘️'}
+                    </div>
+                `;
+                
+                container.appendChild(row);
+                
+                // Crear sparkline
+                setTimeout(() => {
+                    const sparkCtx = document.getElementById(`spark${grupo.replace(/\s/g, '')}`).getContext('2d');
+                    new Chart(sparkCtx, {
+                        type: 'line',
+                        data: {
+                            labels: periodos,
+                            datasets: [{
+                                data: data,
+                                borderColor: cambio >= 0 ? '#27ae60' : '#e74c3c',
+                                borderWidth: 2,
+                                pointRadius: 0,
+                                tension: 0.3,
+                                fill: false
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { enabled: false }
+                            },
+                            scales: {
+                                x: { display: false },
+                                y: { display: false }
+                            },
+                            elements: {
+                                line: {
+                                    borderWidth: 2
+                                }
+                            }
+                        }
+                    });
+                }, 100);
+            });
+        }
+        
+        // Toggle para heat map
+        function toggleHeatMapView(mode) {
+            document.querySelectorAll('.toggle-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            createHeatMap(mode);
+        }
+        
+        // Inicializar todas las visualizaciones
+        window.onload = function() {
+            createOption1Chart();
+            createOption2Chart();
+            createOption3Chart();
+            createHeatMap('emojis');
+            createComparisonCards();
+            createSparklines();
+            
+            // Hacer tabs interactivos
+            document.querySelectorAll('.category-tab').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    document.querySelectorAll('.category-tab').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        };
+    </script>
+</body>
+</html>

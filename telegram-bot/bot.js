@@ -100,6 +100,13 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(indexPath);
 });
 
+// Análisis Histórico route
+app.get('/historico', (req, res) => {
+    const historicoPath = path.join(__dirname, '../historico-demo-completo.html');
+    console.log('📈 Análisis Histórico requested, serving:', historicoPath);
+    res.sendFile(historicoPath);
+});
+
 // Default route
 app.get('/', (req, res) => {
     res.json({
@@ -110,6 +117,7 @@ app.get('/', (req, res) => {
         endpoints: {
             webhook: '/webhook',
             dashboard: '/dashboard',
+            historico: '/historico',
             health: '/health',
             api: '/api/*'
         }
@@ -403,6 +411,37 @@ bot.onText(/\/dashboard/, async (msg) => {
     }
 });
 
+// Análisis Histórico command
+bot.onText(/\/historico/, async (msg) => {
+    const chatId = msg.chat.id;
+    
+    try {
+        const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
+        
+        const keyboard = {
+            reply_markup: {
+                inline_keyboard: [[
+                    {
+                        text: "📈 Ver Análisis Histórico",
+                        web_app: { url: `${dashboardUrl}/historico` }
+                    }
+                ]]
+            }
+        };
+        
+        const message = `📈 **Análisis Histórico Disponible**\n\n¡Explora la evolución histórica con 6 perspectivas diferentes!\n\n• 🧠 Vista Inteligente\n• ⚖️ Análisis Comparativo\n• 🗺️ Mapa de Calor\n• ⏰ Evolución Temporal\n• 💡 Insights & Tendencias\n• 📱 Vista Móvil\n\n👆 Toca el botón para abrir`;
+        
+        await bot.sendMessage(chatId, message, {
+            parse_mode: 'Markdown',
+            ...keyboard
+        });
+        
+    } catch (error) {
+        console.error('Error showing histórico:', error);
+        bot.sendMessage(chatId, '❌ Error al cargar el análisis histórico. Intenta más tarde.');
+    }
+});
+
 // Basic message handler
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
@@ -439,6 +478,7 @@ bot.onText(/\/start/, async (msg) => {
     const welcomeMessage = `🤖 **¡Hola! Soy Ana, tu analista de El Pollo Loco**\n\n` +
                           `📊 **Comandos disponibles:**\n` +
                           `/dashboard - Dashboard interactivo con mapas y gráficos\n` +
+                          `/historico - Análisis histórico con 6 visualizaciones\n` +
                           `/help - Lista de comandos\n\n` +
                           `💡 **También puedes preguntarme sobre:**\n` +
                           `• Performance de grupos operativos\n` +
