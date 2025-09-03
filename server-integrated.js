@@ -141,6 +141,21 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(dashboardPath);
 });
 
+// Análisis Histórico route
+app.get('/historico', (req, res) => {
+    const historicoPath = path.join(__dirname, 'historico-demo-completo.html');
+    console.log('📈 Análisis Histórico requested, serving:', historicoPath);
+    
+    // Check if file exists
+    const fs = require('fs');
+    if (!fs.existsSync(historicoPath)) {
+        console.error('❌ File not found:', historicoPath);
+        return res.status(404).send('Análisis Histórico no disponible');
+    }
+    
+    res.sendFile(historicoPath);
+});
+
 // Dashboard redirect for easy access
 app.get('/full', (req, res) => {
     res.redirect('/dashboard');
@@ -1049,6 +1064,35 @@ app.listen(PORT, async () => {
                     await global.telegramBot.sendMessage(chatId, 'Error al mostrar información del dashboard.');
                 }
             });
+
+            // Análisis Histórico command
+            global.telegramBot.onText(/\/historico/, async (msg) => {
+                const chatId = msg.chat.id;
+                const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
+                
+                console.log(`📈 Histórico command received from chat ${chatId}`);
+                
+                try {
+                    const keyboard = {
+                        reply_markup: {
+                            inline_keyboard: [[{
+                                text: "📈 Ver Análisis Histórico",
+                                web_app: { url: `${dashboardUrl}/historico` }
+                            }]]
+                        }
+                    };
+                    
+                    await global.telegramBot.sendMessage(chatId, 
+                        '📈 **Análisis Histórico Disponible**\n\n¡Explora la evolución histórica con 6 perspectivas diferentes!\n\n• 🧠 Vista Inteligente\n• ⚖️ Análisis Comparativo\n• 🗺️ Mapa de Calor\n• ⏰ Evolución Temporal\n• 💡 Insights & Tendencias\n• 📱 Vista Móvil\n\n👆 Toca el botón para abrir',
+                        { parse_mode: 'Markdown', ...keyboard }
+                    );
+                    
+                    console.log('✅ Histórico message sent successfully');
+                } catch (error) {
+                    console.error('❌ Error sending histórico message:', error);
+                    await global.telegramBot.sendMessage(chatId, 'Error al mostrar información del análisis histórico.');
+                }
+            });
             
             // Start command with individual Menu Button setup
             global.telegramBot.onText(/\/start/, async (msg) => {
@@ -1092,10 +1136,34 @@ app.listen(PORT, async () => {
                         throw new Error(result.description);
                     }
                     
-                    await global.telegramBot.sendMessage(chatId, 
-                        `¡Hola ${userName}! Soy el bot de El Pollo Loco.\n\n📊 **Dashboard Operativo configurado:**\n• ✅ Botón azul "Dashboard" activado junto al campo de texto\n• 📱 También puedes usar /dashboard`,
-                        { parse_mode: 'Markdown' }
-                    );
+                    // Send welcome message with keyboard buttons
+                    const welcomeMessage = `🤖 **¡Hola ${userName}! Soy Ana, tu analista de El Pollo Loco**\n\n` +
+                                          `📊 **Usa los botones de abajo para navegar:**\n` +
+                                          `• Dashboard - Mapas y gráficos interactivos\n` +
+                                          `• Análisis Histórico - 6 visualizaciones diferentes\n` +
+                                          `• Ayuda - Lista de comandos\n\n` +
+                                          `💡 **También puedes preguntarme sobre:**\n` +
+                                          `• Performance de grupos operativos\n` +
+                                          `• Análisis de sucursales\n` +
+                                          `• Tendencias y comparaciones\n\n` +
+                                          `¡Pregúntame lo que necesites! 🚀`;
+                    
+                    const keyboard = {
+                        reply_markup: {
+                            keyboard: [
+                                ['📊 Dashboard', '📈 Análisis Histórico'],
+                                ['❓ Ayuda', '💬 Chat con Ana']
+                            ],
+                            resize_keyboard: true,
+                            one_time_keyboard: false,
+                            persistent: true
+                        }
+                    };
+                    
+                    await global.telegramBot.sendMessage(chatId, welcomeMessage, { 
+                        parse_mode: 'Markdown',
+                        ...keyboard 
+                    });
                 } catch (error) {
                     console.error(`❌ Error setting Menu Button for user ${userName}:`, error.message);
                     
@@ -1107,17 +1175,56 @@ app.listen(PORT, async () => {
                 }
             });
             
+            // Keyboard button handlers
+            global.telegramBot.onText(/📊 Dashboard/, async (msg) => {
+                console.log('📊 Dashboard button pressed');
+                return global.telegramBot.emit('text', msg, [null, '/dashboard']);
+            });
+
+            global.telegramBot.onText(/📈 Análisis Histórico/, async (msg) => {
+                console.log('📈 Análisis Histórico button pressed');
+                return global.telegramBot.emit('text', msg, [null, '/historico']);
+            });
+
+            global.telegramBot.onText(/❓ Ayuda/, async (msg) => {
+                const chatId = msg.chat.id;
+                const helpMessage = `📚 **Ayuda - El Pollo Loco Bot**\n\n` +
+                                   `🔹 **Botones disponibles:**\n` +
+                                   `📊 Dashboard - Mapas interactivos y gráficos\n` +
+                                   `📈 Análisis Histórico - 6 perspectivas de evolución\n` +
+                                   `❓ Ayuda - Esta información\n` +
+                                   `💬 Chat con Ana - Conversación libre\n\n` +
+                                   `🔹 **Comandos de texto:**\n` +
+                                   `/start - Mostrar menú principal\n` +
+                                   `/dashboard - Abrir dashboard\n` +
+                                   `/historico - Abrir análisis histórico\n\n` +
+                                   `💡 **También puedes preguntarme directamente sobre cualquier tema de supervisión.**`;
+                
+                await global.telegramBot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
+            });
+
+            global.telegramBot.onText(/💬 Chat con Ana/, async (msg) => {
+                const chatId = msg.chat.id;
+                await global.telegramBot.sendMessage(chatId, '💬 **Modo Chat Activado**\n\n¡Hola! Ahora puedes preguntarme cualquier cosa sobre:\n\n• Performance de grupos\n• Análisis de sucursales\n• Comparaciones y tendencias\n• Datos específicos\n\n¿En qué te puedo ayudar? 🤖');
+            });
+            
             // Basic message handler
             global.telegramBot.on('message', async (msg) => {
                 const chatId = msg.chat.id;
                 const text = msg.text || '';
                 
-                // Skip if it's a command
-                if (text.startsWith('/')) return;
+                // Skip commands and keyboard buttons
+                if (text.startsWith('/') || 
+                    text.includes('📊') || 
+                    text.includes('📈') || 
+                    text.includes('❓') || 
+                    text.includes('💬')) {
+                    return;
+                }
                 
                 // Default response
                 await global.telegramBot.sendMessage(chatId, 
-                    'Usa /dashboard para ver el dashboard interactivo o /start para más información.'
+                    'Usa los botones de abajo para navegar o pregúntame directamente sobre supervisión.'
                 );
             });
             
