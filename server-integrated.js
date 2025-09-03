@@ -1182,8 +1182,29 @@ app.listen(PORT, async () => {
             });
 
             global.telegramBot.onText(/📈 Análisis Histórico/, async (msg) => {
-                console.log('📈 Análisis Histórico button pressed');
-                return global.telegramBot.emit('text', msg, [null, '/historico']);
+                const chatId = msg.chat.id;
+                const dashboardUrl = 'https://pollo-loco-supervision.onrender.com';
+                
+                console.log('📈 Análisis Histórico button pressed - Opening WebApp directly');
+                
+                try {
+                    const keyboard = {
+                        reply_markup: {
+                            inline_keyboard: [[{
+                                text: "🚀 ABRIR ANÁLISIS HISTÓRICO 🚀",
+                                web_app: { url: `${dashboardUrl}/historico` }
+                            }]]
+                        }
+                    };
+                    
+                    await global.telegramBot.sendMessage(chatId, 
+                        '📈 **Análisis Histórico - 6 Visualizaciones**\n\n👆 **TOCA EL BOTÓN DE ABAJO PARA ABRIR** 👆',
+                        { parse_mode: 'Markdown', ...keyboard }
+                    );
+                } catch (error) {
+                    console.error('❌ Error opening histórico WebApp:', error);
+                    await global.telegramBot.sendMessage(chatId, 'Error al abrir el análisis histórico.');
+                }
             });
 
             global.telegramBot.onText(/❓ Ayuda/, async (msg) => {
