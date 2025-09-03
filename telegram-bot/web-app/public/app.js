@@ -1312,9 +1312,9 @@ async function loadHistoricoData() {
             return;
         }
         
-        // Normalizar nombres de grupos (usar "name" o "grupo_operativo")
+        // Normalizar nombres de grupos (usar "grupo_operativo" del API)
         const gruposNormalizados = grupos.map(g => ({
-            name: g.name || g.grupo_operativo || g.grupo || 'Sin nombre'
+            name: g.grupo_operativo || g.name || g.grupo || 'Sin nombre'
         }));
         console.log('📝 Grupos normalizados:', gruposNormalizados);
         
@@ -1427,8 +1427,16 @@ async function fetchHistoricoByTrimestre(grupos, trimestreData) {
             for (const periodo of periodosCAS) {
                 try {
                     // Usar el endpoint /api/grupos con filtro de periodoCas
-                    const response = await fetch(`/api/grupos?grupo=${encodeURIComponent(grupo.name)}&periodoCas=${periodo.id}`);
+                    const url = `/api/grupos?grupo=${encodeURIComponent(grupo.name)}&periodoCas=${periodo.id}`;
+                    console.log(`🔗 Fetching: ${url}`);
+                    
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+                    
                     const data = await response.json();
+                    console.log(`📦 Response for ${grupo.name} ${periodo.id}:`, data);
                     
                     if (data && data.length > 0 && data[0].promedio !== null) {
                         const performance = parseFloat(data[0].promedio);
@@ -1515,6 +1523,13 @@ function updateHistoricoChart(trendsData, grupos) {
     // Destruir chart anterior si existe
     if (window.trendsChart) {
         window.trendsChart.destroy();
+        window.trendsChart = null;
+    }
+    
+    // También destruir el chart del dashboard si existe
+    if (dashboard && dashboard.charts && dashboard.charts.tendencias) {
+        dashboard.charts.tendencias.destroy();
+        dashboard.charts.tendencias = null;
     }
     
     // Colores para cada grupo
@@ -1603,7 +1618,8 @@ function updateHistoricoChart(trendsData, grupos) {
     
     console.log(`📊 Escala dinámica: ${suggestedMin}% - ${suggestedMax}% (datos: ${minValue.toFixed(1)}% - ${maxValue.toFixed(1)}%)`);
     
-    window.trendsChart = new Chart(ctx, {
+    try {
+        window.trendsChart = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
@@ -1695,6 +1711,18 @@ function updateHistoricoChart(trendsData, grupos) {
             }
         }
     });
+        
+        console.log('✅ Gráfica histórica creada exitosamente');
+        
+    } catch (error) {
+        console.error('❌ Error creando gráfica histórica:', error);
+        // Intentar limpiar cualquier chart residual
+        const chartStatus = Chart.getChart('tendenciasChart');
+        if (chartStatus) {
+            chartStatus.destroy();
+        }
+        throw error; // Re-lanzar para que lo maneje el caller
+    }
 }
 
 // =====================================================
