@@ -104,6 +104,14 @@ app.get('/dashboard', (req, res) => {
 app.get('/historico', (req, res) => {
     const historicoPath = path.join(__dirname, '../historico-demo-completo.html');
     console.log('📈 Análisis Histórico requested, serving:', historicoPath);
+    
+    // Check if file exists
+    const fs = require('fs');
+    if (!fs.existsSync(historicoPath)) {
+        console.error('❌ File not found:', historicoPath);
+        return res.status(404).send('Análisis Histórico no disponible');
+    }
+    
     res.sendFile(historicoPath);
 });
 
