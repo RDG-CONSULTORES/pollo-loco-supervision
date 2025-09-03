@@ -442,13 +442,52 @@ bot.onText(/\/historico/, async (msg) => {
     }
 });
 
+// Keyboard button handlers
+bot.onText(/📊 Dashboard/, async (msg) => {
+    console.log('📊 Dashboard button pressed');
+    return bot.emit('text', msg, [null, '/dashboard']);
+});
+
+bot.onText(/📈 Análisis Histórico/, async (msg) => {
+    console.log('📈 Análisis Histórico button pressed');
+    return bot.emit('text', msg, [null, '/historico']);
+});
+
+bot.onText(/❓ Ayuda/, async (msg) => {
+    const chatId = msg.chat.id;
+    const helpMessage = `📚 **Ayuda - El Pollo Loco Bot**\n\n` +
+                       `🔹 **Botones disponibles:**\n` +
+                       `📊 Dashboard - Mapas interactivos y gráficos\n` +
+                       `📈 Análisis Histórico - 6 perspectivas de evolución\n` +
+                       `❓ Ayuda - Esta información\n` +
+                       `💬 Chat con Ana - Conversación libre\n\n` +
+                       `🔹 **Comandos de texto:**\n` +
+                       `/start - Mostrar menú principal\n` +
+                       `/dashboard - Abrir dashboard\n` +
+                       `/historico - Abrir análisis histórico\n\n` +
+                       `💡 **También puedes preguntarme directamente sobre cualquier tema de supervisión.**`;
+    
+    await bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
+});
+
+bot.onText(/💬 Chat con Ana/, async (msg) => {
+    const chatId = msg.chat.id;
+    await bot.sendMessage(chatId, '💬 **Modo Chat Activado**\n\n¡Hola! Ahora puedes preguntarme cualquier cosa sobre:\n\n• Performance de grupos\n• Análisis de sucursales\n• Comparaciones y tendencias\n• Datos específicos\n\n¿En qué te puedo ayudar? 🤖');
+});
+
 // Basic message handler
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const messageText = msg.text || '';
     
-    // Skip commands
-    if (messageText.startsWith('/')) return;
+    // Skip commands and keyboard buttons
+    if (messageText.startsWith('/') || 
+        messageText.includes('📊') || 
+        messageText.includes('📈') || 
+        messageText.includes('❓') || 
+        messageText.includes('💬')) {
+        return;
+    }
     
     try {
         // Check for dashboard triggers
@@ -462,7 +501,7 @@ bot.on('message', async (msg) => {
             const response = await ana.processMessage(messageText, chatId);
             await bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
         } else {
-            await bot.sendMessage(chatId, '🤖 Hola! Usa /dashboard para ver datos interactivos o /help para comandos disponibles.');
+            await bot.sendMessage(chatId, '🤖 Hola! Usa los botones de abajo para navegar o pregúntame directamente.');
         }
         
     } catch (error) {
@@ -476,17 +515,32 @@ bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     
     const welcomeMessage = `🤖 **¡Hola! Soy Ana, tu analista de El Pollo Loco**\n\n` +
-                          `📊 **Comandos disponibles:**\n` +
-                          `/dashboard - Dashboard interactivo con mapas y gráficos\n` +
-                          `/historico - Análisis histórico con 6 visualizaciones\n` +
-                          `/help - Lista de comandos\n\n` +
+                          `📊 **Usa los botones de abajo para navegar:**\n` +
+                          `• Dashboard - Mapas y gráficos interactivos\n` +
+                          `• Análisis Histórico - 6 visualizaciones diferentes\n` +
+                          `• Ayuda - Lista de comandos\n\n` +
                           `💡 **También puedes preguntarme sobre:**\n` +
                           `• Performance de grupos operativos\n` +
                           `• Análisis de sucursales\n` +
                           `• Tendencias y comparaciones\n\n` +
                           `¡Pregúntame lo que necesites! 🚀`;
     
-    await bot.sendMessage(chatId, welcomeMessage, { parse_mode: 'Markdown' });
+    const keyboard = {
+        reply_markup: {
+            keyboard: [
+                ['📊 Dashboard', '📈 Análisis Histórico'],
+                ['❓ Ayuda', '💬 Chat con Ana']
+            ],
+            resize_keyboard: true,
+            one_time_keyboard: false,
+            persistent: true
+        }
+    };
+    
+    await bot.sendMessage(chatId, welcomeMessage, { 
+        parse_mode: 'Markdown',
+        ...keyboard 
+    });
 });
 
 // =====================================================
