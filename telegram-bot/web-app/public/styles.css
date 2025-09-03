@@ -548,15 +548,52 @@ body {
     }
     
     .chart-container {
-        height: 300px; /* Altura más pequeña para mobile */
+        height: clamp(250px, 45vh, 350px); /* Altura dinámica */
+        padding: 15px 5px;
     }
     
     .chart-container canvas {
-        max-height: 250px !important;
+        max-height: calc(45vh - 60px) !important;
     }
     
     .chart-container h3 {
         font-size: 1.2rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Controles histórico más touch-friendly */
+    .historico-controls {
+        padding: 15px 10px !important;
+        margin: 15px 0 !important;
+    }
+    
+    .historico-controls label {
+        font-size: 14px !important;
+        touch-action: manipulation;
+        min-height: 44px; /* Área táctil mínima */
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    .historico-controls input[type="checkbox"] {
+        width: 20px !important;
+        height: 20px !important;
+        margin-right: 10px !important;
+    }
+    
+    .historico-controls button {
+        min-height: 44px !important;
+        padding: 10px 15px !important;
+        font-size: 14px !important;
+        touch-action: manipulation;
+    }
+    
+    .grupos-selector {
+        margin-top: 15px;
+    }
+    
+    #gruposCheckboxes {
+        gap: 10px !important;
     }
     
     .modal-content {
@@ -579,6 +616,45 @@ body {
     
     .kpi-content h3 {
         font-size: 1.8rem;
+    }
+    
+    /* Chart más compacto en móviles pequeños */
+    .chart-container {
+        height: clamp(200px, 35vh, 280px) !important;
+        padding: 10px 2px;
+    }
+    
+    .chart-container h3 {
+        font-size: 1rem;
+        margin-bottom: 10px;
+    }
+    
+    /* Controles histórico ultra-compactos */
+    .historico-controls {
+        padding: 10px 5px !important;
+        font-size: 13px;
+    }
+    
+    .historico-controls h4 {
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+    }
+    
+    #gruposCheckboxes {
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+    
+    .historico-controls label {
+        font-size: 13px !important;
+        min-height: 40px !important;
+    }
+    
+    .historico-controls button {
+        min-height: 40px !important;
+        padding: 8px 12px !important;
+        font-size: 13px !important;
+        margin-right: 8px !important;
     }
     
     .map-container {

@@ -1319,34 +1319,49 @@ function createGruposCheckboxes(grupos) {
     });
 }
 
-// Obtener datos históricos por trimestre para cada grupo
+// Obtener datos históricos por períodos CAS para cada grupo
 async function fetchHistoricoByTrimestre(grupos, trimestreData) {
     try {
         const historicoData = {};
-        const quarters = ['Q1 2025', 'Q2 2025', 'Q3 2025'];
+        
+        // Períodos CAS reales en orden cronológico
+        const periodosCAS = [
+            { id: 'nl_t1', label: 'NL-T1', nombre: 'NL-T1 (Mar-Abr)', fecha: '2025-03-12' },
+            { id: 'for_s1', label: 'FOR-S1', nombre: 'FOR-S1 (Abr-Jun)', fecha: '2025-04-10' },
+            { id: 'nl_t2', label: 'NL-T2', nombre: 'NL-T2 (Jun-Ago)', fecha: '2025-06-11' },
+            { id: 'for_s2', label: 'FOR-S2', nombre: 'FOR-S2 (Jul-Ago)', fecha: '2025-07-30' },
+            { id: 'nl_t3', label: 'NL-T3', nombre: 'NL-T3 (Ago-Act)', fecha: '2025-08-19' }
+        ];
+        
         let totalEPL = 0;
         let countEPL = 0;
         
-        // Para cada grupo, obtener su performance por trimestre
+        console.log('📊 Obteniendo datos históricos por períodos CAS...');
+        
+        // Para cada grupo, obtener su performance por período CAS
         for (const grupo of grupos) {
             const grupoData = [];
             
-            for (let q = 1; q <= 3; q++) {
+            console.log(`📈 Procesando grupo: ${grupo.name}`);
+            
+            for (const periodo of periodosCAS) {
                 try {
-                    // Usar el endpoint /api/grupos con filtro de trimestre
-                    const response = await fetch(`/api/grupos?grupo=${encodeURIComponent(grupo.name)}&trimestre=${q}`);
+                    // Usar el endpoint /api/grupos con filtro de periodoCas
+                    const response = await fetch(`/api/grupos?grupo=${encodeURIComponent(grupo.name)}&periodoCas=${periodo.id}`);
                     const data = await response.json();
                     
-                    if (data && data.length > 0) {
+                    if (data && data.length > 0 && data[0].promedio !== null) {
                         const performance = parseFloat(data[0].promedio);
                         grupoData.push(performance);
                         totalEPL += performance;
                         countEPL++;
+                        console.log(`✅ ${grupo.name} ${periodo.label}: ${performance}%`);
                     } else {
-                        grupoData.push(null); // Sin datos para este trimestre
+                        grupoData.push(null); // Sin datos para este período
+                        console.log(`⚪ ${grupo.name} ${periodo.label}: Sin datos`);
                     }
                 } catch (error) {
-                    console.error(`Error fetching data for ${grupo.name} Q${q}:`, error);
+                    console.error(`❌ Error fetching data for ${grupo.name} ${periodo.id}:`, error);
                     grupoData.push(null);
                 }
             }
@@ -1354,20 +1369,34 @@ async function fetchHistoricoByTrimestre(grupos, trimestreData) {
             historicoData[grupo.name] = grupoData;
         }
         
-        // Calcular promedio EPL real
-        const promedioEPLReal = countEPL > 0 ? (totalEPL / countEPL).toFixed(1) : 85.7;
-        historicoData['Promedio EPL'] = [promedioEPLReal, promedioEPLReal, promedioEPLReal];
+        // Calcular promedio EPL real de todos los datos disponibles
+        const promedioEPLReal = countEPL > 0 ? parseFloat((totalEPL / countEPL).toFixed(1)) : 85.7;
+        historicoData['Promedio EPL'] = Array(periodosCAS.length).fill(promedioEPLReal);
+        
+        console.log(`📊 Promedio EPL calculado: ${promedioEPLReal}% (basado en ${countEPL} datos)`);
+        
+        // Guardar períodos para uso en el chart
+        historicoData._periodos = periodosCAS;
         
         return historicoData;
         
     } catch (error) {
-        console.error('Error in fetchHistoricoByTrimestre:', error);
+        console.error('❌ Error in fetchHistoricoByTrimestre:', error);
         // Fallback con datos vacíos
         const fallback = {};
+        const periodosFallback = [
+            { id: 'nl_t1', label: 'NL-T1', nombre: 'NL-T1 (Mar-Abr)' },
+            { id: 'for_s1', label: 'FOR-S1', nombre: 'FOR-S1 (Abr-Jun)' },
+            { id: 'nl_t2', label: 'NL-T2', nombre: 'NL-T2 (Jun-Ago)' },
+            { id: 'for_s2', label: 'FOR-S2', nombre: 'FOR-S2 (Jul-Ago)' },
+            { id: 'nl_t3', label: 'NL-T3', nombre: 'NL-T3 (Ago-Act)' }
+        ];
+        
         grupos.forEach(grupo => {
-            fallback[grupo.name] = [null, null, null];
+            fallback[grupo.name] = Array(periodosFallback.length).fill(null);
         });
-        fallback['Promedio EPL'] = [85.7, 85.7, 85.7];
+        fallback['Promedio EPL'] = Array(periodosFallback.length).fill(85.7);
+        fallback._periodos = periodosFallback;
         return fallback;
     }
 }
@@ -1422,16 +1451,29 @@ function updateHistoricoChart(trendsData, grupos) {
         '#95A5A6'  // Gris
     ];
     
+    // Obtener períodos de los datos o usar fallback
+    const periodos = trendsData._periodos || [
+        { label: 'NL-T1', nombre: 'NL-T1 (Mar-Abr)' },
+        { label: 'FOR-S1', nombre: 'FOR-S1 (Abr-Jun)' },
+        { label: 'NL-T2', nombre: 'NL-T2 (Jun-Ago)' },
+        { label: 'FOR-S2', nombre: 'FOR-S2 (Jul-Ago)' },
+        { label: 'NL-T3', nombre: 'NL-T3 (Ago-Act)' }
+    ];
+    
+    const labels = periodos.map(p => p.label);
+    
     // Crear datasets con datos reales
     const datasets = [];
     let colorIndex = 0;
+    const allValues = []; // Para calcular escala dinámica
     
     // Agregar cada grupo operativo real
     grupos.forEach(grupo => {
         if (trendsData[grupo.name]) {
+            const data = trendsData[grupo.name];
             datasets.push({
                 label: grupo.name,
-                data: trendsData[grupo.name],
+                data: data,
                 borderColor: colors[colorIndex % colors.length],
                 backgroundColor: colors[colorIndex % colors.length] + '20',
                 tension: 0.3,
@@ -1440,16 +1482,24 @@ function updateHistoricoChart(trendsData, grupos) {
                 pointHoverRadius: 7,
                 spanGaps: false
             });
+            
+            // Recopilar valores no nulos para escala
+            data.forEach(value => {
+                if (value !== null && value !== undefined) {
+                    allValues.push(parseFloat(value));
+                }
+            });
+            
             colorIndex++;
         }
     });
     
     // Agregar línea de promedio EPL real
     if (trendsData['Promedio EPL']) {
-        const promedioEPLReal = trendsData['Promedio EPL'][0]; // Todos los trimestres tienen el mismo promedio
+        const promedioEPLData = trendsData['Promedio EPL'];
         datasets.push({
             label: 'Promedio EPL',
-            data: [promedioEPLReal, promedioEPLReal, promedioEPLReal],
+            data: promedioEPLData,
             borderColor: '#E74C3C',
             borderDash: [5, 5],
             borderWidth: 2,
@@ -1457,12 +1507,26 @@ function updateHistoricoChart(trendsData, grupos) {
             fill: false,
             tension: 0
         });
+        
+        // Agregar promedio a valores para escala
+        if (promedioEPLData[0] !== null) {
+            allValues.push(parseFloat(promedioEPLData[0]));
+        }
     }
+    
+    // Calcular escala dinámica
+    const minValue = allValues.length > 0 ? Math.min(...allValues) : 75;
+    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 95;
+    const padding = 5;
+    const suggestedMin = Math.max(0, Math.floor(minValue - padding));
+    const suggestedMax = Math.ceil(maxValue + padding);
+    
+    console.log(`📊 Escala dinámica: ${suggestedMin}% - ${suggestedMax}% (datos: ${minValue.toFixed(1)}% - ${maxValue.toFixed(1)}%)`);
     
     window.trendsChart = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ['Q1 2025', 'Q2 2025', 'Q3 2025'],
+            labels: labels,
             datasets: datasets
         },
         options: {
@@ -1475,21 +1539,29 @@ function updateHistoricoChart(trendsData, grupos) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Evolución Histórica por Trimestre - Performance CAS',
-                    font: { size: 16, weight: 'bold' },
-                    padding: 20
+                    text: 'Evolución Histórica por Período CAS - Performance',
+                    font: { 
+                        size: window.innerWidth < 768 ? 14 : 16, 
+                        weight: 'bold' 
+                    },
+                    padding: window.innerWidth < 768 ? 10 : 20
                 },
                 legend: {
                     display: true,
-                    position: 'bottom',
+                    position: window.innerWidth < 768 ? 'top' : 'bottom',
                     labels: {
-                        padding: 20,
+                        padding: window.innerWidth < 768 ? 10 : 20,
                         usePointStyle: true,
-                        font: { size: 12 }
+                        font: { size: window.innerWidth < 768 ? 10 : 12 },
+                        boxWidth: window.innerWidth < 768 ? 15 : 20
                     }
                 },
                 tooltip: {
                     callbacks: {
+                        title: function(context) {
+                            const periodo = periodos[context[0].dataIndex];
+                            return periodo ? periodo.nombre : context[0].label;
+                        },
                         label: function(context) {
                             let label = context.dataset.label || '';
                             if (label) {
@@ -1497,6 +1569,8 @@ function updateHistoricoChart(trendsData, grupos) {
                             }
                             if (context.parsed.y !== null) {
                                 label += context.parsed.y.toFixed(1) + '%';
+                            } else {
+                                label += 'Sin datos';
                             }
                             return label;
                         }
@@ -1506,31 +1580,36 @@ function updateHistoricoChart(trendsData, grupos) {
             scales: {
                 y: {
                     beginAtZero: false,
-                    min: 75,
-                    max: 95,
+                    suggestedMin: suggestedMin,
+                    suggestedMax: suggestedMax,
                     ticks: {
-                        stepSize: 5,
+                        stepSize: Math.max(1, Math.ceil((suggestedMax - suggestedMin) / 8)),
                         callback: function(value) {
                             return value + '%';
-                        }
+                        },
+                        font: { size: window.innerWidth < 768 ? 10 : 12 }
                     },
                     grid: {
                         color: '#e0e0e0'
                     },
                     title: {
-                        display: true,
+                        display: window.innerWidth >= 768,
                         text: 'Performance (%)',
-                        font: { size: 14 }
+                        font: { size: window.innerWidth < 768 ? 12 : 14 }
                     }
                 },
                 x: {
                     grid: {
                         display: false
                     },
+                    ticks: {
+                        font: { size: window.innerWidth < 768 ? 10 : 12 },
+                        maxRotation: window.innerWidth < 768 ? 45 : 0
+                    },
                     title: {
-                        display: true,
-                        text: 'Período',
-                        font: { size: 14 }
+                        display: window.innerWidth >= 768,
+                        text: 'Período CAS 2025',
+                        font: { size: window.innerWidth < 768 ? 12 : 14 }
                     }
                 }
             }
