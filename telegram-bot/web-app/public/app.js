@@ -1071,8 +1071,11 @@ class ElPolloLocoDashboard {
         
         // Special handling for tendencias (histórico) tab
         if (tabName === 'tendencias') {
+            console.log('🎯 Activando tab Histórico - cargando datos CAS...');
             // Llamar a la nueva función de histórico
-            loadHistoricoData();
+            setTimeout(() => {
+                loadHistoricoData();
+            }, 100); // Pequeño delay para asegurar que el tab esté visible
         }
     }
 
@@ -1267,31 +1270,108 @@ let historicoChart = null;
 
 // Función para cargar datos históricos
 async function loadHistoricoData() {
+    console.log('📊 === INICIANDO CARGA DE DATOS HISTÓRICOS ===');
+    
+    // Verificar que el dashboard existe
+    if (!dashboard) {
+        console.error('❌ Dashboard no está inicializado');
+        return;
+    }
+    
     dashboard.showLoading();
     
     try {
+        // Verificar conectividad básica
+        console.log('🔗 Verificando conectividad API...');
+        
         // Obtener datos reales de trimestres
+        console.log('📅 Obteniendo datos de trimestres...');
         const trimestreResponse = await fetch('/api/trimestres');
+        if (!trimestreResponse.ok) {
+            throw new Error(`API trimestres falló: ${trimestreResponse.status}`);
+        }
         const trimestreData = await trimestreResponse.json();
+        console.log('✅ Trimestres obtenidos:', trimestreData);
         
         // Obtener lista de grupos reales
+        console.log('👥 Obteniendo lista de grupos...');
         const gruposResponse = await fetch('/api/grupos');
+        if (!gruposResponse.ok) {
+            throw new Error(`API grupos falló: ${gruposResponse.status}`);
+        }
         const grupos = await gruposResponse.json();
+        console.log('✅ Grupos obtenidos:', grupos);
+        
+        if (!grupos || grupos.length === 0) {
+            console.warn('⚠️ No se encontraron grupos - usando fallback');
+            const gruposFallback = [
+                { name: 'OGAS' }, { name: 'TEPEYAC' }, { name: 'RAP' }, { name: 'CRR' }, { name: 'EXPO' }
+            ];
+            createGruposCheckboxes(gruposFallback);
+            updateHistoricoChart({ _periodos: [] }, gruposFallback);
+            return;
+        }
+        
+        // Normalizar nombres de grupos (usar "name" o "grupo_operativo")
+        const gruposNormalizados = grupos.map(g => ({
+            name: g.name || g.grupo_operativo || g.grupo || 'Sin nombre'
+        }));
+        console.log('📝 Grupos normalizados:', gruposNormalizados);
         
         // Crear checkboxes de grupos reales
-        createGruposCheckboxes(grupos);
+        console.log('☑️ Creando checkboxes de grupos...');
+        createGruposCheckboxes(gruposNormalizados);
         
-        // Obtener datos históricos por trimestre para cada grupo
-        const historicoData = await fetchHistoricoByTrimestre(grupos, trimestreData);
+        // Obtener datos históricos por período CAS para cada grupo
+        console.log('📈 Obteniendo datos históricos por período CAS...');
+        const historicoData = await fetchHistoricoByTrimestre(gruposNormalizados, trimestreData);
+        console.log('✅ Datos históricos obtenidos:', historicoData);
+        
+        // Verificar que tenemos datos para graficar
+        const hasData = Object.keys(historicoData).some(key => 
+            key !== '_periodos' && historicoData[key] && 
+            historicoData[key].some(value => value !== null)
+        );
+        
+        if (!hasData) {
+            console.warn('⚠️ No hay datos válidos para graficar');
+        }
         
         // Actualizar gráfica con datos reales
-        updateHistoricoChart(historicoData, grupos);
+        console.log('📊 Actualizando gráfica histórica...');
+        updateHistoricoChart(historicoData, gruposNormalizados);
         
-        // Actualizar cards existentes
-        dashboard.updateTrendCards();
+        // Actualizar cards existentes si el dashboard lo soporta
+        if (dashboard.updateTrendCards) {
+            console.log('📋 Actualizando cards de tendencias...');
+            dashboard.updateTrendCards();
+        }
+        
+        console.log('✅ === DATOS HISTÓRICOS CARGADOS EXITOSAMENTE ===');
         
     } catch (error) {
-        console.error('Error loading historico:', error);
+        console.error('❌ === ERROR CARGANDO HISTÓRICO ===');
+        console.error('Error details:', error);
+        console.error('Stack:', error.stack);
+        
+        // Mostrar en UI si es posible
+        const chartContainer = document.getElementById('tendenciasChart');
+        if (chartContainer && chartContainer.parentElement) {
+            const errorDiv = document.createElement('div');
+            errorDiv.innerHTML = `
+                <div style="text-align: center; padding: 20px; color: #e74c3c;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Error cargando datos históricos</h4>
+                    <p>Revisa la consola para más detalles</p>
+                    <button onclick="window.debugFunctions.forceLoadHistorico()" 
+                            style="padding: 8px 16px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        Reintentar
+                    </button>
+                </div>
+            `;
+            chartContainer.parentElement.appendChild(errorDiv);
+        }
+        
     } finally {
         dashboard.hideLoading();
     }
@@ -1631,4 +1711,85 @@ document.addEventListener('DOMContentLoaded', () => {
 if (window.Telegram && window.Telegram.WebApp) {
     window.Telegram.WebApp.ready();
     console.log('📱 Telegram WebApp initialized');
+}
+
+// =====================================================
+// FUNCIONES DE DEBUG Y TESTING
+// =====================================================
+
+// Función para probar endpoints de API
+async function testApiEndpoints() {
+    console.log('🧪 Iniciando test de endpoints API...');
+    
+    const endpoints = [
+        '/api/grupos',
+        '/api/trimestres',
+        '/api/kpis'
+    ];
+    
+    for (const endpoint of endpoints) {
+        try {
+            const response = await fetch(endpoint);
+            const data = await response.json();
+            console.log(`✅ ${endpoint}:`, data);
+        } catch (error) {
+            console.error(`❌ ${endpoint}:`, error);
+        }
+    }
+}
+
+// Función para probar datos específicos de períodos CAS
+async function testPeriodosCAS() {
+    console.log('🧪 Probando períodos CAS específicos...');
+    
+    const periodos = ['nl_t1', 'for_s1', 'nl_t2', 'for_s2', 'nl_t3'];
+    const grupos = ['OGAS', 'TEPEYAC', 'RAP', 'CRR', 'EXPO'];
+    
+    for (const periodo of periodos) {
+        for (const grupo of grupos) {
+            try {
+                const response = await fetch(`/api/grupos?grupo=${encodeURIComponent(grupo)}&periodoCas=${periodo}`);
+                const data = await response.json();
+                if (data && data.length > 0 && data[0].promedio !== null) {
+                    console.log(`✅ ${grupo} ${periodo}: ${data[0].promedio}%`);
+                } else {
+                    console.log(`⚪ ${grupo} ${periodo}: Sin datos`);
+                }
+            } catch (error) {
+                console.error(`❌ ${grupo} ${periodo}:`, error);
+            }
+        }
+    }
+}
+
+// Función para forzar carga del histórico (debugging)
+async function forceLoadHistorico() {
+    console.log('🔄 Forzando carga del histórico para debugging...');
+    
+    try {
+        await loadHistoricoData();
+        console.log('✅ Histórico cargado exitosamente');
+    } catch (error) {
+        console.error('❌ Error cargando histórico:', error);
+    }
+}
+
+// Exponer funciones al objeto window para debugging
+window.debugFunctions = {
+    testApiEndpoints,
+    testPeriodosCAS,
+    forceLoadHistorico
+};
+
+console.log('🛠️ Funciones de debug disponibles en window.debugFunctions');
+console.log('💡 Ejemplo: window.debugFunctions.testApiEndpoints()');
+console.log('💡 Ejemplo: window.debugFunctions.testPeriodosCAS()');
+console.log('💡 Ejemplo: window.debugFunctions.forceLoadHistorico()');
+
+// Auto-test al cargar la página (opcional)
+if (window.location.search.includes('debug=true')) {
+    setTimeout(() => {
+        console.log('🚀 Auto-ejecutando tests por parámetro debug=true...');
+        testApiEndpoints();
+    }, 2000);
 }
