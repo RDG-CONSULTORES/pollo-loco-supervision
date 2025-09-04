@@ -96,6 +96,330 @@ app.use(express.json());
 app.use('/dashboard-static', express.static(path.join(__dirname, 'telegram-bot/web-app/public')));
 app.use(express.static(path.join(__dirname, 'telegram-bot/web-app/public')));
 
+// Serve the main dashboard file
+app.get('/historico-v2.html', (req, res) => {
+    res.sendFile(path.join(__dirname, 'historico-v2.html'));
+});
+
+// ==================================================
+// API ENDPOINTS FOR HISTÓRICO-V2.HTML DASHBOARD
+// ==================================================
+
+// API: Historical performance data with group filtering
+app.get('/api/historical-performance/:groupId?', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const { groupId } = req.params;
+    const { dateRange = '3months', area = 'all' } = req.query;
+
+    // Build date filter
+    let dateFilter = '';
+    const now = new Date();
+    switch (dateRange) {
+      case '1month':
+        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).toISOString()}'`;
+        break;
+      case '3months':
+        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString()}'`;
+        break;
+      case '6months':
+        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()).toISOString()}'`;
+        break;
+      case 'year':
+        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString()}'`;
+        break;
+      default:
+        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString()}'`;
+    }
+
+    // Build group filter
+    let groupFilter = '';
+    if (groupId && groupId !== 'all') {
+      groupFilter = `AND grupo_operativo_limpio = $1`;
+    }
+
+    // Build area filter
+    let areaFilter = '';
+    if (area && area !== 'all') {
+      areaFilter = area === 'general' 
+        ? `AND (area_evaluacion = '' OR area_evaluacion IS NULL)`
+        : `AND area_evaluacion = '${area}'`;
+    }
+
+    const query = `
+      SELECT 
+        DATE_TRUNC('week', fecha_supervision) as fecha,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
+        COUNT(DISTINCT location_name) as sucursales_evaluadas,
+        COUNT(*) as total_evaluaciones,
+        grupo_operativo_limpio as grupo
+      FROM supervision_operativa_clean
+      WHERE porcentaje IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+        ${dateFilter}
+        ${groupFilter}
+        ${areaFilter}
+      GROUP BY DATE_TRUNC('week', fecha_supervision), grupo_operativo_limpio
+      ORDER BY fecha ASC
+    `;
+
+    const params = groupId && groupId !== 'all' ? [groupId] : [];
+    const result = await pool.query(query, params);
+
+    // Transform data for Chart.js format
+    const chartData = {
+      labels: [],
+      datasets: []
+    };
+
+    if (result.rows.length > 0) {
+      // Get unique dates and groups
+      const dates = [...new Set(result.rows.map(row => row.fecha.toISOString().split('T')[0]))];
+      const groups = [...new Set(result.rows.map(row => row.grupo))];
+
+      chartData.labels = dates;
+
+      // EPL colors
+      const colors = ['#D03B34', '#FFED00', '#F18523', '#6C109F'];
+
+      groups.forEach((group, index) => {
+        const groupData = dates.map(date => {
+          const match = result.rows.find(row => 
+            row.fecha.toISOString().split('T')[0] === date && row.grupo === group
+          );
+          return match ? parseFloat(match.promedio_performance) : null;
+        });
+
+        chartData.datasets.push({
+          label: group,
+          data: groupData,
+          borderColor: colors[index % colors.length],
+          backgroundColor: colors[index % colors.length] + '20',
+          borderWidth: 2,
+          fill: false,
+          spanGaps: true
+        });
+      });
+    }
+
+    res.json({
+      success: true,
+      data: chartData,
+      metadata: {
+        totalEvaluations: result.rows.reduce((sum, row) => sum + parseInt(row.total_evaluaciones), 0),
+        dateRange,
+        groupFilter: groupId || 'all',
+        areaFilter: area || 'all'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Historical Performance API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching historical data',
+      details: error.message 
+    });
+  }
+});
+
+// API: Get operational groups for slider
+app.get('/api/operational-groups', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        grupo_operativo_limpio as name,
+        COUNT(DISTINCT location_name) as total_sucursales,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
+        COUNT(*) as total_evaluaciones
+      FROM supervision_operativa_clean
+      WHERE grupo_operativo_limpio IS NOT NULL
+        AND porcentaje IS NOT NULL
+        AND fecha_supervision >= NOW() - INTERVAL '3 months'
+      GROUP BY grupo_operativo_limpio
+      ORDER BY promedio_performance DESC
+    `;
+
+    const result = await pool.query(query);
+    
+    // Map to match the expected format from grupo-operativo-sucursales-mapping.json
+    const groups = result.rows.map((row, index) => {
+      // EPL colors rotation
+      const colors = ['#D03B34', '#FFED00', '#F18523', '#6C109F'];
+      return {
+        id: row.name,
+        name: row.name,
+        color: colors[index % colors.length],
+        totalSucursales: row.total_sucursales,
+        promedioPerformance: row.promedio_performance,
+        totalEvaluaciones: row.total_evaluaciones
+      };
+    });
+
+    res.json({
+      success: true,
+      data: groups
+    });
+
+  } catch (error) {
+    console.error('❌ Operational Groups API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching operational groups',
+      details: error.message 
+    });
+  }
+});
+
+// API: Heatmap data for geographic visualization
+app.get('/api/heatmap-data/:groupId?', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const { groupId } = req.params;
+    let groupFilter = '';
+    
+    if (groupId && groupId !== 'all') {
+      groupFilter = `AND grupo_operativo_limpio = $1`;
+    }
+
+    const query = `
+      SELECT 
+        location_name,
+        estado_normalizado as estado,
+        municipio,
+        latitud::numeric as lat,
+        longitud::numeric as lng,
+        grupo_operativo_limpio as grupo,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
+        COUNT(*) as total_evaluaciones,
+        CASE 
+          WHEN AVG(porcentaje) >= 90 THEN 'excellent'
+          WHEN AVG(porcentaje) >= 80 THEN 'good'
+          WHEN AVG(porcentaje) >= 70 THEN 'warning'
+          ELSE 'critical'
+        END as status_level
+      FROM supervision_operativa_clean
+      WHERE latitud IS NOT NULL 
+        AND longitud IS NOT NULL 
+        AND porcentaje IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+        AND fecha_supervision >= NOW() - INTERVAL '3 months'
+        ${groupFilter}
+      GROUP BY location_name, estado_normalizado, municipio, latitud, longitud, grupo_operativo_limpio
+      ORDER BY promedio_performance DESC
+    `;
+
+    const params = groupId && groupId !== 'all' ? [groupId] : [];
+    const result = await pool.query(query, params);
+
+    // Transform for heatmap visualization
+    const heatmapData = result.rows.map(row => ({
+      location: row.location_name,
+      coordinates: [parseFloat(row.lat), parseFloat(row.lng)],
+      performance: parseFloat(row.promedio_performance),
+      grupo: row.grupo,
+      estado: row.estado,
+      municipio: row.municipio,
+      evaluaciones: row.total_evaluaciones,
+      status: row.status_level,
+      // Intensity for heatmap (normalized 0-1)
+      intensity: Math.max(0.1, parseFloat(row.promedio_performance) / 100)
+    }));
+
+    res.json({
+      success: true,
+      data: heatmapData,
+      metadata: {
+        totalLocations: heatmapData.length,
+        groupFilter: groupId || 'all',
+        avgPerformance: heatmapData.length > 0 
+          ? (heatmapData.reduce((sum, item) => sum + item.performance, 0) / heatmapData.length).toFixed(2)
+          : 0
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Heatmap API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching heatmap data',
+      details: error.message 
+    });
+  }
+});
+
+// API: Performance areas for analysis
+app.get('/api/performance-areas/:groupId?', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const { groupId } = req.params;
+    let groupFilter = '';
+    
+    if (groupId && groupId !== 'all') {
+      groupFilter = `AND grupo_operativo_limpio = $1`;
+    }
+
+    const query = `
+      SELECT 
+        area_evaluacion,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
+        COUNT(*) as total_evaluaciones,
+        COUNT(DISTINCT location_name) as sucursales_evaluadas,
+        ROUND(MIN(porcentaje)::numeric, 2) as min_performance,
+        ROUND(MAX(porcentaje)::numeric, 2) as max_performance
+      FROM supervision_operativa_clean
+      WHERE area_evaluacion IS NOT NULL 
+        AND area_evaluacion != ''
+        AND area_evaluacion NOT LIKE '%PUNTOS%'
+        AND porcentaje IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+        AND fecha_supervision >= NOW() - INTERVAL '3 months'
+        ${groupFilter}
+      GROUP BY area_evaluacion
+      ORDER BY promedio_performance DESC
+      LIMIT 20
+    `;
+
+    const params = groupId && groupId !== 'all' ? [groupId] : [];
+    const result = await pool.query(query, params);
+
+    res.json({
+      success: true,
+      data: result.rows.map(row => ({
+        area: row.area_evaluacion,
+        promedio: parseFloat(row.promedio_performance),
+        evaluaciones: row.total_evaluaciones,
+        sucursales: row.sucursales_evaluadas,
+        rango: {
+          min: parseFloat(row.min_performance),
+          max: parseFloat(row.max_performance)
+        }
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Performance Areas API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching performance areas',
+      details: error.message 
+    });
+  }
+});
+
 // Serve design showcase and variants
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'design-showcase.html'));
