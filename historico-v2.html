@@ -631,62 +631,121 @@
                 this.heatmapChart.destroy();
             }
 
-            // Sample data for heatmap (will be replaced with real data)
-            const grupos = Object.keys(this.data.grupos);
-            const promedios = grupos.map(grupo => {
-                const valores = this.data.grupos[grupo].filter(v => v !== null);
-                return valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
-            });
+            // Use real heatmap data if available, otherwise fallback to sample data
+            if (this.heatmapData && this.heatmapData.length > 0) {
+                // Real heatmap data from API
+                const locations = this.heatmapData.map(item => item.location);
+                const performances = this.heatmapData.map(item => item.performance);
+                const colors = this.heatmapData.map(item => {
+                    if (item.performance >= 90) return '#00b894'; // Green
+                    if (item.performance >= 80) return '#fdcb6e'; // Yellow  
+                    if (item.performance >= 70) return '#e17055'; // Orange
+                    return '#d63031'; // Red
+                });
 
-            this.heatmapChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: grupos,
-                    datasets: [{
-                        label: 'Promedio de Rendimiento (%)',
-                        data: promedios,
-                        backgroundColor: [
-                            '#D03B34',
-                            '#FFED00', 
-                            '#F18523',
-                            '#6C109F'
-                        ],
-                        borderColor: [
-                            '#D03B34',
-                            '#FFED00', 
-                            '#F18523',
-                            '#6C109F'
-                        ],
-                        borderWidth: 2,
-                        borderRadius: 8,
-                        borderSkipped: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
+                this.heatmapChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: locations,
+                        datasets: [{
+                            label: 'Rendimiento por Ubicación (%)',
+                            data: performances,
+                            backgroundColor: colors,
+                            borderColor: colors,
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            },
+                            x: {
+                                ticks: {
+                                    maxRotation: 45,
+                                    minRotation: 45
                                 }
                             }
-                        }
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            });
+                });
+            } else {
+                // Fallback to sample data if no real data available
+                const grupos = Object.keys(this.data.grupos);
+                const promedios = grupos.map(grupo => {
+                    const valores = this.data.grupos[grupo].filter(v => v !== null);
+                    return valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
+                });
+
+                this.heatmapChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: grupos,
+                        datasets: [{
+                            label: 'Promedio de Rendimiento (%) - Datos de ejemplo',
+                            data: promedios,
+                            backgroundColor: [
+                                '#D03B34',
+                                '#FFED00', 
+                                '#F18523',
+                                '#6C109F'
+                            ],
+                            borderColor: [
+                                '#D03B34',
+                                '#FFED00', 
+                                '#F18523',
+                                '#6C109F'
+                            ],
+                            borderWidth: 2,
+                            borderRadius: 8,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100,
+                                ticks: {
+                                    callback: function(value) {
+                                        return value + '%';
+                                    }
+                                }
+                            }
+                        },
+                        plugins: {
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
         };
 
         app.renderHistoricalChart = function() {
@@ -1077,11 +1136,10 @@
         app.updateHeatMap = function() {
             if (!this.heatmapData) return;
             
-            // For now, show data count in console - heatmap implementation depends on chosen library
             console.log('🗺️ Heatmap data ready:', this.heatmapData.length, 'locations');
             
-            // TODO: Implement actual heatmap visualization
-            // This would depend on chosen mapping library (Leaflet, Google Maps, etc.)
+            // Re-render the heatmap chart with new data
+            this.renderHeatMap();
         };
         
         // Loading state management
