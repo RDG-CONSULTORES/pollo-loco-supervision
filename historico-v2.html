@@ -32,11 +32,6 @@
             --shadow: 0 2px 10px rgba(0,0,0,0.1);
             --border-radius: 12px;
             --transition: all 0.3s ease;
-            /* EPL Brand Colors */
-            --epl-red: #D03B34;
-            --epl-yellow: #FFED00; 
-            --epl-orange: #F18523;
-            --epl-purple: #6C109F;
         }
         
         body {
@@ -53,14 +48,15 @@
             color: white;
             padding: 1rem;
             text-align: center;
-            box-shadow: var(--shadow);
-            position: relative;
+            position: sticky;
+            top: 0;
             z-index: 100;
+            box-shadow: var(--shadow);
         }
         
         .header h1 {
-            font-size: 1.5rem;
-            font-weight: 700;
+            font-size: 1.25rem;
+            font-weight: 600;
             margin-bottom: 0.25rem;
         }
         
@@ -69,116 +65,695 @@
             opacity: 0.9;
         }
         
-        /* Navigation Tabs */
-        .nav-tabs {
+        .last-update {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+        
+        /* Tab Navigation */
+        .tab-container {
             background: white;
             display: flex;
-            border-bottom: 1px solid #e9ecef;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: var(--shadow);
             position: sticky;
-            top: 0;
-            z-index: 99;
+            top: 60px;
+            z-index: 90;
         }
         
-        .nav-tab {
-            flex: 1;
-            padding: 1rem;
-            text-align: center;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            color: #6c757d;
-            transition: var(--transition);
-            position: relative;
-        }
-        
-        .nav-tab.active {
-            color: var(--primary);
-        }
-        
-        .nav-tab.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: var(--primary);
-        }
-        
-        /* Tab Content */
-        .tab-content {
-            padding: 1rem;
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        
-        .tab-pane {
+        .tab-container::-webkit-scrollbar {
             display: none;
         }
         
-        .tab-pane.active {
+        .tab {
+            flex: 1;
+            max-width: 300px;
+            padding: 1.25rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            user-select: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+            background: #fff5f2;
+        }
+        
+        .tab i {
             display: block;
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .tab span {
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        
+        /* Content Area */
+        .content {
+            padding: 1rem;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+        
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
         /* Cards */
         .card {
             background: white;
             border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
             box-shadow: var(--shadow);
-            margin-bottom: 1.5rem;
-            overflow: hidden;
+            transition: var(--transition);
         }
         
-        .card-header {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid #e9ecef;
-            font-weight: 600;
-            color: var(--dark);
+        .card:active {
+            transform: scale(0.98);
         }
         
-        .card-body {
-            padding: 1.25rem;
+        /* Alert Cards */
+        .alert-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            cursor: pointer;
         }
         
-        /* Chart Containers */
+        .alert-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+        
+        .alert-icon.critical { background: var(--danger); }
+        .alert-icon.warning { background: var(--warning); color: var(--dark); }
+        .alert-icon.success { background: var(--success); }
+        
+        .alert-content h3 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .alert-content p {
+            font-size: 0.875rem;
+            color: #636e72;
+        }
+        
+        /* Chart Container */
         .chart-container {
             position: relative;
             height: 300px;
+            width: 100%;
             margin: 1rem 0;
         }
         
-        .chart-container canvas {
-            max-width: 100%;
-            height: auto !important;
+        /* Group Selector */
+        .group-selector {
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
         }
         
-        /* CIRCULAR STORIES STYLE - Instagram inspired */
-        .slider-container {
+        .group-selector h3 {
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            color: var(--dark);
+        }
+        
+        .group-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+        
+        .group-checkbox {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 0.875rem;
+        }
+        
+        .group-checkbox:active {
+            transform: scale(0.95);
+        }
+        
+        .group-checkbox input[type="checkbox"] {
+            margin-right: 0.5rem;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .group-checkbox.selected {
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* Heat Map Grid */
+        .heatmap-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
             margin: 1rem 0;
+        }
+        
+        .heatmap-item {
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .heatmap-item:active {
+            transform: scale(0.95);
+        }
+        
+        .heatmap-excellent { background: linear-gradient(135deg, #00b894, #00cec9); }
+        .heatmap-good { background: linear-gradient(135deg, #74b9ff, #0984e3); }
+        .heatmap-warning { background: linear-gradient(135deg, #fdcb6e, #f39c12); }
+        .heatmap-critical { background: linear-gradient(135deg, #d63031, #e84393); }
+        
+        .heatmap-item .group-name {
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .heatmap-item .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #636e72;
+        }
+        
+        .loading i {
+            font-size: 3rem;
+            animation: spin 1s linear infinite;
+            color: var(--primary);
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Pull to Refresh */
+        .pull-to-refresh {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .pull-to-refresh.active {
+            opacity: 1;
+        }
+        
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .text-primary { color: var(--primary); }
+        .text-danger { color: var(--danger); }
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        
+        .mb-1 { margin-bottom: 1rem; }
+        .mb-2 { margin-bottom: 2rem; }
+        
+        /* Swipe Indicator */
+        .swipe-indicator {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .swipe-indicator.show {
+            opacity: 1;
+        }
+        
+        /* Heat Map Table */
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+        
+        .heatmap-table th {
+            background: #f8f9fa;
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid #dfe6e9;
+        }
+        
+        .heatmap-table th:first-child {
+            position: sticky;
+            left: 0;
+            background: #f8f9fa;
+            z-index: 11;
+            text-align: left;
+            min-width: 80px;
+        }
+        
+        /* EPL CAS Average Row */
+        .epl-row {
+            position: sticky;
+            top: 38px;
+            z-index: 9;
+            background: linear-gradient(135deg, #FF6B35, #FFA502);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .epl-row td {
+            background: inherit;
+            color: white;
+            border-bottom: 2px solid #FF6B35;
+            font-weight: bold;
+            padding: 0.75rem 0.5rem;
+        }
+        
+        .epl-row td:first-child {
+            background: linear-gradient(135deg, #FF6B35, #FFA502);
+            border-right: 2px solid #FF6B35;
+        }
+        
+        .vs-epl {
+            font-size: 0.5rem;
+            display: block;
+            margin-top: 1px;
+            opacity: 0.8;
+        }
+        
+        .vs-epl.above {
+            color: #00b894;
+        }
+        
+        .vs-epl.below {
+            color: #d63031;
+        }
+        
+        .heatmap-table td {
+            padding: 0.5rem;
+            text-align: center;
+            border-bottom: 1px solid #f1f3f4;
             position: relative;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            /* Enhanced touch interaction */
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
         }
         
-        .slider-wrapper {
+        .heatmap-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: white;
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-align: left;
+            border-right: 1px solid #f1f3f4;
+            z-index: 9;
+        }
+        
+        .heatmap-table tbody tr:hover {
+            background: #f8f9fa;
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .heatmap-table tbody tr:active {
+            background: #e9ecef;
+            transform: translateX(0) scale(0.995);
+        }
+        
+        /* Enhanced touch feedback for cells */
+        .heatmap-table td:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        /* Cell colors */
+        .heat-excelente { 
+            background: linear-gradient(135deg, #00b894, #55efc4); 
+            color: white;
+        }
+        
+        .heat-muy-bueno { 
+            background: linear-gradient(135deg, #00cec9, #74b9ff); 
+            color: white;
+        }
+        
+        .heat-bueno { 
+            background: linear-gradient(135deg, #74b9ff, #a29bfe); 
+            color: white;
+        }
+        
+        .heat-regular { 
+            background: linear-gradient(135deg, #fdcb6e, #f39c12); 
+            color: white;
+        }
+        
+        .heat-critico { 
+            background: linear-gradient(135deg, #d63031, #e17055); 
+            color: white;
+        }
+        
+        .heat-none {
+            background: #f1f3f4;
+            color: #636e72;
+        }
+        
+        .trend-indicator {
+            font-size: 0.625rem;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+        }
+        
+        .diff-value {
+            font-size: 0.625rem;
+            display: block;
+            margin-top: 2px;
+            font-weight: normal;
+        }
+        
+        .diff-positive {
+            color: white;
+        }
+        
+        .diff-negative {
+            color: white;
+        }
+        
+        
+        /* Filter Card */
+        .filter-card {
+            padding: 0.75rem;
+        }
+        
+        .filter-row {
+            display: flex;
+            gap: 0.5rem;
             overflow-x: auto;
-            overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
             scrollbar-width: none;
-            -ms-overflow-style: none;
-            padding: 0.5rem 0;
         }
         
-        .slider-wrapper::-webkit-scrollbar {
+        .filter-row::-webkit-scrollbar {
             display: none;
         }
         
-        .slider-items {
+        .filter-btn {
             display: flex;
-            gap: 1rem;
-            padding: 0 1rem;
-            min-width: max-content;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.5rem 0.75rem;
+            border: none;
+            background: #f8f9fa;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-width: 60px;
+            font-size: 0.75rem;
+            white-space: nowrap;
         }
         
+        .filter-btn i {
+            font-size: 1rem;
+        }
+        
+        .filter-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .filter-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .view-options {
+            margin-top: 0.5rem;
+            padding-top: 0.5rem;
+            border-top: 1px solid #f1f3f4;
+        }
+        
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+        
+        .toggle-option input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Expandable Group Cards */
+        .group-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 0.75rem;
+            overflow: hidden;
+            transition: var(--transition);
+        }
+        
+        .group-card-header {
+            padding: 0.75rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #f1f3f4;
+        }
+        
+        .group-card-header:hover {
+            background: #f8f9fa;
+        }
+        
+        .group-card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .group-card-metrics {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.75rem;
+        }
+        
+        .group-card-content {
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+            display: none;
+        }
+        
+        .group-card.expanded .group-card-content {
+            display: block;
+        }
+        
+        .expand-icon {
+            transition: transform 0.3s ease;
+            font-size: 0.875rem;
+            color: #636e72;
+        }
+        
+        .group-card.expanded .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            font-size: 0.8rem;
+        }
+        
+        .metric-label {
+            color: #636e72;
+        }
+        
+        .metric-value {
+            font-weight: 600;
+        }
+        
+        .sucursales-list {
+            margin-top: 0.75rem;
+        }
+        
+        .periodo-section {
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .periodo-section:last-child {
+            border-bottom: none;
+        }
+        
+        .periodo-title {
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .sucursal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.25rem 0;
+            font-size: 0.75rem;
+        }
+        
+        .trend-indicator {
+            font-size: 0.75rem;
+            padding: 0.125rem 0.375rem;
+            border-radius: 10px;
+            font-weight: 500;
+        }
+        
+        .trend-mejorando {
+            background: #d1f2eb;
+            color: #00b894;
+        }
+        
+        .trend-estable {
+            background: #e3f2fd;
+            color: #74b9ff;
+        }
+        
+        .trend-declinando {
+            background: #ffeaa7;
+            color: #d63031;
+        }
+
+        /* EPL PANTONE COLORS */
+        :root {
+            --epl-red: #D03B34;
+            --epl-yellow: #FFED00; 
+            --epl-orange: #F18523;
+            --epl-purple: #6C109F;
+            --epl-red-light: #d03b3420;
+            --epl-yellow-light: #ffed0020;
+            --epl-orange-light: #f1852320;
+            --epl-purple-light: #6c109f20;
+        }
+
+        /* INSTAGRAM STORIES STYLE SLIDER */
+        .selector-slider {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--border-radius);
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            /* Advanced touch optimization */
+            touch-action: pan-x;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        
+        .slider-container-mobile {
+            overflow-x: auto;
+            overflow-y: hidden;
+            border-radius: 8px;
+            /* Enhanced scrolling */
+            scroll-snap-type: x mandatory;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .slider-container-mobile::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .slider-track {
+            display: flex;
+            gap: 1rem;
+            padding: 0.75rem;
+            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            scroll-snap-type: x mandatory;
+            /* Touch momentum */
+            will-change: transform;
+            justify-content: flex-start;
+            align-items: center;
+        }
+        
+        /* CIRCULAR STORIES STYLE */
         .slider-item {
             min-width: 80px;
             width: 80px;
@@ -187,252 +762,331 @@
             background: white;
             border: 3px solid #e9ecef;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: center;
+            scroll-snap-align: center;
+            /* Advanced touch optimization */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+            /* Haptic feedback simulation */
+            transform-origin: center;
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
             position: relative;
-            overflow: hidden;
-            flex-shrink: 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .slider-item:active {
+            transform: scale(0.88);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            transition: all 0.1s ease;
         }
         
         .slider-item:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        /* CIRCULAR ITEM STATES */
+        .slider-item.selected {
             transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        .slider-item.group-tier-1 { border-color: var(--epl-red); }
+        .slider-item.group-tier-1.selected { 
+            background: var(--epl-red);
+            color: white;
             border-color: var(--epl-red);
         }
         
-        .slider-item.active {
-            border-color: var(--epl-red);
-            border-width: 4px;
-            box-shadow: 0 0 20px rgba(208, 59, 52, 0.3);
+        .slider-item.group-tier-2 { border-color: var(--epl-orange); }
+        .slider-item.group-tier-2.selected { 
+            background: var(--epl-orange);
+            color: white;
+            border-color: var(--epl-orange);
         }
         
-        .group-circle {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
+        .slider-item.group-tier-3 { border-color: var(--epl-yellow); }
+        .slider-item.group-tier-3.selected { 
+            background: var(--epl-yellow);
+            color: #333;
+            border-color: var(--epl-yellow);
+        }
+        
+        .slider-item.group-tier-4 { border-color: var(--epl-purple); }
+        .slider-item.group-tier-4.selected { 
+            background: var(--epl-purple);
+            color: white;
+            border-color: var(--epl-purple);
+        }
+        
+        .slider-item.selected {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+        
+        .slider-item-name {
             font-size: 0.65rem;
-            text-align: center;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.125rem;
+            text-transform: uppercase;
+            letter-spacing: 0.25px;
+        }
+        
+        .slider-item-score {
+            font-size: 0.55rem;
+            font-weight: 600;
+            opacity: 0.9;
             line-height: 1;
         }
         
-        .group-text {
-            max-width: 90%;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
+        /* PROGRESS RING AROUND CIRCLE */
+        .slider-item::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            background: conic-gradient(
+                from 0deg,
+                transparent 0deg,
+                transparent calc(var(--progress, 0) * 3.6deg),
+                transparent calc(var(--progress, 0) * 3.6deg),
+                transparent 360deg
+            );
+            z-index: -1;
+            opacity: 0.3;
+            transition: opacity 0.3s ease;
         }
         
-        /* Slider Instructions - Minimalist */
-        .slider-guide {
+        .slider-item.selected::before {
+            opacity: 0.6;
+        }
+        
+        /* Enhanced Selection Controls */
+        .selection-controls-section {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: rgba(248, 249, 250, 0.6);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .controls-title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #636e72;
+            text-align: center;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .slider-controls-mobile {
             display: flex;
             justify-content: center;
-            gap: 1.5rem;
-            margin: 1rem 0 0.5rem 0;
-            padding: 0 1rem;
+            gap: 1rem;
+            padding: 0.25rem;
+        }
+        
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .control-label {
+            font-size: 0.625rem;
+            font-weight: 600;
+            color: #636e72;
+            text-align: center;
+        }
+        
+        .slider-btn-mobile {
+            width: 48px;
+            height: 48px;
+            border: none;
+            border-radius: 50%;
+            background: white;
+            color: #636e72;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: manipulation;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Enhanced touch feedback */
+            user-select: none;
+            -webkit-user-select: none;
+            transform-origin: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+            border: 2px solid transparent;
+        }"}
+        
+        .slider-btn-mobile:active {
+            transform: scale(0.88);
+            background: var(--epl-orange);
+            color: white;
+            box-shadow: 0 4px 16px rgba(241, 133, 35, 0.4);
+            transition: all 0.1s ease;
+        }
+        
+        .slider-btn-mobile:hover {
+            background: var(--epl-orange);
+            color: white;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(241, 133, 35, 0.3);
+        }
+        
+        /* Special button colors */
+        .slider-btn-mobile.btn-primary {
+            background: var(--epl-red);
+            color: white;
+        }
+        
+        .slider-btn-mobile.btn-secondary {
+            background: var(--epl-orange);
+            color: white;
+        }
+        
+        .slider-btn-mobile.btn-success {
+            background: var(--epl-yellow);
+            color: #333;
+        }
+        
+        .slider-btn-mobile.btn-outline {
+            background: var(--epl-purple);
+            color: white;
+        }"}
+        
+        .selector-info {
+            text-align: center;
+            margin-top: 0.5rem;
+            font-size: 0.75rem;
+            color: #636e72;
+        }
+        
+        /* Perfected Slider Guide - Fully Responsive */
+        .slider-guide {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 250, 0.9) 100%);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
             flex-wrap: wrap;
+            width: 100%;
+            box-sizing: border-box;
         }
         
         .guide-step {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 0.75rem;
-            color: #6c757d;
-            white-space: nowrap;
+            gap: 0.4rem;
+            padding: 0.4rem 0.6rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            flex: 0 1 auto;
+            min-width: fit-content;
+        }
+        
+        .guide-step:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(241, 133, 35, 0.15);
         }
         
         .step-number {
             width: 20px;
             height: 20px;
             border-radius: 50%;
-            background: var(--epl-red);
+            background: var(--epl-orange);
             color: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: 600;
-            font-size: 0.7rem;
+            font-size: 0.65rem;
+            font-weight: 700;
             flex-shrink: 0;
         }
         
         .step-content {
             display: flex;
             align-items: center;
-            gap: 0.25rem;
+            gap: 0.3rem;
         }
         
         .step-content i {
-            color: var(--epl-red);
+            font-size: 0.85rem;
+            color: var(--epl-orange);
+            opacity: 0.8;
+            flex-shrink: 0;
         }
         
-        /* Responsive Guide */
-        @media (max-width: 768px) {
-            .slider-guide {
-                gap: 1rem;
-            }
-            
-            .guide-step {
-                font-size: 0.7rem;
-            }
-            
-            .step-number {
-                width: 18px;
-                height: 18px;
-                font-size: 0.65rem;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .slider-guide {
-                gap: 0.75rem;
-                margin: 0.75rem 0 0.25rem 0;
-            }
-            
-            .guide-step {
-                font-size: 0.65rem;
-            }
-            
-            .step-number {
-                width: 16px;
-                height: 16px;
-                font-size: 0.6rem;
-            }
-        }
-        
-        /* Control Groups */
-        .control-groups {
-            display: flex;
-            justify-content: center;
-            gap: 1rem;
-            margin: 1rem 0;
-            flex-wrap: wrap;
-        }
-        
-        .control-group {
-            text-align: center;
-        }
-        
-        .control-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 2px solid #dee2e6;
-            background: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 0.5rem auto;
-        }
-        
-        .control-btn:hover {
-            border-color: var(--primary);
-            transform: scale(1.1);
-        }
-        
-        .control-btn.active {
-            background: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-        
-        .control-label {
-            font-size: 0.75rem;
-            color: #6c757d;
+        .step-content span {
+            font-size: 0.65rem;
+            color: #2d3436;
             font-weight: 500;
+            line-height: 1.2;
         }
         
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-            gap: 1rem;
-            margin: 1rem 0;
+        .guide-arrow {
+            color: #dfe6e9;
+            font-size: 0.7rem;
+            animation: pulse 2s infinite;
+            flex-shrink: 0;
         }
         
-        .stat-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 1rem;
-            border-radius: var(--border-radius);
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            margin-bottom: 0.25rem;
-        }
-        
-        .stat-label {
-            font-size: 0.75rem;
-            opacity: 0.9;
-        }
-        
-        /* Responsive Design */
-        @media (max-width: 768px) {
-            .tab-content {
-                padding: 0.75rem;
+        /* Hide arrows on very small screens */
+        @media (max-width: 400px) {
+            .guide-arrow {
+                display: none;
             }
-            
-            .card-body {
-                padding: 1rem;
-            }
-            
-            .chart-container {
-                height: 250px;
-            }
-            
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
+            .slider-guide {
+                gap: 0.3rem;
             }
         }
         
-        @media (max-width: 480px) {
-            .header {
-                padding: 0.75rem;
-            }
-            
-            .header h1 {
-                font-size: 1.25rem;
-            }
-            
-            .nav-tab {
-                padding: 0.75rem 0.5rem;
-                font-size: 0.875rem;
-            }
-            
-            .chart-container {
-                height: 200px;
-            }
-            
-            .slider-item {
-                min-width: 70px;
-                width: 70px;
-                height: 70px;
-            }
-            
-            .group-text {
-                font-size: 0.6rem;
-            }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.4; transform: translateX(0); }
+            50% { opacity: 1; transform: translateX(2px); }
         }
         
         /* Professional Button Styles */
         .btn {
-            display: inline-block;
-            padding: 0.75rem 1.5rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
             font-size: 0.875rem;
             font-weight: 600;
-            text-align: center;
-            text-decoration: none;
-            border: none;
-            border-radius: var(--border-radius);
             cursor: pointer;
-            transition: var(--transition);
-            margin: 0.25rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            min-height: 44px;
+            touch-action: manipulation;
         }
         
         .btn-primary {
@@ -441,365 +1095,1613 @@
         }
         
         .btn-primary:hover {
-            background: var(--secondary);
+            background: #e55a2b;
             transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
         }
         
-        .btn-outline {
-            background: transparent;
+        .btn-primary:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-secondary {
+            background: white;
             color: var(--primary);
             border: 2px solid var(--primary);
         }
         
-        .btn-outline:hover {
+        .btn-secondary:hover {
             background: var(--primary);
             color: white;
         }
         
-        /* Footer */
-        .footer {
-            text-align: center;
-            padding: 2rem 1rem;
-            color: #6c757d;
-            font-size: 0.875rem;
-            margin-top: 2rem;
+        .btn-secondary:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-outline {
+            background: transparent;
+            color: var(--dark);
+            border: 2px solid #e9ecef;
+        }
+        
+        .btn-outline:hover {
+            background: #f8f9fa;
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #00a085;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: var(--dark);
+        }
+        
+        .btn-warning:hover {
+            background: #e6b800;
+        }
+
+        /* ADVANCED RESPONSIVE BREAKPOINTS */
+        
+        /* Large Mobile / Small Tablet */
+        @media (max-width: 768px) and (min-width: 481px) {
+            .header h1 { font-size: 1.125rem; }
+            .tab span { font-size: 0.7rem; }
+            .chart-container { height: 280px; }
+            .group-grid { grid-template-columns: repeat(2, 1fr); }
+            .slider-item { min-width: 120px; }
+            .slider-track { gap: 0.5rem; }
+        }
+        
+        /* Medium Screens */
+        @media (max-width: 600px) {
+            .step-content span {
+                font-size: 0.6rem;
+            }
+            .slider-guide {
+                padding: 0.5rem;
+                gap: 0.4rem;
+            }
+            .guide-step {
+                padding: 0.35rem 0.5rem;
+            }
+        }
+        
+        /* Standard Mobile */
+        @media (max-width: 480px) {
+            .header h1 { font-size: 1rem; }
+            .header .subtitle { font-size: 0.8rem; }
+            .tab { min-width: 80px; padding: 0.75rem 0.5rem; }
+            .tab i { font-size: 1.25rem; }
+            .tab span { font-size: 0.65rem; }
+            .chart-container { height: 240px; }
+            .group-grid { grid-template-columns: 1fr; }
+            .slider-item { 
+                min-width: 110px; 
+                min-height: 56px; 
+                padding: 0.75rem 0.5rem; 
+            }
+            .slider-track { 
+                gap: 0.5rem; 
+                padding: 0.5rem; 
+            }
+            .slider-btn-mobile { 
+                min-height: 52px; 
+                font-size: 0.65rem; 
+            }
+        }
+        
+        /* Small Mobile */
+        @media (max-width: 375px) {
+            .header { padding: 0.75rem; }
+            .header h1 { font-size: 0.95rem; }
+            .content { padding: 0.75rem; }
+            .card { padding: 0.75rem; }
+            .tab { min-width: 70px; padding: 0.5rem 0.25rem; }
+            .tab i { font-size: 1.1rem; }
+            .tab span { font-size: 0.6rem; }
+            .chart-container { height: 220px; }
+            .slider-item { 
+                width: 70px;
+                height: 70px;
+                min-width: 70px; 
+                font-size: 0.75rem;
+            }
+            .slider-btn-mobile { 
+                width: 40px;
+                height: 40px;
+                font-size: 0.8rem; 
+            }
+            .control-label {
+                font-size: 0.55rem;
+            }
+            .slider-guide {
+                flex-direction: column;
+                gap: 0.25rem;
+                padding: 0.5rem;
+            }
+            .guide-step {
+                width: 100%;
+                padding: 0.4rem 0.6rem;
+            }
+            .step-content span {
+                font-size: 0.65rem;
+            }
+            .guide-arrow {
+                transform: rotate(90deg);
+                margin: 0.25rem 0;
+            }
+            @keyframes pulse {
+                0%, 100% { opacity: 0.4; transform: translateY(0); }
+                50% { opacity: 1; transform: translateY(2px); }
+            }
+            .selection-controls-section {
+                padding: 0.5rem;
+            }
+        }
+        
+        /* Landscape Mobile */
+        @media (max-height: 500px) and (orientation: landscape) {
+            .header { padding: 0.5rem 1rem; }
+            .header h1 { font-size: 1rem; }
+            .tab-container { top: 45px; }
+            .content { padding-top: 0.5rem; }
+            .chart-container { height: 180px; }
+            .slider-item { min-height: 44px; }
+        }
+        
+        /* Tablet Optimizations */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .chart-container { height: 350px; }
+            .group-grid { grid-template-columns: repeat(3, 1fr); }
+            .slider-item { min-width: 160px; }
+            .heatmap-table { font-size: 0.9rem; }
+        }
+        
+        /* Desktop Enhancements */
+        @media (min-width: 1025px) {
+            .chart-container { height: 400px; }
+            .group-grid { grid-template-columns: repeat(4, 1fr); }
+            .slider-item:hover { 
+                transform: translateY(-2px); 
+                box-shadow: 0 6px 20px rgba(0,0,0,0.1); 
+            }
+            .slider-btn-mobile:hover { 
+                transform: translateY(-1px) scale(1.02); 
+            }
+        }
+
+        /* Mobile Optimizations - LEGACY SUPPORT */
+        @media (max-width: 768px) {
+            
+            .heatmap-table {
+                font-size: 0.75rem;
+            }
+            
+            .heatmap-table th,
+            .heatmap-table td {
+                padding: 0.4rem 0.25rem;
+            }
+            
+            .heatmap-table td:first-child,
+            .heatmap-table th:first-child {
+                min-width: 60px;
+                font-size: 0.7rem;
+            }
+            
+            .group-card-metrics {
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 0.25rem;
+            }
+            
+            .group-card-header {
+                padding: 0.5rem;
+            }
+            
+            .group-card-content {
+                padding: 0.5rem;
+            }
+
+            .slider-track {
+                gap: 0.5rem;
+                padding: 0.5rem;
+            }
+            
+            .slider-item {
+                min-width: 120px;
+                padding: 0.75rem;
+            }
+            
+            .slider-controls-mobile {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .legend-text {
+                font-size: 0.6rem;
+            }
+            
+            .legend-icon {
+                font-size: 1rem;
+            }
         }
     </style>
 </head>
 <body>
+    <!-- Header -->
     <div class="header">
-        <h1>El Pollo Loco</h1>
-        <div class="subtitle">Análisis Histórico de Supervisión</div>
+        <h1>Análisis Histórico de Performance</h1>
+        <div class="subtitle">El Pollo Loco - Sistema de Supervisión Operativa</div>
+        <div class="last-update">
+            <i class="fas fa-clock"></i>
+            Actualizado: <span id="lastUpdate">--</span>
+        </div>
     </div>
-
-    <nav class="nav-tabs">
-        <button class="nav-tab active" data-tab="heatmap">
-            <i class="fas fa-map"></i>
-            Heat Map
-        </button>
-        <button class="nav-tab" data-tab="historico">
-            <i class="fas fa-chart-line"></i>
-            Análisis Histórico
-        </button>
-    </nav>
-
-    <div class="tab-content">
-        <!-- Heat Map Tab -->
-        <div id="heatmap" class="tab-pane active">
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-map-marked-alt"></i>
-                    Mapa de Calor - Rendimiento por Ubicación
-                </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="heatmapChart"></canvas>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-container" id="tabContainer">
+        <div class="tab active" data-tab="heatmap">
+            <i class="fas fa-fire"></i>
+            <span>Heat Map</span>
+        </div>
+        <div class="tab" data-tab="smart">
+            <i class="fas fa-chart-bar"></i>
+            <span>Análisis Histórico</span>
+        </div>
+    </div>
+    
+    <!-- Content Area -->
+    <div class="content">
+        <!-- Tab 2: Smart Analysis -->
+        <div class="tab-content" id="smart">
+            <h2 class="mb-1">Análisis Histórico Comparativo</h2>
+            
+            <!-- Group Selector - ONLY SLIDER -->
+            <div class="card" style="padding: 0.75rem; margin-bottom: 0.75rem;">
+                <h3 style="font-size: 0.875rem; margin-bottom: 0.5rem;">Selecciona los grupos a comparar:</h3>
+                
+                <!-- Mobile-Optimized Horizontal Slider (Principal) -->
+                <div id="selector-slider" class="selector-slider">
+                    <div class="slider-container-mobile">
+                        <div class="slider-track" id="sliderTrack">
+                            <!-- Will be populated dynamically -->
+                        </div>
                     </div>
+                    <!-- Controles de Selección Rápida -->
+                    <div class="selection-controls-section">
+                        <h4 class="controls-title">Selección Rápida:</h4>
+                        <div class="slider-controls-mobile">
+                            <div class="control-group">
+                                <button class="slider-btn-mobile btn-primary" onclick="app.selectTop5()" title="Seleccionar los 5 mejores grupos">
+                                    <i class="fas fa-trophy"></i>
+                                </button>
+                                <span class="control-label">Top 5</span>
+                            </div>
+                            <div class="control-group">
+                                <button class="slider-btn-mobile btn-secondary" onclick="app.selectBottom5()" title="Seleccionar los 5 grupos con menor desempeño">
+                                    <i class="fas fa-chart-line-down"></i>
+                                </button>
+                                <span class="control-label">Bottom 5</span>
+                            </div>
+                            <div class="control-group">
+                                <button class="slider-btn-mobile btn-success" onclick="app.selectAll()" title="Seleccionar todos los grupos">
+                                    <i class="fas fa-check-circle"></i>
+                                </button>
+                                <span class="control-label">Todos</span>
+                            </div>
+                            <div class="control-group">
+                                <button class="slider-btn-mobile btn-outline" onclick="app.clearGroupSelection()" title="Limpiar selección">
+                                    <i class="fas fa-ban"></i>
+                                </button>
+                                <span class="control-label">Limpiar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="selector-info">
+                    <span id="selectorInfo">Seleccionados: 3 grupos</span>
+                </div>
+                
+                <!-- Instrucciones Elegantes del Slider -->
+                <div class="slider-guide">
+                    <div class="guide-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <i class="fas fa-arrows-alt-h"></i>
+                            <span>Desliza</span>
+                        </div>
+                    </div>
+                    <div class="guide-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <i class="fas fa-circle-dot"></i>
+                            <span>Selecciona</span>
+                        </div>
+                    </div>
+                    <div class="guide-arrow">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="guide-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <i class="fas fa-chart-simple"></i>
+                            <span>Compara</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Comparison Chart -->
+            <div class="card">
+                <h3 class="mb-1">Comparación vs EPL CAS</h3>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Expandable Group Cards -->
+            <div id="groupCards">
+                <!-- Will be populated dynamically -->
+            </div>
+            
+            <!-- Insights -->
+            <div class="card">
+                <h3 class="mb-1">Análisis de Insights</h3>
+                <div id="smartInsights">
+                    <!-- Will be populated dynamically -->
                 </div>
             </div>
         </div>
-
-        <!-- Histórico Tab -->
-        <div id="historico" class="tab-pane">
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-chart-line"></i>
-                    Selección de Grupo Operativo
-                </div>
-                <div class="card-body">
-                    <!-- Minimalist Instructions -->
-                    <div class="slider-guide">
-                        <div class="guide-step">
-                            <div class="step-number">1</div>
-                            <div class="step-content">
-                                <i class="fas fa-arrows-alt-h"></i>
-                                <span>Desliza</span>
-                            </div>
-                        </div>
-                        <div class="guide-step">
-                            <div class="step-number">2</div>
-                            <div class="step-content">
-                                <i class="fas fa-hand-pointer"></i>
-                                <span>Selecciona</span>
-                            </div>
-                        </div>
-                        <div class="guide-step">
-                            <div class="step-number">3</div>
-                            <div class="step-content">
-                                <i class="fas fa-chart-bar"></i>
-                                <span>Analiza</span>
-                            </div>
-                        </div>
+        
+        <!-- Tab 1: Heat Map -->
+        <div class="tab-content active" id="heatmap">
+            <h2 class="mb-1">Mapa de Calor - Evolución de Performance</h2>
+            
+            <!-- Color Legend -->
+            <div class="card" style="padding: 0.5rem; margin-bottom: 0.75rem;">
+                <div style="display: flex; gap: 0.5rem; overflow-x: auto; font-size: 0.7rem;">
+                    <div style="display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                        <div class="heat-excelente" style="width: 12px; height: 12px; border-radius: 2px;"></div>
+                        <span>95-100% Excelente</span>
                     </div>
-                    
-                    <div class="slider-container">
-                        <div class="slider-wrapper">
-                            <div class="slider-items" id="sliderTrack">
-                                <!-- Groups will be loaded dynamically -->
-                            </div>
-                        </div>
+                    <div style="display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                        <div class="heat-muy-bueno" style="width: 12px; height: 12px; border-radius: 2px;"></div>
+                        <span>91-94.9% Muy Bueno</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                        <div class="heat-bueno" style="width: 12px; height: 12px; border-radius: 2px;"></div>
+                        <span>87-90.9% Bueno</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                        <div class="heat-regular" style="width: 12px; height: 12px; border-radius: 2px;"></div>
+                        <span>82-86.9% Regular</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.25rem; white-space: nowrap;">
+                        <div class="heat-critico" style="width: 12px; height: 12px; border-radius: 2px;"></div>
+                        <span>0-81.9% Crítico</span>
                     </div>
                 </div>
             </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <i class="fas fa-chart-line"></i>
-                    Tendencia Histórica de Rendimiento
+            
+            <!-- Filters -->
+            <div class="card filter-card">
+                <div class="filter-row">
+                    <button class="filter-btn active" data-filter="all">
+                        <i class="fas fa-th"></i>
+                        <span>Todos</span>
+                    </button>
+                    <button class="filter-btn" data-filter="critical">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Críticos</span>
+                    </button>
+                    <button class="filter-btn" data-filter="improving">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>Mejorando</span>
+                    </button>
+                    <button class="filter-btn" data-filter="declining">
+                        <i class="fas fa-arrow-down"></i>
+                        <span>Bajando</span>
+                    </button>
                 </div>
-                <div class="card-body">
-                    <div class="chart-container">
-                        <canvas id="historicalChart"></canvas>
-                    </div>
-                    <div id="trendAnalysis" class="mt-3"></div>
+                
+                <div class="view-options">
+                    <label class="toggle-option">
+                        <input type="checkbox" id="showDifferences" checked>
+                        <span>Mostrar diferencias</span>
+                    </label>
                 </div>
             </div>
+            
+            <!-- Heat Map Table -->
+            <div class="card" style="padding: 0; overflow-x: auto;">
+                <table class="heatmap-table" id="heatmapTable">
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>NL-T1</th>
+                            <th>FOR-S1</th>
+                            <th>NL-T2</th>
+                            <th>FOR-S2</th>
+                            <th>NL-T3</th>
+                            <th>Prom</th>
+                        </tr>
+                    </thead>
+                    <tbody id="heatmapBody">
+                        <!-- Will be populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            
         </div>
+        
     </div>
-
-    <div class="footer">
-        <div id="lastUpdate">Última actualización: Cargando...</div>
-        <div>Sistema de Supervisión Operativa v2.0</div>
+    
+    <!-- Pull to Refresh Indicator -->
+    <div class="pull-to-refresh" id="pullToRefresh">
+        <i class="fas fa-sync-alt"></i>
     </div>
-
+    
+    <!-- Swipe Indicator -->
+    <div class="swipe-indicator" id="swipeIndicator">
+        👆 Desliza para cambiar de pestaña
+    </div>
+    
     <script>
-        // Global app object
+        // Initialize app
         const app = {
-            currentTab: 'heatmap',
-            selectedGroup: 'all',
-            historicalChart: null,
-            heatmapChart: null,
-            operationalGroups: [],
-            currentGroupId: 'all',
-            historicalData: null,
-            heatmapData: null,
+            currentTab: 0,
+            tabs: ['heatmap', 'smart'],
+            charts: {},
+            selectedGroups: new Set(['OGAS', 'TEPEYAC', 'RAP']),
+            sliderOffset: 0,
+            groupsList: [],
+            touchStartX: 0,
+            touchStartY: 0,
+            pullStartY: 0,
+            isPulling: false,
+            
+            // Enhanced data structure with detailed branch information
             data: {
                 grupos: {
-                    "OGAS": [98.2, 97.5, 98.8, 97.1, 98.6, 97.9, 98.4, 97.7, 98.1, 98.3, 97.6, 98.9],
-                    "TEPEYAC": [93.1, 94.2, 92.8, 93.7, 94.1, 93.5, 92.9, 93.8, 94.4, 93.2, 93.9, 94.0],
-                    "EXPO": [89.6, 88.9, 90.2, 89.1, 90.5, 89.8, 89.4, 90.1, 89.7, 90.3, 89.2, 89.9],
-                    "RAP": [90.5, 89.8, 91.2, 90.1, 89.6, 90.8, 90.3, 91.0, 90.7, 89.9, 90.4, 90.6]
+                    'OGAS': [97, null, 98.17, null, 99.72],
+                    'TEPEYAC': [91.18, null, 93.17, null, 90.47],
+                    'RAP': [null, 89.26, null, 90.46, null],
+                    'CRR': [null, 80.26, null, 87.01, null],
+                    'EXPO': [88.95, 75.02, 89.29, null, 94.97],
+                    'EPL SO': [95.29, null, 93.77, null, null],
+                    'TEC': [93.34, null, 93.47, null, 94.66],
+                    'EFM': [85.48, null, 92.13, null, 87.19],
+                    'PLOG QUERÉTARO': [null, 96.97, null, null, null],
+                    'GRUPO MATAMOROS': [null, 90.57, null, 90.84, null],
+                    'PLOG LAGUNA': [null, 89.78, null, null, null],
+                    'GRUPO RIO BRAVO': [null, 88.3, null, 92.58, null],
+                    'GRUPO PIEDRAS NEGRAS': [null, 85.86, null, 94.9, null],
+                    'PLOG NUEVO LEON': [92.8, null, 83.03, null, 89.15],
+                    'GRUPO CANTERA ROSA': [null, 87.8, null, null, null],
+                    'OCHTER TAMPICO': [null, 87.2, null, null, null],
+                    'GRUPO SABINAS HIDALGO': [82.58, null, 88.24, null, null],
+                    'GRUPO CENTRITO': [null, null, 85.82, null, 83.18],
+                    'GRUPO NUEVO LAREDO': [null, 74.56, null, null, null],
+                    'GRUPO SALTILLO': [null, null, 71.24, 63.97, null]
+                },
+                periodos: ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'],
+                
+                // Detailed group information for expandable cards
+                gruposDetallados: {
+                    'OGAS': {
+                        promedio_general: 98.3,
+                        total_sucursales: 8,
+                        vs_epl_cas: +8.2,
+                        tendencia: 'mejorando',
+                        volatilidad: 'baja',
+                        periodos: {
+                            'NL-T1': {
+                                promedio: 97.0,
+                                sucursales: [
+                                    {nombre: 'Suc OGAS Centro', calificacion: 97.5},
+                                    {nombre: 'Suc OGAS Norte', calificacion: 96.5}
+                                ]
+                            },
+                            'NL-T2': {
+                                promedio: 98.17,
+                                sucursales: [
+                                    {nombre: 'Suc OGAS Centro', calificacion: 98.8},
+                                    {nombre: 'Suc OGAS Norte', calificacion: 97.6},
+                                    {nombre: 'Suc OGAS Sur', calificacion: 98.2}
+                                ]
+                            },
+                            'NL-T3': {
+                                promedio: 99.72,
+                                sucursales: [
+                                    {nombre: 'Suc OGAS Centro', calificacion: 99.9},
+                                    {nombre: 'Suc OGAS Norte', calificacion: 99.5}
+                                ]
+                            }
+                        }
+                    },
+                    'TEPEYAC': {
+                        promedio_general: 91.6,
+                        total_sucursales: 4,
+                        vs_epl_cas: +1.8,
+                        tendencia: 'estable',
+                        volatilidad: 'media',
+                        periodos: {
+                            'NL-T1': {
+                                promedio: 91.18,
+                                sucursales: [
+                                    {nombre: 'Tepeyac Plaza', calificacion: 92.1},
+                                    {nombre: 'Tepeyac Centro', calificacion: 90.3}
+                                ]
+                            },
+                            'NL-T2': {
+                                promedio: 93.17,
+                                sucursales: [
+                                    {nombre: 'Tepeyac Plaza', calificacion: 93.8},
+                                    {nombre: 'Tepeyac Centro', calificacion: 92.5}
+                                ]
+                            },
+                            'NL-T3': {
+                                promedio: 90.47,
+                                sucursales: [
+                                    {nombre: 'Tepeyac Plaza', calificacion: 91.2},
+                                    {nombre: 'Tepeyac Centro', calificacion: 89.8}
+                                ]
+                            }
+                        }
+                    },
+                    'RAP': {
+                        promedio_general: 89.9,
+                        total_sucursales: 6,
+                        vs_epl_cas: +0.1,
+                        tendencia: 'mejorando',
+                        volatilidad: 'baja',
+                        periodos: {
+                            'FOR-S1': {
+                                promedio: 89.26,
+                                sucursales: [
+                                    {nombre: 'RAP Guadalajara', calificacion: 90.1},
+                                    {nombre: 'RAP Zapopan', calificacion: 88.4}
+                                ]
+                            },
+                            'FOR-S2': {
+                                promedio: 90.46,
+                                sucursales: [
+                                    {nombre: 'RAP Guadalajara', calificacion: 91.2},
+                                    {nombre: 'RAP Zapopan', calificacion: 89.7}
+                                ]
+                            }
+                        }
+                    },
+                    'GRUPO SALTILLO': {
+                        promedio_general: 67.6,
+                        total_sucursales: 5,
+                        vs_epl_cas: -20.4,
+                        tendencia: 'declinando',
+                        volatilidad: 'alta',
+                        periodos: {
+                            'NL-T2': {
+                                promedio: 71.24,
+                                sucursales: [
+                                    {nombre: 'Saltillo Centro', calificacion: 74.5},
+                                    {nombre: 'Saltillo Norte', calificacion: 68.0}
+                                ]
+                            },
+                            'FOR-S2': {
+                                promedio: 63.97,
+                                sucursales: [
+                                    {nombre: 'Harold R. Pape', calificacion: 63.97}
+                                ]
+                            }
+                        }
+                    }
                 }
             }
         };
+        
+        // =====================================================
+        // SLIDER SELECTOR FUNCTIONS - OPTIMIZED FOR MOBILE
+        // =====================================================
+        
+        app.initSliderSelector = function() {
+            const track = document.getElementById('sliderTrack');
+            if (!track) return;
+            
+            track.innerHTML = '';
+            
+            this.groupsList.forEach((group, index) => {
+                const isSelected = this.selectedGroups.has(group.nombre);
+                const item = document.createElement('div');
+                
+                // Assign EPL Pantone tier colors based on performance ranking
+                let tierClass = 'group-tier-4'; // Default purple (lowest)
+                const performance = group.promedio;
+                const totalGroups = this.groupsList.length;
+                const position = index + 1;
+                
+                // Top 25% - EPL Red (Premium)
+                if (position <= totalGroups * 0.25) {
+                    tierClass = 'group-tier-1';
+                }
+                // Next 25% - EPL Orange (High)
+                else if (position <= totalGroups * 0.5) {
+                    tierClass = 'group-tier-2';
+                }
+                // Next 25% - EPL Yellow (Medium)
+                else if (position <= totalGroups * 0.75) {
+                    tierClass = 'group-tier-3';
+                }
+                // Bottom 25% - EPL Purple (Attention needed)
+                
+                item.className = `slider-item ${tierClass} ${isSelected ? 'selected' : ''}`;
+                
+                // Add performance progress as CSS custom property
+                const progressPercent = Math.min(Math.max(performance, 0), 100);
+                item.style.setProperty('--progress', progressPercent);
+                
+                // Shorter group names for better fit in circles
+                let displayName = group.nombre;
+                if (displayName.length > 8) {
+                    displayName = displayName.replace('GRUPO ', 'G.')
+                                             .replace('PLOG ', 'P.')
+                                             .replace('OCHTER ', 'O.');
+                    if (displayName.length > 8) {
+                        displayName = displayName.substring(0, 6) + '.';
+                    }
+                }
+                
+                item.innerHTML = `
+                    <div class="slider-item-name">${displayName}</div>
+                    <div class="slider-item-score">${group.promedio.toFixed(1)}%</div>
+                `;
+                
+                item.onclick = () => this.toggleSliderGroup(group.nombre, item);
+                track.appendChild(item);
+            });
+            
+            this.updateSelectorInfo();
+        };
+        
+        app.toggleSliderGroup = function(groupName, itemElement) {
+            if (this.selectedGroups.has(groupName)) {
+                this.selectedGroups.delete(groupName);
+                itemElement.classList.remove('selected');
+            } else {
+                this.selectedGroups.add(groupName);
+                itemElement.classList.add('selected');
+            }
+            this.updateSelectorInfo();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.selectTop5 = function() {
+            // Clear current selection
+            this.selectedGroups.clear();
+            
+            // Select top 5 groups
+            const top5 = this.groupsList.slice(0, 5);
+            top5.forEach(group => {
+                this.selectedGroups.add(group.nombre);
+            });
+            
+            // Update UI
+            this.initSliderSelector();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.selectBottom5 = function() {
+            // Clear current selection
+            this.selectedGroups.clear();
+            
+            // Select bottom 5 groups (lowest scores)
+            const bottom5 = this.groupsList.slice(-5);
+            bottom5.forEach(group => {
+                this.selectedGroups.add(group.nombre);
+            });
+            
+            // Update UI
+            this.initSliderSelector();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.selectAll = function() {
+            // Clear current selection
+            this.selectedGroups.clear();
+            
+            // Select all groups
+            this.groupsList.forEach(group => {
+                this.selectedGroups.add(group.nombre);
+            });
+            
+            // Update UI
+            this.initSliderSelector();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.clearGroupSelection = function() {
+            this.selectedGroups.clear();
+            this.initSliderSelector();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.updateSelectorInfo = function() {
+            const info = document.getElementById('selectorInfo');
+            if (info) {
+                info.textContent = `Seleccionados: ${this.selectedGroups.size} grupos`;
+            }
+        };
+        
+        // Initialize groups list
+        app.initGroupsList = function() {
+            this.groupsList = Object.keys(this.data.grupos).map(grupo => {
+                const valores = this.data.grupos[grupo].filter(v => v !== null);
+                const promedio = valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
+                return { nombre: grupo, promedio: promedio };
+            }).sort((a, b) => b.promedio - a.promedio);
+        };
 
-        // Tab Management
+        // Initialize on load
+        document.addEventListener('DOMContentLoaded', () => {
+            app.initGroupsList();
+            app.init();
+            
+            // Load real data from Neon PostgreSQL
+            app.loadRealData();
+        });
+        
+        app.init = function() {
+            this.setupTabs();
+            this.setupTouch();
+            this.updateLastUpdate();
+            this.renderAllTabs();
+            
+            // Show swipe hint
+            setTimeout(() => {
+                document.getElementById('swipeIndicator').classList.add('show');
+                setTimeout(() => {
+                    document.getElementById('swipeIndicator').classList.remove('show');
+                }, 3000);
+            }, 1000);
+        };
+        
         app.setupTabs = function() {
-            const tabButtons = document.querySelectorAll('.nav-tab');
-            const tabPanes = document.querySelectorAll('.tab-pane');
-
-            tabButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const targetTab = button.dataset.tab;
-                    
-                    // Update active tab button
-                    tabButtons.forEach(btn => btn.classList.remove('active'));
-                    button.classList.add('active');
-                    
-                    // Update active tab pane
-                    tabPanes.forEach(pane => pane.classList.remove('active'));
-                    document.getElementById(targetTab).classList.add('active');
-                    
-                    // Update current tab
-                    this.currentTab = targetTab;
-                    
-                    // Render content for active tab
-                    this.renderActiveTab();
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach((tab) => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    this.switchToTab(tabName);
                 });
             });
         };
-
-        app.renderActiveTab = function() {
-            if (this.currentTab === 'heatmap') {
-                this.renderHeatMap();
-            } else if (this.currentTab === 'historico') {
-                this.renderHistoricalChart();
+        
+        app.switchToTab = function(tabName) {
+            // Update active states
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            // Activate by data-tab name
+            const activeTab = document.querySelector(`[data-tab="${tabName}"]`);
+            const activeContent = document.getElementById(tabName);
+            
+            if (activeTab && activeContent) {
+                activeTab.classList.add('active');
+                activeContent.classList.add('active');
+                
+                // Update current tab index for swipe
+                this.currentTab = this.tabs.indexOf(tabName);
+                
+                // Render content
+                this.renderTabContent(tabName);
             }
         };
-
-        app.renderAllTabs = function() {
-            this.renderHeatMap();
-            this.renderHistoricalChart();
-        };
-
-        // Chart Rendering
-        app.renderHeatMap = function() {
-            const ctx = document.getElementById('heatmapChart');
-            if (!ctx) return;
-
-            if (this.heatmapChart) {
-                this.heatmapChart.destroy();
-            }
-
-            // Use real heatmap data if available, otherwise fallback to sample data
-            if (this.heatmapData && this.heatmapData.length > 0) {
-                // Real heatmap data from API
-                const locations = this.heatmapData.map(item => item.location);
-                const performances = this.heatmapData.map(item => item.performance);
-                const colors = this.heatmapData.map(item => {
-                    if (item.performance >= 90) return '#00b894'; // Green
-                    if (item.performance >= 80) return '#fdcb6e'; // Yellow  
-                    if (item.performance >= 70) return '#e17055'; // Orange
-                    return '#d63031'; // Red
-                });
-
-                this.heatmapChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: locations,
-                        datasets: [{
-                            label: 'Rendimiento por Ubicación (%)',
-                            data: performances,
-                            backgroundColor: colors,
-                            borderColor: colors,
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            borderSkipped: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + '%';
-                                    }
-                                }
-                            },
-                            x: {
-                                ticks: {
-                                    maxRotation: 45,
-                                    minRotation: 45
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            } else {
-                // Fallback to sample data if no real data available
-                const grupos = Object.keys(this.data.grupos);
-                const promedios = grupos.map(grupo => {
-                    const valores = this.data.grupos[grupo].filter(v => v !== null);
-                    return valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
-                });
-
-                this.heatmapChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: grupos,
-                        datasets: [{
-                            label: 'Promedio de Rendimiento (%) - Datos de ejemplo',
-                            data: promedios,
-                            backgroundColor: [
-                                '#D03B34',
-                                '#FFED00', 
-                                '#F18523',
-                                '#6C109F'
-                            ],
-                            borderColor: [
-                                '#D03B34',
-                                '#FFED00', 
-                                '#F18523',
-                                '#6C109F'
-                            ],
-                            borderWidth: 2,
-                            borderRadius: 8,
-                            borderSkipped: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                ticks: {
-                                    callback: function(value) {
-                                        return value + '%';
-                                    }
-                                }
-                            }
-                        },
-                        plugins: {
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': ' + context.parsed.y.toFixed(1) + '%';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
+        
+        app.switchTab = function(index) {
+            // Legacy function for swipe navigation
+            if (index >= 0 && index < this.tabs.length) {
+                this.switchToTab(this.tabs[index]);
             }
         };
-
-        app.renderHistoricalChart = function() {
-            const ctx = document.getElementById('historicalChart');
-            if (!ctx) return;
-
-            if (this.historicalChart) {
-                this.historicalChart.destroy();
-            }
-
-            // Use real data if available, otherwise fallback to sample data
-            const chartData = this.historicalData || {
-                labels: ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'],
-                datasets: Object.keys(this.data.grupos).map((grupo, index) => ({
-                    label: grupo,
-                    data: this.data.grupos[grupo],
-                    borderColor: ['#D03B34', '#FFED00', '#F18523', '#6C109F'][index % 4],
-                    backgroundColor: ['#D03B34', '#FFED00', '#F18523', '#6C109F'][index % 4] + '20',
-                    borderWidth: 3,
-                    fill: false,
-                    tension: 0.4,
-                    spanGaps: true
-                }))
+        
+        app.setupTouch = function() {
+            const content = document.querySelector('.content');
+            
+            // Advanced touch gesture variables
+            this.touchState = {
+                startX: 0, startY: 0, endX: 0, endY: 0,
+                startTime: 0, endTime: 0,
+                isMoving: false, velocity: 0,
+                direction: null, distance: 0
             };
-
-            this.historicalChart = new Chart(ctx, {
-                type: 'line',
-                data: chartData,
+            
+            // Enhanced touch start
+            content.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                this.touchState.startX = touch.clientX;
+                this.touchState.startY = touch.clientY;
+                this.touchState.startTime = Date.now();
+                this.touchState.isMoving = false;
+                
+                // Legacy support
+                this.touchStartX = touch.clientX;
+                this.touchStartY = touch.clientY;
+                this.pullStartY = window.scrollY === 0 ? touch.clientY : 0;
+                
+                // Add touch feedback
+                if (e.target.classList.contains('slider-item') || 
+                    e.target.classList.contains('slider-btn-mobile')) {
+                    e.target.style.transform = 'scale(0.95)';
+                }
+            }, { passive: true });
+            
+            // Enhanced touch move with momentum tracking
+            content.addEventListener('touchmove', (e) => {
+                const touch = e.touches[0];
+                this.touchState.isMoving = true;
+                
+                // Calculate real-time velocity
+                const deltaX = touch.clientX - this.touchState.startX;
+                const deltaY = touch.clientY - this.touchState.startY;
+                const deltaTime = Date.now() - this.touchState.startTime;
+                this.touchState.velocity = Math.abs(deltaX) / deltaTime;
+                this.touchState.distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                // Pull to refresh enhanced
+                if (this.pullStartY && touch.clientY > this.pullStartY + 50) {
+                    this.isPulling = true;
+                    const pullDistance = touch.clientY - this.pullStartY;
+                    const pullProgress = Math.min(pullDistance / 100, 1);
+                    
+                    const refreshElement = document.getElementById('pullToRefresh');
+                    if (refreshElement) {
+                        refreshElement.classList.add('active');
+                        refreshElement.style.transform = `translateY(${pullDistance * 0.5}px) rotate(${pullProgress * 360}deg)`;
+                    }
+                }
+                
+                // Horizontal slider momentum (if in slider area)
+                const sliderTrack = e.target.closest('.slider-track');
+                if (sliderTrack && Math.abs(deltaX) > Math.abs(deltaY)) {
+                    e.preventDefault(); // Prevent vertical scroll
+                }
+            }, { passive: false });
+            
+            // Enhanced touch end with gesture recognition
+            content.addEventListener('touchend', (e) => {
+                const touch = e.changedTouches[0];
+                this.touchState.endX = touch.clientX;
+                this.touchState.endY = touch.clientY;
+                this.touchState.endTime = Date.now();
+                
+                const diffX = this.touchState.startX - this.touchState.endX;
+                const diffY = this.touchState.startY - this.touchState.endY;
+                const absDiffX = Math.abs(diffX);
+                const absDiffY = Math.abs(diffY);
+                const duration = this.touchState.endTime - this.touchState.startTime;
+                const velocity = this.touchState.velocity;
+                
+                // Remove touch feedback
+                if (e.target.classList.contains('slider-item') || 
+                    e.target.classList.contains('slider-btn-mobile')) {
+                    e.target.style.transform = '';
+                }
+                
+                // Pull to refresh
+                if (this.isPulling) {
+                    this.refresh();
+                    const refreshElement = document.getElementById('pullToRefresh');
+                    if (refreshElement) {
+                        refreshElement.classList.remove('active');
+                        refreshElement.style.transform = '';
+                    }
+                    this.isPulling = false;
+                    return;
+                }
+                
+                // Enhanced swipe detection with velocity consideration
+                const minSwipeDistance = 30;
+                const minSwipeVelocity = 0.3;
+                const maxVerticalThreshold = 80;
+                
+                if ((absDiffX > minSwipeDistance && velocity > minSwipeVelocity && absDiffY < maxVerticalThreshold) ||
+                    (absDiffX > 80 && absDiffY < maxVerticalThreshold)) {
+                    
+                    // Determine swipe direction and strength
+                    this.touchState.direction = diffX > 0 ? 'left' : 'right';
+                    const swipeStrength = Math.min(velocity * absDiffX / 100, 2);
+                    
+                    // Tab navigation with momentum
+                    if (this.touchState.direction === 'left' && this.currentTab < this.tabs.length - 1) {
+                        this.switchTab(this.currentTab + 1);
+                        this.addSwipeEffect('left', swipeStrength);
+                    } else if (this.touchState.direction === 'right' && this.currentTab > 0) {
+                        this.switchTab(this.currentTab - 1);
+                        this.addSwipeEffect('right', swipeStrength);
+                    }
+                }
+                
+                // Double tap detection for quick actions
+                if (!this.touchState.isMoving && duration < 300 && this.touchState.distance < 10) {
+                    if (this.lastTapTime && Date.now() - this.lastTapTime < 300) {
+                        this.handleDoubleTap(e);
+                    }
+                    this.lastTapTime = Date.now();
+                }
+                
+                // Reset touch state
+                this.touchState = {
+                    startX: 0, startY: 0, endX: 0, endY: 0,
+                    startTime: 0, endTime: 0,
+                    isMoving: false, velocity: 0,
+                    direction: null, distance: 0
+                };
+            }, { passive: true });
+            
+            // Setup slider-specific gestures
+            this.setupSliderGestures();
+        };
+        
+        // Add swipe visual effect
+        app.addSwipeEffect = function(direction, strength) {
+            const content = document.querySelector('.tab-content.active');
+            if (!content) return;
+            
+            const translateX = direction === 'left' ? -20 : 20;
+            content.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1)';
+            content.style.transform = `translateX(${translateX * strength}px)`;
+            
+            setTimeout(() => {
+                content.style.transform = '';
+                setTimeout(() => content.style.transition = '', 150);
+            }, 150);
+        };
+        
+        // Double tap handler
+        app.handleDoubleTap = function(e) {
+            // Double tap on chart to fit data
+            if (e.target.closest('.chart-container')) {
+                this.fitChartData();
+                return;
+            }
+            
+            // Double tap on slider to select all visible
+            if (e.target.closest('.selector-slider')) {
+                this.selectVisibleGroups();
+                return;
+            }
+            
+            // Double tap on tab to refresh that section
+            if (e.target.closest('.tab-content')) {
+                this.refresh();
+            }
+        };
+        
+        // Enhanced slider gestures
+        app.setupSliderGestures = function() {
+            const sliders = document.querySelectorAll('.slider-container-mobile');
+            
+            sliders.forEach(slider => {
+                let isScrolling = false;
+                let scrollMomentum = 0;
+                
+                slider.addEventListener('scroll', (e) => {
+                    isScrolling = true;
+                    clearTimeout(this.scrollTimeout);
+                    
+                    // Add scroll momentum effect
+                    const scrollLeft = slider.scrollLeft;
+                    const maxScroll = slider.scrollWidth - slider.clientWidth;
+                    
+                    if (scrollLeft <= 5 || scrollLeft >= maxScroll - 5) {
+                        slider.style.boxShadow = '0 0 10px rgba(255, 107, 53, 0.3)';
+                        setTimeout(() => slider.style.boxShadow = '', 200);
+                    }
+                    
+                    this.scrollTimeout = setTimeout(() => {
+                        isScrolling = false;
+                    }, 150);
+                }, { passive: true });
+            });
+        };
+        
+        // Utility functions for advanced gestures
+        app.fitChartData = function() {
+            // Reset chart zoom/pan if implemented
+            console.log('Chart fit to data triggered');
+        };
+        
+        app.selectVisibleGroups = function() {
+            // Select currently visible groups in slider
+            const visibleGroups = this.getVisibleSliderGroups();
+            visibleGroups.forEach(group => {
+                this.selectedGroups.add(group);
+            });
+            this.renderGroupSelector();
+            this.updateCharts();
+        };
+        
+        app.getVisibleSliderGroups = function() {
+            const slider = document.querySelector('.slider-container-mobile');
+            if (!slider) return [];
+            
+            const items = slider.querySelectorAll('.slider-item');
+            const visibleGroups = [];
+            
+            items.forEach(item => {
+                const rect = item.getBoundingClientRect();
+                const sliderRect = slider.getBoundingClientRect();
+                
+                if (rect.left >= sliderRect.left && rect.right <= sliderRect.right) {
+                    const groupName = item.textContent.trim().split('\n')[0];
+                    visibleGroups.push(groupName);
+                }
+            });
+            
+            return visibleGroups;
+        };
+        
+        app.updateLastUpdate = function() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('es-MX', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            document.getElementById('lastUpdate').textContent = timeStr;
+        };
+        
+        app.refresh = async function() {
+            // Show loading state
+            const indicator = document.getElementById('pullToRefresh');
+            indicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+            
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Update data and charts
+            this.updateLastUpdate();
+            this.renderTabContent(this.tabs[this.currentTab]);
+            
+            // Reset indicator
+            indicator.innerHTML = '<i class="fas fa-sync-alt"></i>';
+        };
+        
+        app.renderAllTabs = function() {
+            this.renderAlerts();
+            this.renderSmartAnalysis();
+            this.renderHeatMap();
+            this.renderTrends();
+        };
+        
+        app.renderTabContent = function(tabName) {
+            switch(tabName) {
+                case 'alerts': this.renderAlerts(); break;
+                case 'smart': this.renderSmartAnalysis(); break;
+                case 'heatmap': this.renderHeatMap(); break;
+                case 'trends': this.renderTrends(); break;
+            }
+        };
+        
+        app.renderAlerts = function() {
+            // Summary chart
+            const ctx = document.getElementById('summaryChart')?.getContext('2d');
+            if (!ctx) return;
+            
+            if (this.charts.summary) this.charts.summary.destroy();
+            
+            this.charts.summary = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Excelente', 'Bueno', 'Regular', 'Crítico'],
+                    datasets: [{
+                        data: [3, 8, 6, 3],
+                        backgroundColor: ['#00b894', '#74b9ff', '#fdcb6e', '#d63031']
+                    }]
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
                     plugins: {
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    return context.dataset.label + ': ' + (context.parsed.y ? context.parsed.y.toFixed(1) : 'N/A') + '%';
-                                }
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        };
+        
+        app.renderSmartAnalysis = function() {
+            // Initialize slider selector
+            this.initSliderSelector();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.updateComparisonChart = function() {
+            const ctx = document.getElementById('comparisonChart')?.getContext('2d');
+            if (!ctx) return;
+            
+            if (this.charts.comparison) this.charts.comparison.destroy();
+            
+            // Calculate EPL CAS cumulative averages for the chart
+            const eplPromedios = this.data.periodos.map((periodo, currentIndex) => {
+                let suma = 0;
+                let count = 0;
+                
+                Object.values(this.data.grupos).forEach(valores => {
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (valores[i] !== null) {
+                            suma += valores[i];
+                            count++;
+                        }
+                    }
+                });
+                
+                return count > 0 ? suma / count : null;
+            });
+            
+            const datasets = [];
+            
+            // Add EPL CAS line first (dotted)
+            datasets.push({
+                label: 'EPL CAS Promedio',
+                data: eplPromedios,
+                borderColor: '#FF6B35',
+                backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                borderWidth: 3,
+                borderDash: [5, 5],
+                tension: 0.2,
+                pointBackgroundColor: '#FF6B35',
+                pointBorderColor: '#FF6B35',
+                pointRadius: 4,
+                fill: false,
+                spanGaps: true  // Connect line even with null values
+            });
+            
+            // Add selected groups
+            Array.from(this.selectedGroups).forEach((grupo, index) => {
+                datasets.push({
+                    label: grupo,
+                    data: this.data.grupos[grupo],
+                    borderColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
+                    backgroundColor: `hsla(${index * 60 + 30}, 70%, 50%, 0.1)`,
+                    borderWidth: 2,
+                    tension: 0.3,
+                    pointBackgroundColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
+                    pointBorderColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
+                    pointRadius: 3,
+                    spanGaps: true  // Connect line even with null values
+                });
+            });
+            
+            this.charts.comparison = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: this.data.periodos,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                fontSize: 12,
+                                usePointStyle: true
                             }
                         }
                     },
                     scales: {
                         y: {
                             beginAtZero: false,
-                            min: 80,
+                            min: 60,
                             max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
+                            title: {
+                                display: true,
+                                text: 'Performance (%)'
                             }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Períodos'
+                            }
+                        }
+                    }
+                }
+            });
+        };
+        
+        app.renderGroupCards = function() {
+            const container = document.getElementById('groupCards');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            
+            Array.from(this.selectedGroups).forEach(grupo => {
+                const detalle = this.data.gruposDetallados[grupo];
+                if (!detalle) return;
+                
+                const card = document.createElement('div');
+                card.className = 'group-card';
+                card.innerHTML = `
+                    <div class="group-card-header" onclick="app.toggleCard('${grupo}')">
+                        <div class="group-card-title">
+                            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${this.getGroupColor(grupo)};"></div>
+                            <strong>${grupo}</strong>
+                        </div>
+                        <div class="group-card-metrics">
+                            <span style="font-weight: 600;">${detalle.promedio_general.toFixed(1)}%</span>
+                            <span style="color: #636e72;">📍 ${detalle.total_sucursales} suc</span>
+                            <span class="trend-indicator trend-${detalle.tendencia}">
+                                ${detalle.tendencia === 'mejorando' ? '↗' : detalle.tendencia === 'declinando' ? '↘' : '→'} 
+                                ${detalle.vs_epl_cas > 0 ? '+' : ''}${detalle.vs_epl_cas.toFixed(1)}% vs EPL
+                            </span>
+                            <span class="expand-icon">▼</span>
+                        </div>
+                    </div>
+                    <div class="group-card-content">
+                        <div class="metric-item">
+                            <span class="metric-label">Promedio General:</span>
+                            <span class="metric-value">${detalle.promedio_general.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">vs EPL CAS:</span>
+                            <span class="metric-value" style="color: ${detalle.vs_epl_cas > 0 ? '#00b894' : '#d63031'};">
+                                ${detalle.vs_epl_cas > 0 ? '+' : ''}${detalle.vs_epl_cas.toFixed(1)}%
+                            </span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Tendencia:</span>
+                            <span class="metric-value">${detalle.tendencia}</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Volatilidad:</span>
+                            <span class="metric-value">${detalle.volatilidad}</span>
+                        </div>
+                        
+                        <div class="sucursales-list">
+                            <h4 style="font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--primary);">📍 Sucursales Evaluadas:</h4>
+                            ${Object.entries(detalle.periodos).map(([periodo, data]) => `
+                                <div class="periodo-section">
+                                    <div class="periodo-title">${periodo}: ${data.promedio.toFixed(1)}%</div>
+                                    ${data.sucursales.map(suc => `
+                                        <div class="sucursal-item">
+                                            <span>${suc.nombre}</span>
+                                            <span style="font-weight: 600;">${suc.calificacion.toFixed(1)}%</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+        };
+        
+        app.toggleCard = function(grupo) {
+            const cards = document.querySelectorAll('.group-card');
+            cards.forEach(card => {
+                if (card.innerHTML.includes(grupo)) {
+                    card.classList.toggle('expanded');
+                }
+            });
+        };
+        
+        app.getGroupColor = function(grupo) {
+            const groups = Array.from(this.selectedGroups);
+            const index = groups.indexOf(grupo);
+            return `hsl(${index * 60 + 30}, 70%, 50%)`;
+        };
+        
+        app.renderSmartInsights = function() {
+            const container = document.getElementById('smartInsights');
+            if (!container) return;
+            
+            const insights = [];
+            
+            Array.from(this.selectedGroups).forEach(grupo => {
+                const detalle = this.data.gruposDetallados[grupo];
+                if (!detalle) return;
+                
+                if (detalle.vs_epl_cas > 5) {
+                    insights.push(`${grupo} supera constantemente el EPL CAS (+${detalle.vs_epl_cas.toFixed(1)}% promedio)`);
+                } else if (detalle.vs_epl_cas < -5) {
+                    insights.push(`${grupo} está por debajo del EPL CAS (${detalle.vs_epl_cas.toFixed(1)}% promedio)`);
+                }
+                
+                if (detalle.volatilidad === 'alta') {
+                    insights.push(`${grupo} muestra alta volatilidad - requiere seguimiento`);
+                }
+                
+                if (detalle.tendencia === 'mejorando') {
+                    insights.push(`${grupo} muestra tendencia positiva - buen desempeño`);
+                } else if (detalle.tendencia === 'declinando') {
+                    insights.push(`${grupo} muestra tendencia negativa - requiere intervención`);
+                }
+            });
+            
+            if (insights.length === 0) {
+                container.innerHTML = '<p style="color: #636e72; font-style: italic;">Selecciona grupos para ver insights automáticos</p>';
+            } else {
+                container.innerHTML = `
+                    <ul style="padding-left: 1.5rem; font-size: 0.875rem;">
+                        ${insights.map(insight => `<li>${insight}</li>`).join('')}
+                    </ul>
+                `;
+            }
+        };
+        
+        app.renderHeatMap = function(filter = 'all') {
+            const tbody = document.getElementById('heatmapBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+            
+            const showDifferences = document.getElementById('showDifferences')?.checked ?? true;
+            
+            // Calculate EPL CAS cumulative averages (all supervisions up to that period)
+            const eplPromedios = this.data.periodos.map((periodo, currentIndex) => {
+                let suma = 0;
+                let count = 0;
+                
+                // Sum ALL supervisions from period 0 up to currentIndex (cumulative)
+                Object.values(this.data.grupos).forEach(valores => {
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (valores[i] !== null) {
+                            suma += valores[i];
+                            count++;
+                        }
+                    }
+                });
+                
+                return count > 0 ? suma / count : 0;
+            });
+            
+            // Calculate overall EPL average
+            const eplPromedioGeneral = eplPromedios.filter(p => p > 0).reduce((a, b) => a + b, 0) / 
+                                      eplPromedios.filter(p => p > 0).length;
+            
+            // Calculate averages and trends for groups
+            const gruposConDatos = Object.entries(this.data.grupos).map(([grupo, valores]) => {
+                const valoresValidos = valores.filter(v => v !== null);
+                const promedio = valoresValidos.length > 0 
+                    ? valoresValidos.reduce((a, b) => a + b, 0) / valoresValidos.length 
+                    : 0;
+                
+                // Calculate overall trend
+                let trend = 'stable';
+                if (valoresValidos.length >= 2) {
+                    const firstValue = valoresValidos[0];
+                    const lastValue = valoresValidos[valoresValidos.length - 1];
+                    const diff = lastValue - firstValue;
+                    if (diff > 2) trend = 'improving';
+                    else if (diff < -2) trend = 'declining';
+                }
+                
+                // Check if critical
+                const isCritical = valoresValidos.some(v => v < 75);
+                
+                return { grupo, valores, promedio, trend, isCritical };
+            });
+            
+            // Apply filter
+            let gruposFiltrados = gruposConDatos;
+            switch(filter) {
+                case 'critical':
+                    gruposFiltrados = gruposConDatos.filter(g => g.isCritical);
+                    break;
+                case 'improving':
+                    gruposFiltrados = gruposConDatos.filter(g => g.trend === 'improving');
+                    break;
+                case 'declining':
+                    gruposFiltrados = gruposConDatos.filter(g => g.trend === 'declining');
+                    break;
+            }
+            
+            // Sort by average
+            gruposFiltrados.sort((a, b) => b.promedio - a.promedio);
+            
+            // Add EPL CAS average row first
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-row';
+            
+            // EPL CAS label cell
+            const eplLabelCell = document.createElement('td');
+            eplLabelCell.innerHTML = `
+                <div style="color: black; font-weight: bold; font-size: 0.8rem; text-align: center;">
+                    Promedio EPL CAS
+                </div>
+            `;
+            eplRow.appendChild(eplLabelCell);
+            
+            // EPL period cells
+            let lastValidEpl = null;
+            eplPromedios.forEach((promedio, index) => {
+                const cell = document.createElement('td');
+                
+                if (promedio === 0) {
+                    cell.innerHTML = '—';
+                } else {
+                    let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
+                    
+                    // Add difference vs previous EPL period if enabled
+                    if (showDifferences && lastValidEpl !== null) {
+                        const diff = promedio - lastValidEpl;
+                        const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                        const diffSign = diff > 0 ? '+' : '';
+                        const trendSymbol = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                        
+                        cellContent += `<div class="diff-value ${diffClass}" style="color: rgba(255,255,255,0.8);">${trendSymbol} ${diffSign}${diff.toFixed(1)}</div>`;
+                    }
+                    
+                    // Add tooltip explaining cumulative average
+                    cell.title = `Promedio EPL CAS acumulativo hasta ${this.data.periodos[index]}: incluye todas las supervisiones desde el inicio hasta este período`;
+                    cell.innerHTML = cellContent;
+                    lastValidEpl = promedio;
+                }
+                
+                eplRow.appendChild(cell);
+            });
+            
+            // EPL overall average cell
+            const eplAvgCell = document.createElement('td');
+            eplAvgCell.innerHTML = `${eplPromedioGeneral.toFixed(1)}%`;
+            eplRow.appendChild(eplAvgCell);
+            
+            tbody.appendChild(eplRow);
+            
+            // Render each group
+            gruposFiltrados.forEach(({ grupo, valores, promedio }) => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const groupCell = document.createElement('td');
+                groupCell.textContent = grupo;
+                row.appendChild(groupCell);
+                
+                // Track previous non-null value for differences
+                let lastValidValue = null;
+                let lastValidIndex = -1;
+                
+                // Period cells
+                valores.forEach((valor, index) => {
+                    const cell = document.createElement('td');
+                    
+                    if (valor === null) {
+                        cell.className = 'heat-none';
+                        cell.textContent = '—';
+                    } else {
+                        // Apply color based on new scale
+                        if (valor >= 95) cell.className = 'heat-excelente';
+                        else if (valor >= 91) cell.className = 'heat-muy-bueno';
+                        else if (valor >= 87) cell.className = 'heat-bueno';
+                        else if (valor >= 82) cell.className = 'heat-regular';
+                        else cell.className = 'heat-critico';
+                        
+                        // Main value - clean without emojis
+                        let cellContent = `<div style="font-weight: 600;">${valor.toFixed(1)}%</div>`;
+                        
+                        // Add difference if enabled and there's a previous value
+                        if (showDifferences && lastValidValue !== null) {
+                            const diff = valor - lastValidValue;
+                            const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                            const diffSign = diff > 0 ? '+' : '';
+                            const trendSymbol = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                            
+                            cellContent += `<div class="diff-value ${diffClass}">${trendSymbol} ${diffSign}${diff.toFixed(1)}</div>`;
+                        }
+                        
+                        cell.innerHTML = cellContent;
+                        
+                        // Update last valid value
+                        lastValidValue = valor;
+                        lastValidIndex = index;
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Average cell
+                const avgCell = document.createElement('td');
+                avgCell.style.fontWeight = 'bold';
+                if (promedio >= 95) avgCell.className = 'heat-excelente';
+                else if (promedio >= 91) avgCell.className = 'heat-muy-bueno';
+                else if (promedio >= 87) avgCell.className = 'heat-bueno';
+                else if (promedio >= 82) avgCell.className = 'heat-regular';
+                else avgCell.className = 'heat-critico';
+                avgCell.textContent = promedio.toFixed(1) + '%';
+                row.appendChild(avgCell);
+                
+                tbody.appendChild(row);
+            });
+            
+            // Setup filter buttons if not already done
+            if (!this.filtersSetup) {
+                this.setupHeatmapFilters();
+                this.filtersSetup = true;
+            }
+        };
+        
+        app.setupHeatmapFilters = function() {
+            // Filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    // Update active state
+                    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    // Apply filter
+                    const filter = btn.dataset.filter;
+                    this.renderHeatMap(filter);
+                });
+            });
+            
+            // Differences toggle
+            document.getElementById('showDifferences')?.addEventListener('change', () => {
+                // Re-render with current filter
+                const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+                this.renderHeatMap(activeFilter);
+            });
+        };
+        
+        app.renderTrends = function() {
+            // Evolution chart
+            const ctx = document.getElementById('evolutionChart')?.getContext('2d');
+            if (!ctx) return;
+            
+            if (this.charts.evolution) this.charts.evolution.destroy();
+            
+            // Calculate trends
+            const trendData = this.calculateTrends();
+            
+            this.charts.evolution = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: this.data.periodos,
+                    datasets: [{
+                        label: 'Promedio de Red',
+                        type: 'line',
+                        data: [88.5, 86.2, 87.8, 88.6, 89.1],
+                        borderColor: '#ff6b35',
+                        borderWidth: 3,
+                        fill: false,
+                        spanGaps: true
+                    }, {
+                        label: 'Grupos Evaluados',
+                        data: [10, 12, 15, 13, 11],
+                        backgroundColor: 'rgba(116, 185, 255, 0.5)'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false
                         }
                     }
                 }
@@ -817,174 +2719,7 @@
                 `;
             }
         };
-
-        // Touch and Mobile Support
-        app.setupTouch = function() {
-            const slider = document.querySelector('.slider-wrapper');
-            if (!slider) return;
-
-            let isDown = false;
-            let startX;
-            let scrollLeft;
-
-            slider.addEventListener('mousedown', (e) => {
-                isDown = true;
-                slider.classList.add('active');
-                startX = e.pageX - slider.offsetLeft;
-                scrollLeft = slider.scrollLeft;
-            });
-
-            slider.addEventListener('mouseleave', () => {
-                isDown = false;
-                slider.classList.remove('active');
-            });
-
-            slider.addEventListener('mouseup', () => {
-                isDown = false;
-                slider.classList.remove('active');
-            });
-
-            slider.addEventListener('mousemove', (e) => {
-                if (!isDown) return;
-                e.preventDefault();
-                const x = e.pageX - slider.offsetLeft;
-                const walk = (x - startX) * 2;
-                slider.scrollLeft = scrollLeft - walk;
-            });
-        };
-
-        app.updateLastUpdate = function() {
-            const now = new Date();
-            const formatted = now.toLocaleString('es-MX', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
-            
-            const element = document.getElementById('lastUpdate');
-            if (element) {
-                element.textContent = `Última actualización: ${formatted}`;
-            }
-        };
-
-        // SLIDER SELECTOR FUNCTIONS - OPTIMIZED FOR MOBILE
-        // =====================================================
         
-        app.initSliderSelector = function() {
-            const track = document.getElementById('sliderTrack');
-            if (!track) return;
-            
-            // Clear existing items
-            track.innerHTML = '';
-            
-            // Add "All Groups" option first
-            const allGroupsItem = this.createSliderItem('TODOS', '#FF6B35', true);
-            allGroupsItem.addEventListener('click', () => this.selectGroup('all', allGroupsItem));
-            track.appendChild(allGroupsItem);
-            
-            // Add groups from data
-            const grupos = Object.keys(this.data.grupos);
-            const colors = ['#D03B34', '#FFED00', '#F18523', '#6C109F'];
-            
-            grupos.forEach((grupo, index) => {
-                const item = this.createSliderItem(grupo, colors[index % colors.length]);
-                item.addEventListener('click', () => this.selectGroup(grupo, item));
-                track.appendChild(item);
-            });
-        };
-        
-        app.createSliderItem = function(text, color, isActive = false) {
-            const item = document.createElement('div');
-            item.className = `slider-item ${isActive ? 'active' : ''}`;
-            
-            const circle = document.createElement('div');
-            circle.className = 'group-circle';
-            circle.style.background = color;
-            circle.style.color = 'white';
-            
-            const textElement = document.createElement('span');
-            textElement.className = 'group-text';
-            textElement.textContent = this.formatGroupName(text);
-            
-            circle.appendChild(textElement);
-            item.appendChild(circle);
-            
-            return item;
-        };
-        
-        app.formatGroupName = function(name) {
-            if (name === 'TODOS') return name;
-            
-            // Abbreviate long names for better mobile display
-            const abbreviations = {
-                'GRUPO CANTERA ROSA (MORELIA)': 'MORELIA',
-                'GRUPO NUEVO LAREDO (RUELAS)': 'RUELAS',
-                'GRUPO SALTILLO': 'SALTILLO',
-                'OCHTER TAMPICO': 'TAMPICO'
-            };
-            
-            return abbreviations[name] || (name.length > 8 ? name.substring(0, 8) : name);
-        };
-        
-        app.selectGroup = function(groupName, element) {
-            // Remove active class from all items
-            document.querySelectorAll('.slider-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            
-            // Add active class to selected item
-            element.classList.add('active');
-            
-            // Update selected group
-            this.selectedGroup = groupName;
-            
-            // Update charts based on selection
-            this.updateCharts();
-        };
-        
-        app.updateCharts = function() {
-            // Filter data based on selected group
-            let filteredData = { ...this.data };
-            
-            if (this.selectedGroup !== 'all') {
-                filteredData.grupos = {
-                    [this.selectedGroup]: this.data.grupos[this.selectedGroup]
-                };
-            }
-            
-            // Update charts with filtered data
-            this.data = filteredData;
-            this.renderActiveTab();
-        };
-
-        // Initialize groups list
-        app.initGroupsList = function() {
-            this.groupsList = Object.keys(this.data.grupos).map(grupo => {
-                const valores = this.data.grupos[grupo].filter(v => v !== null);
-                const promedio = valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
-                return { name: grupo, average: promedio };
-            });
-        };
-
-        // Initialize on load
-        document.addEventListener('DOMContentLoaded', () => {
-            app.initGroupsList();
-            app.init();
-            
-            // Load real data from Neon PostgreSQL
-            app.loadRealData();
-        });
-        
-        app.init = function() {
-            this.setupTabs();
-            this.setupTouch();
-            this.updateLastUpdate();
-            this.initSliderSelector();
-            this.renderAllTabs();
-        };
-
         app.calculateTrends = function() {
             // Real trend calculation based on historical data
             if (!this.historicalData || !this.historicalData.datasets) {
@@ -1114,6 +2849,25 @@
             });
         };
         
+        // Format group name for display
+        app.formatGroupName = function(name) {
+            if (name.length <= 8) return name;
+            
+            // Handle specific cases
+            const abbreviations = {
+                'GRUPO CANTERA ROSA (MORELIA)': 'MORELIA',
+                'GRUPO NUEVO LAREDO (RUELAS)': 'RUELAS',
+                'GRUPO SALTILLO': 'SALTILLO',
+                'GRUPO MATAMOROS': 'MATAM.',
+                'OCHTER TAMPICO': 'TAMPICO',
+                'PLOG LAGUNA': 'LAGUNA',
+                'PLOG NUEVO LEON': 'PLOG NL',
+                'PLOG QUERETARO': 'PLOG QRO'
+            };
+            
+            return abbreviations[name] || name.substring(0, 8);
+        };
+        
         // Group selection handler
         app.selectGroup = function(groupId, element) {
             // Update active state
@@ -1136,10 +2890,11 @@
         app.updateHeatMap = function() {
             if (!this.heatmapData) return;
             
+            // For now, show data count in console - heatmap implementation depends on chosen library
             console.log('🗺️ Heatmap data ready:', this.heatmapData.length, 'locations');
             
-            // Re-render the heatmap chart with new data
-            this.renderHeatMap();
+            // TODO: Implement actual heatmap visualization
+            // This would depend on chosen mapping library (Leaflet, Google Maps, etc.)
         };
         
         // Loading state management
