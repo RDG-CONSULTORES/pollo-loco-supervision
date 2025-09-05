@@ -1498,28 +1498,44 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             };
         });
 
+        // Get all groups and calculate their overall averages using Dashboard methodology
+        const allGroupsQuery = `
+            SELECT 
+                grupo_operativo_limpio as grupo,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio_general
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio IS NOT NULL
+              AND porcentaje IS NOT NULL
+            GROUP BY grupo_operativo_limpio
+        `;
+        
+        const allGroupsResult = await pool.query(allGroupsQuery);
+        const groupOverallAverages = {};
+        
+        allGroupsResult.rows.forEach(row => {
+            groupOverallAverages[row.grupo] = parseFloat(row.promedio_general);
+        });
+
+        // Include ALL groups from overall averages, not just those with CAS period data
+        const allGroups = new Set([...Object.keys(groupedData), ...Object.keys(groupOverallAverages)]);
+        
         // Format data for heatmap table
-        const heatmapRows = Object.entries(groupedData).map(([grupo, periodos]) => {
+        const heatmapRows = Array.from(allGroups).map(grupo => {
+            const periodos = groupedData[grupo] || {};
             const row = {
                 grupo,
                 periodos: {},
-                promedio_general: 0
+                promedio_general: groupOverallAverages[grupo] || 0  // Use Dashboard methodology
             };
-
-            let suma = 0;
-            let count = 0;
 
             casPeriodsOrder.forEach(periodo => {
                 if (periodos[periodo]) {
                     row.periodos[periodo] = periodos[periodo];
-                    suma += periodos[periodo].promedio;
-                    count++;
                 } else {
                     row.periodos[periodo] = null;
                 }
             });
 
-            row.promedio_general = count > 0 ? suma / count : 0;
             return row;
         });
 
