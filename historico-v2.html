@@ -2595,11 +2595,188 @@
                                 <span class="metric-value">${grupo.color}</span>
                             </div>
                         </div>
+                        
+                        <!-- EXPANDIBLE SUCURSALES SECTION -->
+                        <div class="sucursales-expandible">
+                            <button class="expand-btn" onclick="app.toggleSucursales('${grupo.id}')" 
+                                    style="width: 100%; padding: 0.75rem; margin-top: 1rem; background: linear-gradient(135deg, ${grupo.color}, ${grupo.color}aa); border: none; border-radius: 8px; color: white; font-weight: 600; cursor: pointer; transition: all 0.3s ease;">
+                                <i class="fas fa-store"></i> Ver ${grupo.totalSucursales} Sucursales Evaluadas
+                                <i class="fas fa-chevron-down expand-icon" style="float: right; transition: transform 0.3s ease;"></i>
+                            </button>
+                            <div class="sucursales-content" id="sucursales-${grupo.id}" style="display: none; margin-top: 1rem; padding: 1rem; background: rgba(0,0,0,0.02); border-radius: 8px; border-left: 4px solid ${grupo.color};">
+                                <div class="loading-sucursales">
+                                    <i class="fas fa-spinner fa-spin"></i> Cargando sucursales...
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 `;
                 
                 container.appendChild(card);
             });
+        };
+        
+        // FASE 3: Toggle Sucursales expandibles
+        app.toggleSucursales = async function(grupoId) {
+            console.log('🏪 Toggling sucursales for grupo:', grupoId);
+            
+            const sucursalesContent = document.getElementById(`sucursales-${grupoId}`);
+            const expandIcon = document.querySelector(`[onclick="app.toggleSucursales('${grupoId}')"] .expand-icon`);
+            
+            if (!sucursalesContent) {
+                console.error('❌ Sucursales content not found for:', grupoId);
+                return;
+            }
+            
+            // Toggle visibility
+            if (sucursalesContent.style.display === 'none' || !sucursalesContent.style.display) {
+                // Show and load data
+                sucursalesContent.style.display = 'block';
+                if (expandIcon) {
+                    expandIcon.style.transform = 'rotate(180deg)';
+                    expandIcon.classList.remove('fa-chevron-down');
+                    expandIcon.classList.add('fa-chevron-up');
+                }
+                
+                // Load sucursales data if not already loaded
+                if (sucursalesContent.querySelector('.loading-sucursales')) {
+                    await this.loadSucursalesData(grupoId, sucursalesContent);
+                }
+            } else {
+                // Hide
+                sucursalesContent.style.display = 'none';
+                if (expandIcon) {
+                    expandIcon.style.transform = 'rotate(0deg)';
+                    expandIcon.classList.remove('fa-chevron-up');
+                    expandIcon.classList.add('fa-chevron-down');
+                }
+            }
+        };
+        
+        // FASE 3: Load sucursales data by grupo
+        app.loadSucursalesData = async function(grupoId, container) {
+            try {
+                console.log('📊 Loading sucursales data for grupo:', grupoId);
+                
+                // Find the operational group
+                const grupo = this.operationalGroups.find(g => g.id === grupoId || g.name === grupoId);
+                if (!grupo) {
+                    throw new Error(`Grupo no encontrado: ${grupoId}`);
+                }
+                
+                // Fetch performance areas data for this group
+                const response = await fetch(`/api/performance-areas?grupo=${encodeURIComponent(grupo.name)}`);
+                if (!response.ok) {
+                    throw new Error(`Error ${response.status}: ${response.statusText}`);
+                }
+                
+                const sucursalesData = await response.json();
+                console.log('✅ Sucursales data loaded:', sucursalesData.length, 'sucursales');
+                
+                // Render sucursales table
+                this.renderSucursalesTable(sucursalesData, container, grupo);
+                
+            } catch (error) {
+                console.error('❌ Error loading sucursales data:', error);
+                container.innerHTML = `
+                    <div style="text-align: center; color: #d63031; padding: 1rem;">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <p>Error cargando sucursales: ${error.message}</p>
+                        <button onclick="app.loadSucursalesData('${grupoId}', this.parentElement.parentElement)" 
+                                style="margin-top: 0.5rem; padding: 0.5rem 1rem; background: #0984e3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Reintentar
+                        </button>
+                    </div>
+                `;
+            }
+        };
+        
+        // FASE 3: Render sucursales performance table
+        app.renderSucursalesTable = function(sucursalesData, container, grupo) {
+            if (!sucursalesData || sucursalesData.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; color: #636e72; padding: 1rem;">
+                        <i class="fas fa-info-circle"></i> 
+                        <p>No hay datos de sucursales disponibles para ${grupo.name}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort sucursales by performance (descending)
+            sucursalesData.sort((a, b) => (parseFloat(b.performance) || 0) - (parseFloat(a.performance) || 0));
+            
+            container.innerHTML = `
+                <div class="sucursales-table-header">
+                    <h4 style="color: ${grupo.color}; margin: 0 0 1rem 0;">
+                        <i class="fas fa-store"></i> ${grupo.name} - ${sucursalesData.length} Sucursales
+                    </h4>
+                </div>
+                <div class="sucursales-table" style="max-height: 300px; overflow-y: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+                        <thead style="position: sticky; top: 0; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            <tr>
+                                <th style="text-align: left; padding: 0.5rem; border-bottom: 2px solid ${grupo.color}; font-weight: 600;">Sucursal</th>
+                                <th style="text-align: center; padding: 0.5rem; border-bottom: 2px solid ${grupo.color}; font-weight: 600;">Performance</th>
+                                <th style="text-align: center; padding: 0.5rem; border-bottom: 2px solid ${grupo.color}; font-weight: 600;">Evaluaciones</th>
+                                <th style="text-align: center; padding: 0.5rem; border-bottom: 2px solid ${grupo.color}; font-weight: 600;">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${sucursalesData.map((sucursal, index) => {
+                                const performance = parseFloat(sucursal.performance) || 0;
+                                const evaluaciones = parseInt(sucursal.total_evaluaciones) || 0;
+                                
+                                // Determine status color
+                                let statusColor = '#636e72';
+                                let statusText = 'Regular';
+                                
+                                if (performance >= 95) {
+                                    statusColor = '#00b894';
+                                    statusText = 'Excelente';
+                                } else if (performance >= 90) {
+                                    statusColor = '#fdcb6e';
+                                    statusText = 'Bueno';
+                                } else if (performance >= 80) {
+                                    statusColor = '#e17055';
+                                    statusText = 'Regular';
+                                } else {
+                                    statusColor = '#d63031';
+                                    statusText = 'Crítico';
+                                }
+                                
+                                return `
+                                    <tr style="border-bottom: 1px solid #eee; ${index % 2 === 0 ? 'background: rgba(0,0,0,0.01);' : ''}">
+                                        <td style="padding: 0.75rem 0.5rem; font-weight: 500;">
+                                            ${sucursal.location_name || sucursal.area_name || 'Sin nombre'}
+                                        </td>
+                                        <td style="padding: 0.75rem 0.5rem; text-align: center; font-weight: 600; color: ${statusColor};">
+                                            ${performance.toFixed(1)}%
+                                        </td>
+                                        <td style="padding: 0.75rem 0.5rem; text-align: center; color: #636e72;">
+                                            ${evaluaciones}
+                                        </td>
+                                        <td style="padding: 0.75rem 0.5rem; text-align: center;">
+                                            <span style="padding: 0.25rem 0.5rem; border-radius: 12px; font-size: 0.75rem; font-weight: 600; 
+                                                         background: ${statusColor}22; color: ${statusColor};">
+                                                ${statusText}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="sucursales-summary" style="margin-top: 1rem; padding: 0.75rem; background: ${grupo.color}11; border-radius: 6px; border-left: 4px solid ${grupo.color};">
+                    <small style="color: #636e72;">
+                        <strong>Resumen:</strong> 
+                        ${sucursalesData.filter(s => (parseFloat(s.performance) || 0) >= 95).length} excelentes, 
+                        ${sucursalesData.filter(s => {const p = parseFloat(s.performance) || 0; return p >= 90 && p < 95;}).length} buenas, 
+                        ${sucursalesData.filter(s => (parseFloat(s.performance) || 0) < 80).length} críticas
+                    </small>
+                </div>
+            `;
         };
         
         app.toggleCard = function(grupo) {
