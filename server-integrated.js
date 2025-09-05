@@ -51,6 +51,17 @@ pool.on('error', (err) => {
     dbConnected = false;
 });
 
+// Handle uncaught exceptions to prevent server crashes
+process.on('uncaughtException', (err) => {
+    console.error('❌ Uncaught Exception:', err);
+    console.log('🔄 Server continuing with fallback data');
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    console.log('🔄 Server continuing with fallback data');
+});
+
 // Helper function for Período CAS filtering
 function buildPeriodoCasCondition(periodoCas, paramIndex) {
     if (!periodoCas || periodoCas === 'all') {
@@ -96,7 +107,10 @@ app.use(express.json());
 app.use('/dashboard-static', express.static(path.join(__dirname, 'telegram-bot/web-app/public')));
 app.use(express.static(path.join(__dirname, 'telegram-bot/web-app/public')));
 
-// Serve the main dashboard file
+// Serve static files from root directory (for historico-v2.html)
+app.use(express.static(path.join(__dirname)));
+
+// Serve the main dashboard file (explicit route)
 app.get('/historico-v2.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'historico-v2.html'));
 });
