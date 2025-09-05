@@ -734,14 +734,27 @@
         }
         
         .slider-container-mobile {
+            /* PERFECT HORIZONTAL SCROLL */
             overflow-x: auto;
             overflow-y: hidden;
-            border-radius: 8px;
-            /* Enhanced scrolling */
-            scroll-snap-type: x mandatory;
+            border-radius: 12px;
+            
+            /* MOMENTUM SCROLLING MOBILE */
             -webkit-overflow-scrolling: touch;
+            scroll-behavior: smooth;
+            scroll-snap-type: x mandatory;
+            
+            /* HIDE SCROLLBARS */
             scrollbar-width: none;
             -ms-overflow-style: none;
+            
+            /* MOBILE TOUCH OPTIMIZATION */
+            touch-action: pan-x;
+            -webkit-touch-callout: none;
+            
+            /* VISUAL */
+            background: rgba(248, 249, 250, 0.5);
+            border: 1px solid rgba(0,0,0,0.05);
         }
         
         .slider-container-mobile::-webkit-scrollbar {
@@ -749,60 +762,73 @@
         }
         
         .slider-track {
+            /* FLEX LAYOUT FOR CIRCLES */
             display: flex;
-            gap: 1rem;
-            padding: 0.75rem;
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            scroll-snap-type: x mandatory;
-            /* Touch momentum */
-            will-change: transform;
-            justify-content: flex-start;
+            gap: 16px;
+            padding: 16px;
+            
+            /* PREVENT SHRINKING */
+            flex-shrink: 0;
             align-items: center;
+            justify-content: flex-start;
+            
+            /* SMOOTH INTERACTIONS */
+            will-change: scroll-position;
+            
+            /* MINIMUM WIDTH TO ENABLE SCROLL */
+            min-width: calc(100vw + 50px);
         }
         
-        /* PERFECTED TOUCH SLIDER ITEMS */
+        /* MOBILE-FIRST PERFECT CIRCLE SLIDER */
         .slider-item {
-            /* Fixed dimensions to prevent deformation */
-            min-width: 90px;
-            width: 90px;
-            height: 90px;
-            max-width: 90px;
-            max-height: 90px;
+            /* PERFECT CIRCLE - NEVER DEFORMS */
+            width: 85px;
+            height: 85px;
+            min-width: 85px;
+            max-width: 85px;
+            min-height: 85px;
+            max-height: 85px;
+            aspect-ratio: 1 / 1; /* Force perfect square ratio */
             border-radius: 50%;
             
-            /* Layout & Content */
+            /* CONTENT LAYOUT */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             text-align: center;
-            scroll-snap-align: center;
             
-            /* Visual Design */
+            /* VISUAL DESIGN */
             background: white;
             border: 3px solid #e9ecef;
-            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             
-            /* Touch Optimization - PERFECTED */
+            /* MOBILE TOUCH OPTIMIZATION */
             cursor: pointer;
             user-select: none;
             -webkit-user-select: none;
             -webkit-tap-highlight-color: transparent;
             touch-action: manipulation;
+            -webkit-touch-callout: none;
             
-            /* Animation - Smooth & Responsive */
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            transform-origin: center;
+            /* SMOOTH ANIMATIONS */
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-origin: center center;
             will-change: transform;
             
-            /* Prevent deformation */
+            /* DEFORMATION PREVENTION */
             flex-shrink: 0;
+            flex-grow: 0;
             overflow: hidden;
             position: relative;
             
-            /* Performance */
+            /* SCROLL OPTIMIZATION */
+            scroll-snap-align: center;
+            
+            /* PERFORMANCE */
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
+            contain: layout style paint;
         }
         
         .slider-item:active {
