@@ -1624,6 +1624,115 @@
             performanceAreas: [],     // From /api/performance-areas
             currentGroupId: 'all'     // Currently selected group
         };
+                    'OGAS': {
+                        promedio_general: 98.3,
+                        total_sucursales: 8,
+                        vs_epl_cas: +8.2,
+                        tendencia: 'mejorando',
+                        volatilidad: 'baja',
+                        periodos: {
+                            'NL-T1': {
+                                promedio: 97.0,
+                                sucursales: [
+                                    {nombre: 'Suc OGAS Centro', calificacion: 97.5},
+                                    {nombre: 'Suc OGAS Norte', calificacion: 96.5}
+                                ]
+                            },
+                            'NL-T2': {
+                                promedio: 98.17,
+                                sucursales: [
+                                    {nombre: 'Suc OGAS Centro', calificacion: 98.8},
+                                    {nombre: 'Suc OGAS Norte', calificacion: 97.6},
+                                    {nombre: 'Suc OGAS Sur', calificacion: 98.2}
+                                ]
+                            },
+                            'NL-T3': {
+                                promedio: 99.72,
+                                sucursales: [
+                                    {nombre: 'Suc OGAS Centro', calificacion: 99.9},
+                                    {nombre: 'Suc OGAS Norte', calificacion: 99.5}
+                                ]
+                            }
+                        }
+                    },
+                    'TEPEYAC': {
+                        promedio_general: 91.6,
+                        total_sucursales: 4,
+                        vs_epl_cas: +1.8,
+                        tendencia: 'estable',
+                        volatilidad: 'media',
+                        periodos: {
+                            'NL-T1': {
+                                promedio: 91.18,
+                                sucursales: [
+                                    {nombre: 'Tepeyac Plaza', calificacion: 92.1},
+                                    {nombre: 'Tepeyac Centro', calificacion: 90.3}
+                                ]
+                            },
+                            'NL-T2': {
+                                promedio: 93.17,
+                                sucursales: [
+                                    {nombre: 'Tepeyac Plaza', calificacion: 93.8},
+                                    {nombre: 'Tepeyac Centro', calificacion: 92.5}
+                                ]
+                            },
+                            'NL-T3': {
+                                promedio: 90.47,
+                                sucursales: [
+                                    {nombre: 'Tepeyac Plaza', calificacion: 91.2},
+                                    {nombre: 'Tepeyac Centro', calificacion: 89.8}
+                                ]
+                            }
+                        }
+                    },
+                    'RAP': {
+                        promedio_general: 89.9,
+                        total_sucursales: 6,
+                        vs_epl_cas: +0.1,
+                        tendencia: 'mejorando',
+                        volatilidad: 'baja',
+                        periodos: {
+                            'FOR-S1': {
+                                promedio: 89.26,
+                                sucursales: [
+                                    {nombre: 'RAP Guadalajara', calificacion: 90.1},
+                                    {nombre: 'RAP Zapopan', calificacion: 88.4}
+                                ]
+                            },
+                            'FOR-S2': {
+                                promedio: 90.46,
+                                sucursales: [
+                                    {nombre: 'RAP Guadalajara', calificacion: 91.2},
+                                    {nombre: 'RAP Zapopan', calificacion: 89.7}
+                                ]
+                            }
+                        }
+                    },
+                    'GRUPO SALTILLO': {
+                        promedio_general: 67.6,
+                        total_sucursales: 5,
+                        vs_epl_cas: -20.4,
+                        tendencia: 'declinando',
+                        volatilidad: 'alta',
+                        periodos: {
+                            'NL-T2': {
+                                promedio: 71.24,
+                                sucursales: [
+                                    {nombre: 'Saltillo Centro', calificacion: 74.5},
+                                    {nombre: 'Saltillo Norte', calificacion: 68.0}
+                                ]
+                            },
+                            'FOR-S2': {
+                                promedio: 63.97,
+                                sucursales: [
+                                    {nombre: 'Harold R. Pape', calificacion: 63.97}
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        };
         
         // =====================================================
         // SLIDER SELECTOR FUNCTIONS - OPTIMIZED FOR MOBILE
@@ -1767,13 +1876,13 @@
             }
         };
         
-        // Initialize groups list from real API data
+        // Initialize groups list
         app.initGroupsList = function() {
-            // This will be populated by loadRealData() from operational-groups API
-            this.groupsList = this.operationalGroups.map(group => ({
-                nombre: group.name,
-                promedio: parseFloat(group.promedioPerformance) || 0
-            })).sort((a, b) => b.promedio - a.promedio);
+            this.groupsList = Object.keys(this.data.grupos).map(grupo => {
+                const valores = this.data.grupos[grupo].filter(v => v !== null);
+                const promedio = valores.length > 0 ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
+                return { nombre: grupo, promedio: promedio };
+            }).sort((a, b) => b.promedio - a.promedio);
         };
 
         // Initialize on load
@@ -2101,32 +2210,10 @@
         };
         
         app.renderAllTabs = function() {
-            // Use real API data instead of hardcoded data
-            if (this.heatmapData && this.heatmapData.length > 0) {
-                this.updateHeatMap();
-            } else {
-                this.renderHeatMapFallback();
-            }
-            
-            // These functions will be updated to use real data
             this.renderAlerts();
             this.renderSmartAnalysis();
+            this.renderHeatMap();
             this.renderTrends();
-        };
-        
-        // Fallback for when no real heatmap data is available yet
-        app.renderHeatMapFallback = function() {
-            const tbody = document.getElementById('heatmapBody');
-            if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
-                            <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 1rem;"></i>
-                            <br>Cargando datos del mapa de calor...
-                        </td>
-                    </tr>
-                `;
-            }
         };
         
         app.renderTabContent = function(tabName) {
@@ -2167,21 +2254,11 @@
         };
         
         app.renderSmartAnalysis = function() {
-            // Initialize slider selector with real data
-            if (this.operationalGroups.length > 0) {
-                this.initGroupsList();
-                this.initSliderSelector();
-            }
-            
-            // Update cards with real performance areas data  
-            if (this.performanceAreas.length > 0) {
-                this.updatePerformanceCards();
-            }
-            
-            // Update comparison chart with historical data
-            if (this.historicalData) {
-                this.updateHistoricalChart();
-            }
+            // Initialize slider selector
+            this.initSliderSelector();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
         };
         
         app.updateComparisonChart = function() {
