@@ -2865,20 +2865,18 @@
             
             if (!heatmapBody || !heatmapHeader) return;
             
-            // Update table headers with real periods
+            // Update table headers with CAS periods
             const periods = this.heatmapPeriodsData.periods;
+            const periodLabels = this.heatmapPeriodsData.periodLabels;
             const headerCells = heatmapHeader.children;
             
             // Update period headers (skip first "Grupo" and last "Prom")
             for (let i = 1; i < headerCells.length - 1; i++) {
                 const periodIndex = i - 1;
                 if (periods[periodIndex]) {
-                    const date = new Date(periods[periodIndex] + '-01');
-                    const monthYear = date.toLocaleDateString('es-MX', { 
-                        month: 'short', 
-                        year: 'numeric' 
-                    });
-                    headerCells[i].textContent = monthYear;
+                    const periodKey = periods[periodIndex];
+                    const label = periodLabels[periodKey] || periodKey.toUpperCase();
+                    headerCells[i].textContent = label;
                 } else {
                     headerCells[i].textContent = '-';
                 }

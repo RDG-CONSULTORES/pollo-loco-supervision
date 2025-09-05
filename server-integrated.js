@@ -70,27 +70,27 @@ function buildPeriodoCasCondition(periodoCas, paramIndex) {
     
     const condition = `
         CASE 
-            -- Locales: períodos trimestrales NL
+            -- Locales: períodos trimestrales NL (2024)
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                 AND fecha_supervision >= '2024-03-12' AND fecha_supervision <= '2024-04-16'
                 THEN 'nl_t1'
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                 AND fecha_supervision >= '2024-06-11' AND fecha_supervision <= '2024-08-18'
                 THEN 'nl_t2'
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                 AND fecha_supervision >= '2025-08-19'
+                 AND fecha_supervision >= '2024-08-19' AND fecha_supervision <= '2024-12-31'
                 THEN 'nl_t3'
-            -- Foráneas: períodos semestrales
+            -- Foráneas: períodos semestrales (2024)
             WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                   OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                 AND fecha_supervision >= '2024-04-10' AND fecha_supervision <= '2024-06-09'
                 THEN 'for_s1'
             WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                   OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                 AND fecha_supervision >= '2024-07-30' AND fecha_supervision <= '2024-08-15'
                 THEN 'for_s2'
             ELSE 'otros'
         END = $${paramIndex}
@@ -1178,24 +1178,24 @@ app.get('/api/periodos-cas', async (req, res) => {
                         -- Locales: períodos trimestrales NL
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                             AND fecha_supervision >= '2024-03-12' AND fecha_supervision <= '2024-04-16'
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                             AND fecha_supervision >= '2024-06-11' AND fecha_supervision <= '2024-08-18'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-08-19'
+                             AND fecha_supervision >= '2024-08-19' AND fecha_supervision <= '2024-12-31'
                             THEN 'nl_t3'
                         -- Foráneas: períodos semestrales
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                             AND fecha_supervision >= '2024-04-10' AND fecha_supervision <= '2024-06-09'
                             THEN 'for_s1'
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                             AND fecha_supervision >= '2024-07-30' AND fecha_supervision <= '2024-08-15'
                             THEN 'for_s2'
                         ELSE 'otros'
                     END as periodo_cas
@@ -1410,7 +1410,7 @@ app.get('/api/date-analysis', async (req, res) => {
 });
 
 // =====================================================
-// HEATMAP DATA WITH PERIODS - For historico-v2.html
+// HEATMAP CAS PERIODS - For historico-v2.html with real CAS periods
 // =====================================================
 app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
     if (!dbConnected) {
@@ -1429,33 +1429,71 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             groupFilter = `AND grupo_operativo_limpio = $1`;
         }
 
-        // Get data grouped by month and year instead of CAS periods
+        // Get data grouped by CAS periods using real date logic
         const query = `
+            WITH periodos_cas AS (
+                SELECT 
+                    grupo_operativo_limpio,
+                    location_name,
+                    estado_normalizado,
+                    fecha_supervision,
+                    porcentaje,
+                    -- Asignar período CAS basado en fechas y tipo de sucursal
+                    CASE 
+                        -- Locales: períodos trimestrales NL (2024)
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2024-03-12' AND fecha_supervision <= '2024-04-16'
+                            THEN 'nl_t1'
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                             AND fecha_supervision >= '2024-06-11' AND fecha_supervision <= '2024-08-18'
+                            THEN 'nl_t2'
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2024-08-19' AND fecha_supervision <= '2024-12-31'
+                            THEN 'nl_t3'
+                        -- Foráneas: períodos semestrales (2024)
+                        WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                              OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                             AND fecha_supervision >= '2024-04-10' AND fecha_supervision <= '2024-06-09'
+                            THEN 'for_s1'
+                        WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                              OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                             AND fecha_supervision >= '2024-07-30' AND fecha_supervision <= '2024-08-15'
+                            THEN 'for_s2'
+                        ELSE NULL
+                    END as periodo_cas
+                FROM ${DATA_SOURCE}
+                WHERE porcentaje IS NOT NULL 
+                    AND grupo_operativo_limpio IS NOT NULL
+                    AND fecha_supervision IS NOT NULL
+                    ${groupFilter}
+            )
             SELECT 
                 grupo_operativo_limpio as grupo,
-                DATE_TRUNC('month', fecha_supervision) as periodo,
+                periodo_cas,
                 ROUND(AVG(porcentaje)::numeric, 2) as promedio,
                 COUNT(*) as evaluaciones,
                 COUNT(DISTINCT location_name) as sucursales
-            FROM ${DATA_SOURCE}
-            WHERE porcentaje IS NOT NULL 
-                AND grupo_operativo_limpio IS NOT NULL
-                AND fecha_supervision IS NOT NULL
-                ${groupFilter}
-            GROUP BY grupo_operativo_limpio, DATE_TRUNC('month', fecha_supervision)
-            ORDER BY grupo_operativo_limpio, periodo
+            FROM periodos_cas
+            WHERE periodo_cas IS NOT NULL
+            GROUP BY grupo_operativo_limpio, periodo_cas
+            ORDER BY grupo_operativo_limpio, periodo_cas
         `;
 
         const params = groupId && groupId !== 'all' ? [groupId] : [];
         const result = await pool.query(query, params);
 
+        // Define CAS periods in the correct order
+        const casPeriodsOrder = ['nl_t1', 'for_s1', 'nl_t2', 'for_s2', 'nl_t3'];
+        
         // Group results by grupo and create period columns
         const groupedData = {};
-        const allPeriods = new Set();
 
         result.rows.forEach(row => {
             const grupo = row.grupo;
-            const periodo = row.periodo.toISOString().substring(0, 7); // YYYY-MM format
+            const periodo = row.periodo_cas;
             
             if (!groupedData[grupo]) {
                 groupedData[grupo] = {};
@@ -1466,13 +1504,8 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                 evaluaciones: row.evaluaciones,
                 sucursales: row.sucursales
             };
-            
-            allPeriods.add(periodo);
         });
 
-        // Convert to array and sort periods
-        const periods = Array.from(allPeriods).sort();
-        
         // Format data for heatmap table
         const heatmapRows = Object.entries(groupedData).map(([grupo, periodos]) => {
             const row = {
@@ -1484,7 +1517,7 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             let suma = 0;
             let count = 0;
 
-            periods.forEach(periodo => {
+            casPeriodsOrder.forEach(periodo => {
                 if (periodos[periodo]) {
                     row.periodos[periodo] = periodos[periodo];
                     suma += periodos[periodo].promedio;
@@ -1501,18 +1534,24 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
         res.json({
             success: true,
             data: {
-                periods: periods.slice(-6), // Last 6 months
+                periods: casPeriodsOrder, // CAS periods in order
                 groups: heatmapRows,
                 totalGroups: heatmapRows.length,
-                totalPeriods: periods.length
+                periodLabels: {
+                    'nl_t1': 'NL-T1',
+                    'for_s1': 'FOR-S1', 
+                    'nl_t2': 'NL-T2',
+                    'for_s2': 'FOR-S2',
+                    'nl_t3': 'NL-T3'
+                }
             }
         });
 
     } catch (error) {
-        console.error('❌ Heatmap Periods API Error:', error);
+        console.error('❌ Heatmap CAS Periods API Error:', error);
         res.status(500).json({ 
             success: false, 
-            error: 'Error fetching heatmap periods data',
+            error: 'Error fetching heatmap CAS periods data',
             details: error.message 
         });
     }
