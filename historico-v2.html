@@ -2943,18 +2943,34 @@
                 row.appendChild(nameCell);
                 
                 // Period cells
-                periods.forEach(periodo => {
+                let lastValidValue = null;
+                const showDifferences = document.getElementById('showDifferences')?.checked ?? false;
+                
+                periods.forEach((periodo, index) => {
                     const cell = document.createElement('td');
                     const periodData = groupData.periodos[periodo];
                     
                     if (periodData && periodData.promedio !== null) {
                         const performance = periodData.promedio;
                         cell.className = this.getHeatClass(performance);
-                        cell.innerHTML = `
-                            <div style="font-weight: 600;">${performance.toFixed(1)}%</div>
-                            <div style="font-size: 0.7rem; opacity: 0.8;">${periodData.evaluaciones} eval.</div>
-                        `;
+                        
+                        let cellContent = `<div style="font-weight: 600;">${performance.toFixed(1)}%</div>`;
+                        
+                        // Add difference if enabled and there's a previous value
+                        if (showDifferences && lastValidValue !== null) {
+                            const diff = performance - lastValidValue;
+                            const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                            const diffSign = diff > 0 ? '+' : '';
+                            cellContent += `<div class="${diffClass}" style="font-size: 0.7rem;">${diffSign}${diff.toFixed(1)}%</div>`;
+                        } else if (!showDifferences) {
+                            // Show evaluations count when not showing differences
+                            cellContent += `<div style="font-size: 0.7rem; opacity: 0.8;">${periodData.evaluaciones} eval.</div>`;
+                        }
+                        
+                        cell.innerHTML = cellContent;
                         cell.title = `${groupData.grupo} - ${periodo}: ${performance.toFixed(1)}% (${periodData.evaluaciones} evaluaciones, ${periodData.sucursales} sucursales)`;
+                        
+                        lastValidValue = performance;
                     } else {
                         cell.className = 'heat-no-data';
                         cell.textContent = '—';
@@ -2985,6 +3001,12 @@
             });
             
             console.log('🗺️ Heatmap updated with', sortedGroups.length, 'groups and', periods.length, 'periods');
+            
+            // Setup filter buttons if not already done
+            if (!this.filtersSetup) {
+                this.setupHeatmapFilters();
+                this.filtersSetup = true;
+            }
         };
         
         // Legacy function for backwards compatibility
