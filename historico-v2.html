@@ -1774,9 +1774,7 @@
                 itemElement.classList.add('selected');
             }
             this.updateSelectorInfo();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+            this.updateCharts();
         };
         
         app.selectTop5 = function() {
@@ -1791,9 +1789,7 @@
             
             // Update UI
             this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+            this.updateCharts();
         };
         
         app.selectBottom5 = function() {
@@ -1808,9 +1804,7 @@
             
             // Update UI
             this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+            this.updateCharts();
         };
         
         app.selectAll = function() {
@@ -1824,17 +1818,13 @@
             
             // Update UI
             this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+            this.updateCharts();
         };
         
         app.clearGroupSelection = function() {
             this.selectedGroups.clear();
             this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+            this.updateCharts();
         };
         
         app.updateSelectorInfo = function() {
@@ -2308,7 +2298,7 @@
             if (this.operationalGroups && this.operationalGroups.length > 0) {
                 console.log('📊 Initializing slider with', this.operationalGroups.length, 'operational groups');
                 this.initSliderSelector();
-                this.renderGroupCards(); // Render cards after slider is ready
+                this.updateCharts(); // Update both chart and cards after slider is ready
             } else {
                 console.log('⚠️  No operational groups data available for Smart Analysis');
             }
@@ -2777,6 +2767,66 @@
                     </small>
                 </div>
             `;
+        };
+        
+        // FASE 4: Centralized chart and cards update
+        app.updateCharts = function() {
+            console.log('🔄 Updating charts and cards for selected groups:', Array.from(this.selectedGroups));
+            
+            // Validate data availability before updating
+            if (!this.operationalGroups || this.operationalGroups.length === 0) {
+                console.warn('⚠️  Cannot update charts: No operational groups data available');
+                return;
+            }
+            
+            if (this.selectedGroups.size === 0) {
+                console.log('ℹ️  No groups selected, showing empty state');
+            }
+            
+            // Update all components simultaneously for consistent user experience
+            try {
+                this.updateComparisonChart();
+                this.renderGroupCards();
+                this.renderSmartInsights();
+                console.log('✅ Charts and cards updated successfully');
+            } catch (error) {
+                console.error('❌ Error updating charts:', error);
+                // Show user-friendly error in components
+                this.showChartsError(error.message);
+            }
+        };
+        
+        // FASE 4: Error state for charts and cards
+        app.showChartsError = function(message) {
+            // Show error in chart
+            const chartContainer = document.getElementById('comparisonChart')?.parentElement;
+            if (chartContainer) {
+                chartContainer.innerHTML = `
+                    <div style="text-align: center; padding: 2rem; color: #d63031;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>Error cargando gráfica: ${message}</p>
+                        <button onclick="app.updateCharts()" 
+                                style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0984e3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Reintentar
+                        </button>
+                    </div>
+                `;
+            }
+            
+            // Show error in cards
+            const cardsContainer = document.getElementById('groupCards');
+            if (cardsContainer) {
+                cardsContainer.innerHTML = `
+                    <div class="card" style="text-align: center; padding: 2rem; color: #d63031;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
+                        <p>Error cargando tarjetas: ${message}</p>
+                        <button onclick="app.updateCharts()" 
+                                style="margin-top: 1rem; padding: 0.5rem 1rem; background: #0984e3; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                            Reintentar
+                        </button>
+                    </div>
+                `;
+            }
         };
         
         app.toggleCard = function(grupo) {
