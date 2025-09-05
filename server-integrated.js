@@ -1149,11 +1149,11 @@ app.get('/api/periodos-cas', async (req, res) => {
     if (!dbConnected) {
         return res.json([
             { periodo: "all", nombre: "Todos los períodos", count: 0 },
-            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 16 Abr)", count: 0 },
-            { periodo: "nl_t2", nombre: "NL 2do Trimestre (11 Jun - 18 Ago)", count: 0 },
-            { periodo: "nl_t3", nombre: "NL 3er Trimestre (19 Ago - actual)", count: 0 },
-            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (10 Abr - 9 Jun)", count: 0 },
-            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (30 Jul - 15 Ago)", count: 0 }
+            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 30 Abr)", count: 0 },
+            { periodo: "nl_t2", nombre: "NL 2do Trimestre (1 May - 31 Jul)", count: 0 },
+            { periodo: "nl_t3", nombre: "NL 3er Trimestre (1 Ago - actual)", count: 0 },
+            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (12 Mar - 30 Jun)", count: 0 },
+            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (1 Jul - actual)", count: 0 }
         ]);
     }
 
@@ -1182,11 +1182,11 @@ app.get('/api/periodos-cas', async (req, res) => {
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-07-31'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-08-01' AND fecha_supervision <= '2025-12-31'
                             THEN 'nl_t3'
                         -- Foráneas: períodos semestrales
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
@@ -1267,11 +1267,11 @@ app.get('/api/periodos-cas', async (req, res) => {
         console.error('❌ API /periodos-cas error:', error);
         res.json([
             { periodo: "all", nombre: "Todos los períodos", count: 0 },
-            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 16 Abr)", count: 0 },
-            { periodo: "nl_t2", nombre: "NL 2do Trimestre (11 Jun - 18 Ago)", count: 0 },
-            { periodo: "nl_t3", nombre: "NL 3er Trimestre (19 Ago - actual)", count: 0 },
-            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (10 Abr - 9 Jun)", count: 0 },
-            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (30 Jul - 15 Ago)", count: 0 }
+            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 30 Abr)", count: 0 },
+            { periodo: "nl_t2", nombre: "NL 2do Trimestre (1 May - 31 Jul)", count: 0 },
+            { periodo: "nl_t3", nombre: "NL 3er Trimestre (1 Ago - actual)", count: 0 },
+            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (12 Mar - 30 Jun)", count: 0 },
+            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (1 Jul - actual)", count: 0 }
         ]);
     }
 });
@@ -1447,11 +1447,11 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-07-31'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-08-01' AND fecha_supervision <= '2025-12-31'
                             THEN 'nl_t3'
                         -- Foráneas: períodos semestrales (2025)
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
