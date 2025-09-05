@@ -1362,6 +1362,54 @@ app.get('/api/sucursales-ranking', async (req, res) => {
 // Webhook endpoint for Telegram - MOVED TO AFTER BOT INITIALIZATION
 
 // =====================================================
+// DATE RANGE ANALYSIS - Check what dates we actually have
+// =====================================================
+app.get('/api/date-analysis', async (req, res) => {
+    if (!dbConnected) {
+        return res.json({ error: 'Database not connected' });
+    }
+
+    try {
+        const query = `
+            SELECT 
+                MIN(fecha_supervision) as fecha_minima,
+                MAX(fecha_supervision) as fecha_maxima,
+                COUNT(DISTINCT DATE_TRUNC('month', fecha_supervision)) as meses_unicos,
+                COUNT(DISTINCT DATE_TRUNC('year', fecha_supervision)) as anos_unicos,
+                COUNT(*) as total_registros
+            FROM ${DATA_SOURCE}
+            WHERE fecha_supervision IS NOT NULL
+        `;
+        
+        const result = await pool.query(query);
+        
+        // Get monthly distribution
+        const monthlyQuery = `
+            SELECT 
+                DATE_TRUNC('month', fecha_supervision) as mes,
+                COUNT(*) as registros,
+                COUNT(DISTINCT grupo_operativo_limpio) as grupos
+            FROM ${DATA_SOURCE}
+            WHERE fecha_supervision IS NOT NULL
+            GROUP BY DATE_TRUNC('month', fecha_supervision)
+            ORDER BY mes
+            LIMIT 20
+        `;
+        
+        const monthlyResult = await pool.query(monthlyQuery);
+        
+        res.json({
+            dateRange: result.rows[0],
+            monthlyDistribution: monthlyResult.rows
+        });
+
+    } catch (error) {
+        console.error('Date Analysis Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// =====================================================
 // HEATMAP DATA WITH PERIODS - For historico-v2.html
 // =====================================================
 app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
