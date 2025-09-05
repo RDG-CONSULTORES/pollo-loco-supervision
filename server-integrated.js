@@ -70,27 +70,27 @@ function buildPeriodoCasCondition(periodoCas, paramIndex) {
     
     const condition = `
         CASE 
-            -- Locales: períodos trimestrales NL (2025)
+            -- FIXED: Locales NL períodos trimestrales con rangos corregidos
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-30'
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
                 THEN 'nl_t1'
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                 AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-07-31'
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
                 THEN 'nl_t2'
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                 AND fecha_supervision >= '2025-08-01' AND fecha_supervision <= '2025-12-31'
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
                 THEN 'nl_t3'
-            -- Foráneas: períodos semestrales (2025)
+            -- FIXED: Foráneas períodos semestrales con rangos corregidos
             WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                   OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
                 THEN 'for_s1'
             WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                   OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                 AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-12-31'
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
                 THEN 'for_s2'
             ELSE 'otros'
         END = $${paramIndex}
@@ -1149,11 +1149,11 @@ app.get('/api/periodos-cas', async (req, res) => {
     if (!dbConnected) {
         return res.json([
             { periodo: "all", nombre: "Todos los períodos", count: 0 },
-            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 30 Abr)", count: 0 },
-            { periodo: "nl_t2", nombre: "NL 2do Trimestre (1 May - 31 Jul)", count: 0 },
-            { periodo: "nl_t3", nombre: "NL 3er Trimestre (1 Ago - actual)", count: 0 },
-            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (12 Mar - 30 Jun)", count: 0 },
-            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (1 Jul - actual)", count: 0 }
+            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 16 Abr)", count: 0 },
+            { periodo: "nl_t2", nombre: "NL 2do Trimestre (11 Jun - 18 Ago)", count: 0 },
+            { periodo: "nl_t3", nombre: "NL 3er Trimestre (19 Ago - actual)", count: 0 },
+            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (10 Abr - 9 Jun)", count: 0 },
+            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (30 Jul - 15 Ago)", count: 0 }
         ]);
     }
 
@@ -1165,99 +1165,91 @@ app.get('/api/periodos-cas', async (req, res) => {
                     grupo_operativo_limpio,
                     estado_normalizado,
                     fecha_supervision,
-                    -- Clasificar sucursales LOCAL vs FORÁNEA
+                    -- FIXED: Asignar período CAS con rangos de fechas corregidos
                     CASE 
-                        WHEN location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                            THEN 'FORANEA'
-                        WHEN estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO'
-                            THEN 'LOCAL'  
-                        ELSE 'FORANEA'
-                    END as tipo_sucursal,
-                    -- Asignar período CAS basado en fechas y tipo
-                    CASE 
-                        -- Locales: períodos trimestrales NL
+                        -- Locales NL: períodos trimestrales corregidos
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-30'
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-07-31'
+                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-08-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
                             THEN 'nl_t3'
-                        -- Foráneas: períodos semestrales
+                        -- Foráneas: períodos semestrales corregidos
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
+                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
                             THEN 'for_s1'
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
                             THEN 'for_s2'
                         ELSE 'otros'
                     END as periodo_cas
                 FROM supervision_operativa_clean
                 WHERE fecha_supervision IS NOT NULL
+            ),
+            periodos_counts AS (
+                SELECT 
+                    'all' as periodo,
+                    'Todos los períodos' as nombre,
+                    COUNT(*) as count,
+                    1 as sort_order
+                FROM periodos_cas
+                
+                UNION ALL
+                
+                SELECT 
+                    'nl_t1' as periodo,
+                    'NL 1er Trimestre (12 Mar - 16 Abr)' as nombre,
+                    COUNT(*) as count,
+                    2 as sort_order
+                FROM periodos_cas WHERE periodo_cas = 'nl_t1'
+                
+                UNION ALL
+                
+                SELECT 
+                    'nl_t2' as periodo,
+                    'NL 2do Trimestre (11 Jun - 18 Ago)' as nombre,
+                    COUNT(*) as count,
+                    3 as sort_order
+                FROM periodos_cas WHERE periodo_cas = 'nl_t2'
+                
+                UNION ALL
+                
+                SELECT 
+                    'nl_t3' as periodo,
+                    'NL 3er Trimestre (19 Ago - actual)' as nombre,
+                    COUNT(*) as count,
+                    4 as sort_order
+                FROM periodos_cas WHERE periodo_cas = 'nl_t3'
+                
+                UNION ALL
+                
+                SELECT 
+                    'for_s1' as periodo,
+                    'Foráneas 1er Semestre (10 Abr - 9 Jun)' as nombre,
+                    COUNT(*) as count,
+                    5 as sort_order
+                FROM periodos_cas WHERE periodo_cas = 'for_s1'
+                
+                UNION ALL
+                
+                SELECT 
+                    'for_s2' as periodo,
+                    'Foráneas 2do Semestre (30 Jul - 15 Ago)' as nombre,
+                    COUNT(*) as count,
+                    6 as sort_order
+                FROM periodos_cas WHERE periodo_cas = 'for_s2'
             )
-            SELECT 
-                'all' as periodo,
-                'Todos los períodos' as nombre,
-                COUNT(*) as count
-            FROM periodos_cas
-            
-            UNION ALL
-            
-            SELECT 
-                'nl_t1' as periodo,
-                'NL 1er Trimestre (12 Mar - 16 Abr)' as nombre,
-                COUNT(*) as count
-            FROM periodos_cas WHERE periodo_cas = 'nl_t1'
-            
-            UNION ALL
-            
-            SELECT 
-                'nl_t2' as periodo,
-                'NL 2do Trimestre (11 Jun - 18 Ago)' as nombre,
-                COUNT(*) as count
-            FROM periodos_cas WHERE periodo_cas = 'nl_t2'
-            
-            UNION ALL
-            
-            SELECT 
-                'nl_t3' as periodo,
-                'NL 3er Trimestre (19 Ago - actual)' as nombre,
-                COUNT(*) as count
-            FROM periodos_cas WHERE periodo_cas = 'nl_t3'
-            
-            UNION ALL
-            
-            SELECT 
-                'for_s1' as periodo,
-                'Foráneas 1er Semestre (10 Abr - 9 Jun)' as nombre,
-                COUNT(*) as count
-            FROM periodos_cas WHERE periodo_cas = 'for_s1'
-            
-            UNION ALL
-            
-            SELECT 
-                'for_s2' as periodo,
-                'Foráneas 2do Semestre (30 Jul - 15 Ago)' as nombre,
-                COUNT(*) as count
-            FROM periodos_cas WHERE periodo_cas = 'for_s2'
-            
-            ORDER BY 
-                CASE periodo
-                    WHEN 'all' THEN 1
-                    WHEN 'nl_t1' THEN 2
-                    WHEN 'nl_t2' THEN 3
-                    WHEN 'nl_t3' THEN 4
-                    WHEN 'for_s1' THEN 5
-                    WHEN 'for_s2' THEN 6
-                    ELSE 7
-                END
+            SELECT periodo, nombre, count
+            FROM periodos_counts
+            ORDER BY sort_order
         `);
         
         console.log(`📅 API /periodos-cas: Found ${result.rows.length} períodos CAS`);
@@ -1267,11 +1259,11 @@ app.get('/api/periodos-cas', async (req, res) => {
         console.error('❌ API /periodos-cas error:', error);
         res.json([
             { periodo: "all", nombre: "Todos los períodos", count: 0 },
-            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 30 Abr)", count: 0 },
-            { periodo: "nl_t2", nombre: "NL 2do Trimestre (1 May - 31 Jul)", count: 0 },
-            { periodo: "nl_t3", nombre: "NL 3er Trimestre (1 Ago - actual)", count: 0 },
-            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (12 Mar - 30 Jun)", count: 0 },
-            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (1 Jul - actual)", count: 0 }
+            { periodo: "nl_t1", nombre: "NL 1er Trimestre (12 Mar - 16 Abr)", count: 0 },
+            { periodo: "nl_t2", nombre: "NL 2do Trimestre (11 Jun - 18 Ago)", count: 0 },
+            { periodo: "nl_t3", nombre: "NL 3er Trimestre (19 Ago - actual)", count: 0 },
+            { periodo: "for_s1", nombre: "Foráneas 1er Semestre (10 Abr - 9 Jun)", count: 0 },
+            { periodo: "for_s2", nombre: "Foráneas 2do Semestre (30 Jul - 15 Ago)", count: 0 }
         ]);
     }
 });
@@ -1429,7 +1421,7 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             groupFilter = `AND grupo_operativo_limpio = $1`;
         }
 
-        // Get data grouped by CAS periods using real date logic
+        // Get data grouped by CAS periods using CORRECTED date logic
         const query = `
             WITH periodos_cas AS (
                 SELECT 
@@ -1438,33 +1430,33 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                     estado_normalizado,
                     fecha_supervision,
                     porcentaje,
-                    -- Asignar período CAS basado en fechas y tipo de sucursal
+                    -- FIXED: Asignar período CAS con rangos de fechas corregidos
                     CASE 
-                        -- Locales: períodos trimestrales NL (2025)
+                        -- Locales NL: períodos trimestrales corregidos
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-30'
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-07-31'
+                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-08-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
                             THEN 'nl_t3'
-                        -- Foráneas: períodos semestrales (2025)
+                        -- Foráneas: períodos semestrales corregidos  
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
+                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
                             THEN 'for_s1'
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
                             THEN 'for_s2'
-                        ELSE NULL
+                        ELSE 'otros'
                     END as periodo_cas
-                FROM ${DATA_SOURCE}
+                FROM supervision_operativa_clean
                 WHERE porcentaje IS NOT NULL 
                     AND grupo_operativo_limpio IS NOT NULL
                     AND fecha_supervision IS NOT NULL
@@ -1477,7 +1469,7 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                 COUNT(*) as evaluaciones,
                 COUNT(DISTINCT location_name) as sucursales
             FROM periodos_cas
-            WHERE periodo_cas IS NOT NULL
+            WHERE periodo_cas IS NOT NULL AND periodo_cas != 'otros'
             GROUP BY grupo_operativo_limpio, periodo_cas
             ORDER BY grupo_operativo_limpio, periodo_cas
         `;
@@ -1538,11 +1530,11 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                 groups: heatmapRows,
                 totalGroups: heatmapRows.length,
                 periodLabels: {
-                    'nl_t1': 'NL-T1',
-                    'for_s1': 'FOR-S1', 
-                    'nl_t2': 'NL-T2',
-                    'for_s2': 'FOR-S2',
-                    'nl_t3': 'NL-T3'
+                    'nl_t1': 'NL-T1 (12 Mar-30 Abr)',
+                    'for_s1': 'FOR-S1 (12 Mar-30 Jun)', 
+                    'nl_t2': 'NL-T2 (1 May-31 Jul)',
+                    'for_s2': 'FOR-S2 (1 Jul-31 Dic)',
+                    'nl_t3': 'NL-T3 (1 Ago-31 Dic)'
                 }
             }
         });
@@ -1554,6 +1546,35 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             error: 'Error fetching heatmap CAS periods data',
             details: error.message 
         });
+    }
+});
+
+// TEST ENDPOINT - Remove after debugging
+app.get('/api/test-periods', async (req, res) => {
+    if (!dbConnected) {
+        return res.json({ error: 'DB not connected' });
+    }
+    
+    try {
+        const query = `
+            SELECT 
+                MIN(fecha_supervision) as fecha_min,
+                MAX(fecha_supervision) as fecha_max,
+                COUNT(*) as total_records,
+                estado_normalizado,
+                grupo_operativo_limpio,
+                location_name
+            FROM ${DATA_SOURCE}
+            WHERE porcentaje IS NOT NULL 
+            GROUP BY estado_normalizado, grupo_operativo_limpio, location_name
+            ORDER BY estado_normalizado, grupo_operativo_limpio
+            LIMIT 10
+        `;
+        
+        const result = await pool.query(query);
+        res.json({ success: true, data: result.rows });
+    } catch (error) {
+        res.json({ error: error.message });
     }
 });
 
