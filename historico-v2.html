@@ -760,43 +760,60 @@
             align-items: center;
         }
         
-        /* CIRCULAR STORIES STYLE */
+        /* PERFECTED TOUCH SLIDER ITEMS */
         .slider-item {
-            min-width: 80px;
-            width: 80px;
-            height: 80px;
+            /* Fixed dimensions to prevent deformation */
+            min-width: 90px;
+            width: 90px;
+            height: 90px;
+            max-width: 90px;
+            max-height: 90px;
             border-radius: 50%;
-            background: white;
-            border: 3px solid #e9ecef;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: center;
-            scroll-snap-align: center;
-            /* Advanced touch optimization */
+            
+            /* Layout & Content */
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            touch-action: manipulation;
+            text-align: center;
+            scroll-snap-align: center;
+            
+            /* Visual Design */
+            background: white;
+            border: 3px solid #e9ecef;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            
+            /* Touch Optimization - PERFECTED */
+            cursor: pointer;
             user-select: none;
             -webkit-user-select: none;
-            /* Haptic feedback simulation */
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            
+            /* Animation - Smooth & Responsive */
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             transform-origin: center;
+            will-change: transform;
+            
+            /* Prevent deformation */
+            flex-shrink: 0;
+            overflow: hidden;
+            position: relative;
+            
+            /* Performance */
             backface-visibility: hidden;
             -webkit-backface-visibility: hidden;
-            position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .slider-item:active {
-            transform: scale(0.88);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-            transition: all 0.1s ease;
+            transform: scale(0.92);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: all 0.12s cubic-bezier(0.4, 0, 1, 1);
         }
         
         .slider-item:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
         }
         
         /* CIRCULAR ITEM STATES */
@@ -840,19 +857,27 @@
         }
         
         .slider-item-name {
-            font-size: 0.65rem;
-            font-weight: 700;
-            line-height: 1;
-            margin-bottom: 0.125rem;
+            font-size: 0.62rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 2px;
             text-transform: uppercase;
-            letter-spacing: 0.25px;
+            letter-spacing: 0.3px;
+            /* Prevent text deformation */
+            max-width: 70px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
         }
         
         .slider-item-score {
-            font-size: 0.55rem;
-            font-weight: 600;
-            opacity: 0.9;
+            font-size: 0.58rem;
+            font-weight: 700;
+            opacity: 0.85;
             line-height: 1;
+            /* Prevent number deformation */
+            font-variant-numeric: tabular-nums;
         }
         
         /* PROGRESS RING AROUND CIRCLE */
@@ -1209,7 +1234,11 @@
             .tab span { font-size: 0.7rem; }
             .chart-container { height: 280px; }
             .group-grid { grid-template-columns: repeat(2, 1fr); }
-            .slider-item { min-width: 120px; }
+            .slider-item { 
+                min-width: 95px; 
+                width: 95px; 
+                height: 95px; 
+            }
             .slider-track { gap: 0.5rem; }
         }
         
@@ -1237,9 +1266,11 @@
             .chart-container { height: 240px; }
             .group-grid { grid-template-columns: 1fr; }
             .slider-item { 
-                min-width: 110px; 
-                min-height: 56px; 
-                padding: 0.75rem 0.5rem; 
+                min-width: 85px; 
+                width: 85px; 
+                height: 85px; 
+                max-width: 85px; 
+                max-height: 85px; 
             }
             .slider-track { 
                 gap: 0.5rem; 
@@ -1262,11 +1293,14 @@
             .tab span { font-size: 0.6rem; }
             .chart-container { height: 220px; }
             .slider-item { 
-                width: 70px;
-                height: 70px;
-                min-width: 70px; 
-                font-size: 0.75rem;
+                width: 75px;
+                height: 75px;
+                min-width: 75px;
+                max-width: 75px;
+                max-height: 75px;
             }
+            .slider-item-name { font-size: 0.55rem; }
+            .slider-item-score { font-size: 0.5rem; }
             .slider-btn-mobile { 
                 width: 40px;
                 height: 40px;
@@ -2347,28 +2381,57 @@
         
         app.renderGroupCards = function() {
             const container = document.getElementById('groupCards');
-            if (!container) return;
+            if (!container || !this.operationalGroups) return;
             
             container.innerHTML = '';
             
-            Array.from(this.selectedGroups).forEach(grupo => {
-                const detalle = this.data.gruposDetallados[grupo];
-                if (!detalle) return;
+            // Filter selected groups from operational groups data
+            const selectedGroupsData = this.operationalGroups.filter(group => 
+                this.selectedGroups.has(group.name) || this.selectedGroups.has(group.id)
+            );
+            
+            if (selectedGroupsData.length === 0) {
+                container.innerHTML = `
+                    <div class="card" style="text-align: center; padding: 2rem; color: #636e72;">
+                        <i class="fas fa-info-circle" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
+                        <p>Selecciona grupos en el slider para ver detalles</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            selectedGroupsData.forEach(grupo => {
+                // Calculate EPL CAS comparison if heatmap data is available
+                let vsEplCas = 0;
+                let tendencia = 'estable';
+                
+                if (this.heatmapPeriodsData && this.heatmapPeriodsData.groups) {
+                    const heatmapGroup = this.heatmapPeriodsData.groups.find(g => g.grupo === grupo.name);
+                    if (heatmapGroup) {
+                        // Compare with EPL CAS average (calculated from OGAS or overall average)
+                        const eplAverage = this.heatmapPeriodsData.groups.find(g => g.grupo === 'OGAS')?.promedio_general || 95;
+                        vsEplCas = parseFloat(grupo.promedioPerformance) - eplAverage;
+                        
+                        // Simple trend calculation based on performance
+                        if (vsEplCas > 2) tendencia = 'mejorando';
+                        else if (vsEplCas < -2) tendencia = 'declinando';
+                    }
+                }
                 
                 const card = document.createElement('div');
                 card.className = 'group-card';
                 card.innerHTML = `
-                    <div class="group-card-header" onclick="app.toggleCard('${grupo}')">
+                    <div class="group-card-header" onclick="app.toggleCard('${grupo.id}')">
                         <div class="group-card-title">
-                            <div style="width: 8px; height: 8px; border-radius: 50%; background: ${this.getGroupColor(grupo)};"></div>
-                            <strong>${grupo}</strong>
+                            <div style="width: 10px; height: 10px; border-radius: 50%; background: ${grupo.color};"></div>
+                            <strong>${grupo.name}</strong>
                         </div>
                         <div class="group-card-metrics">
-                            <span style="font-weight: 600;">${detalle.promedio_general.toFixed(1)}%</span>
-                            <span style="color: #636e72;">📍 ${detalle.total_sucursales} suc</span>
-                            <span class="trend-indicator trend-${detalle.tendencia}">
-                                ${detalle.tendencia === 'mejorando' ? '↗' : detalle.tendencia === 'declinando' ? '↘' : '→'} 
-                                ${detalle.vs_epl_cas > 0 ? '+' : ''}${detalle.vs_epl_cas.toFixed(1)}% vs EPL
+                            <span style="font-weight: 600;">${parseFloat(grupo.promedioPerformance).toFixed(1)}%</span>
+                            <span style="color: #636e72;">🏪 ${grupo.totalSucursales} sucursales</span>
+                            <span class="trend-indicator trend-${tendencia}">
+                                ${tendencia === 'mejorando' ? '↗' : tendencia === 'declinando' ? '↘' : '→'} 
+                                ${vsEplCas > 0 ? '+' : ''}${vsEplCas.toFixed(1)}% vs EPL
                             </span>
                             <span class="expand-icon">▼</span>
                         </div>
@@ -2376,36 +2439,32 @@
                     <div class="group-card-content">
                         <div class="metric-item">
                             <span class="metric-label">Promedio General:</span>
-                            <span class="metric-value">${detalle.promedio_general.toFixed(1)}%</span>
+                            <span class="metric-value">${parseFloat(grupo.promedioPerformance).toFixed(1)}%</span>
+                        </div>
+                        <div class="metric-item">
+                            <span class="metric-label">Sucursales Totales:</span>
+                            <span class="metric-value">${grupo.totalSucursales} ubicaciones</span>
                         </div>
                         <div class="metric-item">
                             <span class="metric-label">vs EPL CAS:</span>
-                            <span class="metric-value" style="color: ${detalle.vs_epl_cas > 0 ? '#00b894' : '#d63031'};">
-                                ${detalle.vs_epl_cas > 0 ? '+' : ''}${detalle.vs_epl_cas.toFixed(1)}%
+                            <span class="metric-value" style="color: ${vsEplCas > 0 ? '#00b894' : '#d63031'};">
+                                ${vsEplCas > 0 ? '+' : ''}${vsEplCas.toFixed(1)}%
                             </span>
                         </div>
                         <div class="metric-item">
-                            <span class="metric-label">Tendencia:</span>
-                            <span class="metric-value">${detalle.tendencia}</span>
+                            <span class="metric-label">Total Evaluaciones:</span>
+                            <span class="metric-value">${parseInt(grupo.totalEvaluaciones).toLocaleString()}</span>
                         </div>
                         <div class="metric-item">
-                            <span class="metric-label">Volatilidad:</span>
-                            <span class="metric-value">${detalle.volatilidad}</span>
+                            <span class="metric-label">Tendencia:</span>
+                            <span class="metric-value trend-${tendencia}">${tendencia.toUpperCase()}</span>
                         </div>
-                        
-                        <div class="sucursales-list">
-                            <h4 style="font-size: 0.8rem; margin-bottom: 0.5rem; color: var(--primary);">📍 Sucursales Evaluadas:</h4>
-                            ${Object.entries(detalle.periodos).map(([periodo, data]) => `
-                                <div class="periodo-section">
-                                    <div class="periodo-title">${periodo}: ${data.promedio.toFixed(1)}%</div>
-                                    ${data.sucursales.map(suc => `
-                                        <div class="sucursal-item">
-                                            <span>${suc.nombre}</span>
-                                            <span style="font-weight: 600;">${suc.calificacion.toFixed(1)}%</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            `).join('')}
+                        <div class="metric-item">
+                            <span class="metric-label">Performance Color:</span>
+                            <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                                <div style="width: 16px; height: 16px; background: ${grupo.color}; border-radius: 3px;"></div>
+                                <span class="metric-value">${grupo.color}</span>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2847,7 +2906,7 @@
             }
         };
         
-        // Render group slider with real data
+        // Render group slider with real data (FIXED - No more group-circle)
         app.renderGroupSlider = function() {
             const slider = document.querySelector('.slider-items');
             if (!slider || !this.operationalGroups) return;
@@ -2856,11 +2915,10 @@
             
             // Add "All Groups" option
             const allGroupsItem = document.createElement('div');
-            allGroupsItem.className = 'slider-item active';
+            allGroupsItem.className = 'slider-item selected';
             allGroupsItem.innerHTML = `
-                <div class="group-circle" style="background: linear-gradient(135deg, #FF6B35, #D63031); color: white;">
-                    <span class="group-text">TODOS</span>
-                </div>
+                <div class="slider-item-name" style="color: #FF6B35;">TODOS</div>
+                <div class="slider-item-score" style="color: #D63031;">100%</div>
             `;
             allGroupsItem.addEventListener('click', () => {
                 this.selectGroup('all', allGroupsItem);
@@ -2871,10 +2929,12 @@
             this.operationalGroups.forEach(group => {
                 const item = document.createElement('div');
                 item.className = 'slider-item';
+                item.style.borderColor = group.color;
+                
+                const displayName = this.formatGroupName(group.name);
                 item.innerHTML = `
-                    <div class="group-circle" style="background: ${group.color}; color: white;">
-                        <span class="group-text">${this.formatGroupName(group.name)}</span>
-                    </div>
+                    <div class="slider-item-name">${displayName}</div>
+                    <div class="slider-item-score">${parseFloat(group.promedioPerformance).toFixed(1)}%</div>
                 `;
                 item.addEventListener('click', () => {
                     this.selectGroup(group.id, item);
@@ -3023,7 +3083,7 @@
             
             // EPL CAS label
             const eplLabelCell = document.createElement('td');
-            eplLabelCell.textContent = 'PROMEDIO EPL CAS';
+            eplLabelCell.innerHTML = `<div style="color: black; font-weight: bold;">PROMEDIO EPL CAS</div>`;
             eplRow.appendChild(eplLabelCell);
             
             // EPL period values
