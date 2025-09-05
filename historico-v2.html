@@ -3014,16 +3014,16 @@
             eplRow.className = 'epl-cas-row';
             eplRow.style.background = 'linear-gradient(135deg, #ff6b35, #ff8c42)';
             eplRow.style.color = 'white';
-            eplRow.style.fontWeight = 'bold';
+            eplRow.style.fontWeight = '600';
             eplRow.style.position = 'sticky';
             eplRow.style.top = '0';
             eplRow.style.zIndex = '10';
+            eplRow.style.textShadow = '0 1px 2px rgba(0,0,0,0.5)';
+            eplRow.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             
             // EPL CAS label
             const eplLabelCell = document.createElement('td');
             eplLabelCell.textContent = 'PROMEDIO EPL CAS';
-            eplLabelCell.style.fontWeight = 'bold';
-            eplLabelCell.style.textAlign = 'center';
             eplRow.appendChild(eplLabelCell);
             
             // EPL period values
@@ -3033,7 +3033,6 @@
             periods.forEach((periodo, index) => {
                 const cell = document.createElement('td');
                 cell.style.textAlign = 'center';
-                cell.style.fontWeight = 'bold';
                 
                 if (eplAverages[periodo] !== null) {
                     const promedio = eplAverages[periodo];
@@ -3071,7 +3070,6 @@
             // EPL overall average
             const eplAvgCell = document.createElement('td');
             eplAvgCell.style.textAlign = 'center';
-            eplAvgCell.style.fontWeight = 'bold';
             eplAvgCell.textContent = `${eplOverallAverage.toFixed(1)}%`;
             eplAvgCell.title = `EPL CAS Promedio General: ${eplOverallAverage.toFixed(2)}%`;
             eplRow.appendChild(eplAvgCell);
