@@ -489,6 +489,13 @@
             color: #636e72;
         }
         
+        .heat-no-data { 
+            background: #f8f9fa; 
+            color: #adb5bd; 
+            text-align: center; 
+            font-style: italic; 
+        }
+        
         .trend-indicator {
             font-size: 0.625rem;
             position: absolute;
@@ -2102,8 +2109,8 @@
         
         app.renderAllTabs = function() {
             // Use real API data instead of hardcoded data
-            if (this.heatmapData && this.heatmapData.length > 0) {
-                this.updateHeatMap();
+            if (this.heatmapPeriodsData && this.heatmapPeriodsData.groups) {
+                this.updateHeatMapWithPeriods();
             } else {
                 this.renderHeatMapFallback();
             }
@@ -2742,14 +2749,14 @@
                     throw new Error('Performance data error: ' + performanceData.error);
                 }
                 
-                // Load heatmap data
-                const heatmapResponse = await fetch(`/api/heatmap-data/${groupId}`);
+                // Load heatmap periods data
+                const heatmapResponse = await fetch(`/api/heatmap-periods/${groupId}`);
                 const heatmapData = await heatmapResponse.json();
                 
                 if (heatmapData.success) {
-                    this.heatmapData = heatmapData.data;
-                    this.updateHeatMap();
-                    console.log('✅ Heatmap data loaded:', heatmapData.data.length, 'locations');
+                    this.heatmapPeriodsData = heatmapData.data;
+                    this.updateHeatMapWithPeriods();
+                    console.log('✅ Heatmap periods data loaded:', heatmapData.data.groups.length, 'groups');
                 } else {
                     throw new Error('Heatmap data error: ' + heatmapData.error);
                 }
@@ -2849,42 +2856,102 @@
             this.historicalChart.update();
         };
         
-        // Update heatmap with real data
-        app.updateHeatMap = function() {
-            if (!this.heatmapData || this.heatmapData.length === 0) return;
+        // Update heatmap with periods data (NEW COMPLETE IMPLEMENTATION)
+        app.updateHeatMapWithPeriods = function() {
+            if (!this.heatmapPeriodsData || !this.heatmapPeriodsData.groups) return;
             
-            // Update the heatmap table with real data
             const heatmapBody = document.getElementById('heatmapBody');
-            if (heatmapBody) {
-                heatmapBody.innerHTML = '';
-                
-                // Group data by grupo
-                const groupedData = {};
-                this.heatmapData.forEach(location => {
-                    if (!groupedData[location.grupo]) {
-                        groupedData[location.grupo] = [];
-                    }
-                    groupedData[location.grupo].push(location);
-                });
-                
-                // Create rows for each group
-                Object.entries(groupedData).forEach(([grupo, locations]) => {
-                    const avgPerformance = locations.reduce((sum, loc) => sum + loc.performance, 0) / locations.length;
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${grupo}</td>
-                        <td class="${this.getHeatClass(avgPerformance)}">${avgPerformance.toFixed(2)}%</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="${this.getHeatClass(avgPerformance)}"><strong>${avgPerformance.toFixed(2)}%</strong></td>
-                    `;
-                    heatmapBody.appendChild(row);
-                });
+            const heatmapHeader = document.querySelector('#heatmapTable thead tr');
+            
+            if (!heatmapBody || !heatmapHeader) return;
+            
+            // Update table headers with real periods
+            const periods = this.heatmapPeriodsData.periods;
+            const headerCells = heatmapHeader.children;
+            
+            // Update period headers (skip first "Grupo" and last "Prom")
+            for (let i = 1; i < headerCells.length - 1; i++) {
+                const periodIndex = i - 1;
+                if (periods[periodIndex]) {
+                    const date = new Date(periods[periodIndex] + '-01');
+                    const monthYear = date.toLocaleDateString('es-MX', { 
+                        month: 'short', 
+                        year: 'numeric' 
+                    });
+                    headerCells[i].textContent = monthYear;
+                } else {
+                    headerCells[i].textContent = '-';
+                }
             }
             
-            console.log('🗺️ Heatmap updated with', this.heatmapData.length, 'locations');
+            // Clear and populate table body
+            heatmapBody.innerHTML = '';
+            
+            // Sort groups by average performance (descending)
+            const sortedGroups = this.heatmapPeriodsData.groups
+                .sort((a, b) => b.promedio_general - a.promedio_general);
+            
+            sortedGroups.forEach(groupData => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const nameCell = document.createElement('td');
+                nameCell.textContent = groupData.grupo;
+                nameCell.style.fontWeight = '600';
+                row.appendChild(nameCell);
+                
+                // Period cells
+                periods.forEach(periodo => {
+                    const cell = document.createElement('td');
+                    const periodData = groupData.periodos[periodo];
+                    
+                    if (periodData && periodData.promedio !== null) {
+                        const performance = periodData.promedio;
+                        cell.className = this.getHeatClass(performance);
+                        cell.innerHTML = `
+                            <div style="font-weight: 600;">${performance.toFixed(1)}%</div>
+                            <div style="font-size: 0.7rem; opacity: 0.8;">${periodData.evaluaciones} eval.</div>
+                        `;
+                        cell.title = `${groupData.grupo} - ${periodo}: ${performance.toFixed(1)}% (${periodData.evaluaciones} evaluaciones, ${periodData.sucursales} sucursales)`;
+                    } else {
+                        cell.className = 'heat-no-data';
+                        cell.textContent = '—';
+                        cell.title = `${groupData.grupo} - ${periodo}: Sin datos`;
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Fill remaining columns if we have fewer periods than expected
+                const expectedColumns = 6; // Based on table header
+                while (row.children.length < expectedColumns) {
+                    const emptyCell = document.createElement('td');
+                    emptyCell.className = 'heat-no-data';
+                    emptyCell.textContent = '—';
+                    row.appendChild(emptyCell);
+                }
+                
+                // Average cell (last column)
+                const avgCell = document.createElement('td');
+                avgCell.className = this.getHeatClass(groupData.promedio_general);
+                avgCell.style.fontWeight = 'bold';
+                avgCell.textContent = `${groupData.promedio_general.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${groupData.promedio_general.toFixed(2)}%`;
+                row.appendChild(avgCell);
+                
+                heatmapBody.appendChild(row);
+            });
+            
+            console.log('🗺️ Heatmap updated with', sortedGroups.length, 'groups and', periods.length, 'periods');
+        };
+        
+        // Legacy function for backwards compatibility
+        app.updateHeatMap = function() {
+            if (this.heatmapPeriodsData) {
+                this.updateHeatMapWithPeriods();
+            } else {
+                this.renderHeatMapFallback();
+            }
         };
         
         // Get heat class based on performance

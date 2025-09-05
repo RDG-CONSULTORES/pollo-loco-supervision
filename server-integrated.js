@@ -1361,6 +1361,115 @@ app.get('/api/sucursales-ranking', async (req, res) => {
 
 // Webhook endpoint for Telegram - MOVED TO AFTER BOT INITIALIZATION
 
+// =====================================================
+// HEATMAP DATA WITH PERIODS - For historico-v2.html
+// =====================================================
+app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
+    if (!dbConnected) {
+        return res.json({
+            success: false,
+            error: 'Database connection unavailable',
+            data: []
+        });
+    }
+
+    try {
+        const { groupId } = req.params;
+        let groupFilter = '';
+        
+        if (groupId && groupId !== 'all') {
+            groupFilter = `AND grupo_operativo_limpio = $1`;
+        }
+
+        // Get data grouped by month and year instead of CAS periods
+        const query = `
+            SELECT 
+                grupo_operativo_limpio as grupo,
+                DATE_TRUNC('month', fecha_supervision) as periodo,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+                COUNT(*) as evaluaciones,
+                COUNT(DISTINCT location_name) as sucursales
+            FROM ${DATA_SOURCE}
+            WHERE porcentaje IS NOT NULL 
+                AND grupo_operativo_limpio IS NOT NULL
+                AND fecha_supervision IS NOT NULL
+                ${groupFilter}
+            GROUP BY grupo_operativo_limpio, DATE_TRUNC('month', fecha_supervision)
+            ORDER BY grupo_operativo_limpio, periodo
+        `;
+
+        const params = groupId && groupId !== 'all' ? [groupId] : [];
+        const result = await pool.query(query, params);
+
+        // Group results by grupo and create period columns
+        const groupedData = {};
+        const allPeriods = new Set();
+
+        result.rows.forEach(row => {
+            const grupo = row.grupo;
+            const periodo = row.periodo.toISOString().substring(0, 7); // YYYY-MM format
+            
+            if (!groupedData[grupo]) {
+                groupedData[grupo] = {};
+            }
+            
+            groupedData[grupo][periodo] = {
+                promedio: parseFloat(row.promedio),
+                evaluaciones: row.evaluaciones,
+                sucursales: row.sucursales
+            };
+            
+            allPeriods.add(periodo);
+        });
+
+        // Convert to array and sort periods
+        const periods = Array.from(allPeriods).sort();
+        
+        // Format data for heatmap table
+        const heatmapRows = Object.entries(groupedData).map(([grupo, periodos]) => {
+            const row = {
+                grupo,
+                periodos: {},
+                promedio_general: 0
+            };
+
+            let suma = 0;
+            let count = 0;
+
+            periods.forEach(periodo => {
+                if (periodos[periodo]) {
+                    row.periodos[periodo] = periodos[periodo];
+                    suma += periodos[periodo].promedio;
+                    count++;
+                } else {
+                    row.periodos[periodo] = null;
+                }
+            });
+
+            row.promedio_general = count > 0 ? suma / count : 0;
+            return row;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                periods: periods.slice(-6), // Last 6 months
+                groups: heatmapRows,
+                totalGroups: heatmapRows.length,
+                totalPeriods: periods.length
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Heatmap Periods API Error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error fetching heatmap periods data',
+            details: error.message 
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, async () => {
     console.log(`🚀 El Pollo Loco Interactive Dashboard v2.0 running on port ${PORT}`);
