@@ -70,27 +70,23 @@ function buildPeriodoCasCondition(periodoCas, paramIndex) {
     
     const condition = `
         CASE 
-            -- Locales: períodos trimestrales NL (2025)
+            -- Locales: períodos trimestrales NL (2025) - Ajustado a datos reales
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-05-31'
                 THEN 'nl_t1'
             WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                  AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                 AND fecha_supervision >= '2025-06-01' AND fecha_supervision <= '2025-09-04'
                 THEN 'nl_t2'
-            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
-                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
-                THEN 'nl_t3'
-            -- Foráneas: períodos semestrales (2025)
+            -- Foráneas: períodos semestrales (2025) - Ajustado a datos reales
             WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                   OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
                 THEN 'for_s1'
             WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                   OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                 AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-09-04'
                 THEN 'for_s2'
             ELSE 'otros'
         END = $${paramIndex}
@@ -635,24 +631,24 @@ app.get('/api/kpis', async (req, res) => {
                     -- Locales: períodos trimestrales NL
                     WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                          AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-05-31'
                         THEN 'nl_t1'
                     WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                          AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                         AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                         AND fecha_supervision >= '2025-06-01' AND fecha_supervision <= '2025-09-04'
                         THEN 'nl_t2'
                     WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                          AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                         AND fecha_supervision >= '2025-08-19'
+                         AND fecha_supervision >= '2025-07-01'
                         THEN 'nl_t3'
                     -- Foráneas: períodos semestrales
                     WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                           OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                         AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
                         THEN 'for_s1'
                     WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                           OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                         AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                         AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-09-04'
                         THEN 'for_s2'
                     ELSE 'otros'
                 END = $${paramIndex}
@@ -1178,24 +1174,24 @@ app.get('/api/periodos-cas', async (req, res) => {
                         -- Locales: períodos trimestrales NL
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-05-31'
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                             AND fecha_supervision >= '2025-06-01' AND fecha_supervision <= '2025-09-04'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-09-04'
                             THEN 'nl_t3'
                         -- Foráneas: períodos semestrales
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
                             THEN 'for_s1'
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-09-04'
                             THEN 'for_s2'
                         ELSE 'otros'
                     END as periodo_cas
@@ -1440,27 +1436,27 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                     porcentaje,
                     -- Asignar período CAS basado en fechas y tipo de sucursal
                     CASE 
-                        -- Locales: períodos trimestrales NL (2024)
+                        -- Locales: períodos trimestrales NL (2025)
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-05-31'
                             THEN 'nl_t1'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                             AND fecha_supervision >= '2025-06-01' AND fecha_supervision <= '2025-09-04'
                             THEN 'nl_t2'
                         WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
                              AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                             AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-09-04'
                             THEN 'nl_t3'
-                        -- Foráneas: períodos semestrales (2024)
+                        -- Foráneas: períodos semestrales (2025)
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
                             THEN 'for_s1'
                         WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
                               OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                             AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-09-04'
                             THEN 'for_s2'
                         ELSE NULL
                     END as periodo_cas
