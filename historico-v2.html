@@ -2123,21 +2123,42 @@
         };
         
         app.setupAutoRefresh = function() {
-            // Auto-refresh every 5 minutes (300000 ms)
-            const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+            // Auto-refresh once daily at 9:30 AM (after ETL completes)
+            const checkDailyRefresh = () => {
+                const now = new Date();
+                const refreshTime = new Date();
+                refreshTime.setHours(9, 30, 0, 0); // 9:30 AM
+                
+                // If it's already past 9:30 AM today, set for tomorrow
+                if (now > refreshTime) {
+                    refreshTime.setDate(refreshTime.getDate() + 1);
+                }
+                
+                const msUntilRefresh = refreshTime - now;
+                
+                // Clear any existing timeout
+                if (this.refreshTimeout) {
+                    clearTimeout(this.refreshTimeout);
+                }
+                
+                // Set timeout for next refresh
+                this.refreshTimeout = setTimeout(() => {
+                    console.log('🔄 Daily auto-refresh at 9:30 AM...');
+                    this.refresh();
+                    
+                    // Schedule next day's refresh
+                    checkDailyRefresh();
+                }, msUntilRefresh);
+                
+                const hoursUntil = Math.floor(msUntilRefresh / 1000 / 60 / 60);
+                const minutesUntil = Math.floor((msUntilRefresh / 1000 / 60) % 60);
+                console.log(`⏰ Next auto-refresh in ${hoursUntil}h ${minutesUntil}m at 9:30 AM`);
+            };
             
-            // Clear any existing interval
-            if (this.refreshInterval) {
-                clearInterval(this.refreshInterval);
-            }
+            // Initial setup
+            checkDailyRefresh();
             
-            // Set new interval
-            this.refreshInterval = setInterval(() => {
-                console.log('🔄 Auto-refreshing dashboard...');
-                this.refresh();
-            }, REFRESH_INTERVAL);
-            
-            console.log('⏰ Auto-refresh configured: every 5 minutes');
+            console.log('📅 Auto-refresh configured: Daily at 9:30 AM (after ETL)');
         };
         
         app.renderAllTabs = function() {
