@@ -1798,6 +1798,9 @@
             this.updateLastUpdate();
             this.renderAllTabs();
             
+            // Setup auto-refresh every 5 minutes
+            this.setupAutoRefresh();
+            
             // Show swipe hint
             setTimeout(() => {
                 document.getElementById('swipeIndicator').classList.add('show');
@@ -2094,17 +2097,47 @@
         app.refresh = async function() {
             // Show loading state
             const indicator = document.getElementById('pullToRefresh');
-            indicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+            if (indicator) {
+                indicator.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i>';
+            }
             
-            // Simulate API call
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Update data and charts
-            this.updateLastUpdate();
-            this.renderTabContent(this.tabs[this.currentTab]);
+            try {
+                // Reload real data from API
+                await this.loadRealData();
+                
+                // Update timestamp
+                this.updateLastUpdate();
+                
+                // Re-render current tab with new data
+                this.renderTabContent(this.tabs[this.currentTab]);
+                
+                console.log('✅ Dashboard refreshed at', new Date().toLocaleTimeString());
+            } catch (error) {
+                console.error('❌ Error refreshing dashboard:', error);
+            }
             
             // Reset indicator
-            indicator.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            if (indicator) {
+                indicator.innerHTML = '<i class="fas fa-sync-alt"></i>';
+            }
+        };
+        
+        app.setupAutoRefresh = function() {
+            // Auto-refresh every 5 minutes (300000 ms)
+            const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+            
+            // Clear any existing interval
+            if (this.refreshInterval) {
+                clearInterval(this.refreshInterval);
+            }
+            
+            // Set new interval
+            this.refreshInterval = setInterval(() => {
+                console.log('🔄 Auto-refreshing dashboard...');
+                this.refresh();
+            }, REFRESH_INTERVAL);
+            
+            console.log('⏰ Auto-refresh configured: every 5 minutes');
         };
         
         app.renderAllTabs = function() {
@@ -2961,7 +2994,8 @@
                             const diff = performance - lastValidValue;
                             const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
                             const diffSign = diff > 0 ? '+' : '';
-                            cellContent += `<div class="${diffClass}" style="font-size: 0.7rem;">${diffSign}${diff.toFixed(1)}%</div>`;
+                            const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                            cellContent += `<div class="${diffClass}" style="font-size: 0.7rem;">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
                         } else if (!showDifferences) {
                             // Show evaluations count when not showing differences
                             cellContent += `<div style="font-size: 0.7rem; opacity: 0.8;">${periodData.evaluaciones} eval.</div>`;
