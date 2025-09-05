@@ -2983,6 +2983,102 @@
                     break;
             }
             
+            // Calculate EPL CAS averages for each period
+            const eplAverages = {};
+            let eplOverallSum = 0;
+            let eplOverallCount = 0;
+            
+            periods.forEach(periodo => {
+                let periodSum = 0;
+                let periodCount = 0;
+                
+                this.heatmapPeriodsData.groups.forEach(group => {
+                    const periodData = group.periodos[periodo];
+                    if (periodData && periodData.promedio !== null) {
+                        periodSum += periodData.promedio;
+                        periodCount++;
+                    }
+                });
+                
+                eplAverages[periodo] = periodCount > 0 ? periodSum / periodCount : null;
+                if (eplAverages[periodo] !== null) {
+                    eplOverallSum += eplAverages[periodo];
+                    eplOverallCount++;
+                }
+            });
+            
+            const eplOverallAverage = eplOverallCount > 0 ? eplOverallSum / eplOverallCount : 0;
+            
+            // Add EPL CAS row (fixed at top)
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-cas-row';
+            eplRow.style.background = 'linear-gradient(135deg, #ff6b35, #ff8c42)';
+            eplRow.style.color = 'white';
+            eplRow.style.fontWeight = 'bold';
+            eplRow.style.position = 'sticky';
+            eplRow.style.top = '0';
+            eplRow.style.zIndex = '10';
+            
+            // EPL CAS label
+            const eplLabelCell = document.createElement('td');
+            eplLabelCell.textContent = 'PROMEDIO EPL CAS';
+            eplLabelCell.style.fontWeight = 'bold';
+            eplLabelCell.style.textAlign = 'center';
+            eplRow.appendChild(eplLabelCell);
+            
+            // EPL period values
+            let lastValidEpl = null;
+            const showDifferences = document.getElementById('showDifferences')?.checked ?? false;
+            
+            periods.forEach((periodo, index) => {
+                const cell = document.createElement('td');
+                cell.style.textAlign = 'center';
+                cell.style.fontWeight = 'bold';
+                
+                if (eplAverages[periodo] !== null) {
+                    const promedio = eplAverages[periodo];
+                    let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
+                    
+                    // Add difference if enabled and there's a previous value
+                    if (showDifferences && lastValidEpl !== null) {
+                        const diff = promedio - lastValidEpl;
+                        const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                        const diffSign = diff > 0 ? '+' : '';
+                        const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                        cellContent += `<div class="${diffClass}" style="font-size: 0.7rem; color: rgba(255,255,255,0.9);">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                    }
+                    
+                    cell.innerHTML = cellContent;
+                    cell.title = `EPL CAS - ${periodo}: ${promedio.toFixed(2)}%`;
+                    lastValidEpl = promedio;
+                } else {
+                    cell.textContent = '—';
+                    cell.title = `EPL CAS - ${periodo}: Sin datos`;
+                }
+                
+                eplRow.appendChild(cell);
+            });
+            
+            // Fill remaining columns if needed
+            const expectedColumns = 6;
+            while (eplRow.children.length < expectedColumns) {
+                const emptyCell = document.createElement('td');
+                emptyCell.textContent = '—';
+                emptyCell.style.textAlign = 'center';
+                eplRow.appendChild(emptyCell);
+            }
+            
+            // EPL overall average
+            const eplAvgCell = document.createElement('td');
+            eplAvgCell.style.textAlign = 'center';
+            eplAvgCell.style.fontWeight = 'bold';
+            eplAvgCell.textContent = `${eplOverallAverage.toFixed(1)}%`;
+            eplAvgCell.title = `EPL CAS Promedio General: ${eplOverallAverage.toFixed(2)}%`;
+            eplRow.appendChild(eplAvgCell);
+            
+            // Add EPL row first
+            heatmapBody.appendChild(eplRow);
+            
             // Sort groups by average performance (descending)
             const sortedGroups = filteredGroups
                 .sort((a, b) => b.promedio_general - a.promedio_general);

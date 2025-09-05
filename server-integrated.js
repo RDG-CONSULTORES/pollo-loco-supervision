@@ -1530,11 +1530,11 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
                 groups: heatmapRows,
                 totalGroups: heatmapRows.length,
                 periodLabels: {
-                    'nl_t1': 'NL-T1 (12 Mar-30 Abr)',
-                    'for_s1': 'FOR-S1 (12 Mar-30 Jun)', 
-                    'nl_t2': 'NL-T2 (1 May-31 Jul)',
-                    'for_s2': 'FOR-S2 (1 Jul-31 Dic)',
-                    'nl_t3': 'NL-T3 (1 Ago-31 Dic)'
+                    'nl_t1': 'NL-T1',
+                    'for_s1': 'FOR-S1', 
+                    'nl_t2': 'NL-T2',
+                    'for_s2': 'FOR-S2',
+                    'nl_t3': 'NL-T3'
                 }
             }
         });
