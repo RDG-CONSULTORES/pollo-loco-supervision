@@ -2140,7 +2140,11 @@
             switch(tabName) {
                 case 'alerts': this.renderAlerts(); break;
                 case 'smart': this.renderSmartAnalysis(); break;
-                case 'heatmap': this.renderHeatMap(); break;
+                case 'heatmap': 
+                    // Preserve current filter state
+                    const activeFilter = document.querySelector('.filter-btn.active')?.dataset.filter || 'all';
+                    this.renderHeatMap(activeFilter); 
+                    break;
                 case 'trends': this.renderTrends(); break;
             }
         };
@@ -2410,6 +2414,12 @@
         };
         
         app.renderHeatMap = function(filter = 'all') {
+            // Use new API data if available, otherwise use fallback
+            if (this.heatmapPeriodsData && this.heatmapPeriodsData.groups) {
+                this.updateHeatMapWithPeriods(filter);
+                return;
+            }
+            
             const tbody = document.getElementById('heatmapBody');
             if (!tbody) return;
             
@@ -2857,7 +2867,7 @@
         };
         
         // Update heatmap with periods data (NEW COMPLETE IMPLEMENTATION)
-        app.updateHeatMapWithPeriods = function() {
+        app.updateHeatMapWithPeriods = function(filter = 'all') {
             if (!this.heatmapPeriodsData || !this.heatmapPeriodsData.groups) return;
             
             const heatmapBody = document.getElementById('heatmapBody');
@@ -2885,8 +2895,42 @@
             // Clear and populate table body
             heatmapBody.innerHTML = '';
             
+            // Apply filters to groups
+            let filteredGroups = this.heatmapPeriodsData.groups.slice();
+            
+            switch(filter) {
+                case 'critical':
+                    filteredGroups = filteredGroups.filter(group => group.promedio_general < 80);
+                    break;
+                case 'improving':
+                    filteredGroups = filteredGroups.filter(group => {
+                        // Check if trend is improving based on period performance
+                        const periodValues = periods.map(p => group.periodos[p]?.promedio || 0)
+                            .filter(v => v > 0);
+                        if (periodValues.length < 2) return false;
+                        const first = periodValues[0];
+                        const last = periodValues[periodValues.length - 1];
+                        return last > first + 2; // Improving by 2+ points
+                    });
+                    break;
+                case 'declining':
+                    filteredGroups = filteredGroups.filter(group => {
+                        // Check if trend is declining based on period performance
+                        const periodValues = periods.map(p => group.periodos[p]?.promedio || 0)
+                            .filter(v => v > 0);
+                        if (periodValues.length < 2) return false;
+                        const first = periodValues[0];
+                        const last = periodValues[periodValues.length - 1];
+                        return last < first - 2; // Declining by 2+ points
+                    });
+                    break;
+                default: // 'all'
+                    // No filter applied
+                    break;
+            }
+            
             // Sort groups by average performance (descending)
-            const sortedGroups = this.heatmapPeriodsData.groups
+            const sortedGroups = filteredGroups
                 .sort((a, b) => b.promedio_general - a.promedio_general);
             
             sortedGroups.forEach(groupData => {
