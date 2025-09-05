@@ -1674,6 +1674,15 @@
             const track = document.getElementById('sliderTrack');
             if (!track) return;
             
+            // Ensure we have operational groups data first
+            if (!this.operationalGroups || this.operationalGroups.length === 0) {
+                console.log('⚠️  No operational groups data available for slider');
+                return;
+            }
+            
+            // Initialize groups list from operational groups
+            this.initGroupsList();
+            
             track.innerHTML = '';
             
             this.groupsList.forEach((group, index) => {
@@ -1727,6 +1736,7 @@
             });
             
             this.updateSelectorInfo();
+            console.log('✅ Slider initialized with', this.groupsList.length, 'groups');
         };
         
         app.toggleSliderGroup = function(groupName, itemElement) {
@@ -2266,21 +2276,30 @@
         };
         
         app.renderSmartAnalysis = function() {
+            console.log('🔄 Rendering Smart Analysis...');
+            
             // Initialize slider selector with real data
-            if (this.operationalGroups.length > 0) {
-                this.initGroupsList();
+            if (this.operationalGroups && this.operationalGroups.length > 0) {
+                console.log('📊 Initializing slider with', this.operationalGroups.length, 'operational groups');
                 this.initSliderSelector();
+                this.renderGroupCards(); // Render cards after slider is ready
+            } else {
+                console.log('⚠️  No operational groups data available for Smart Analysis');
             }
             
             // Update cards with real performance areas data  
-            if (this.performanceAreas.length > 0) {
+            if (this.performanceAreas && this.performanceAreas.length > 0) {
+                console.log('🎯 Updating performance cards with', this.performanceAreas.length, 'areas');
                 this.updatePerformanceCards();
             }
             
             // Update comparison chart with historical data
             if (this.historicalData) {
+                console.log('📈 Updating historical chart');
                 this.updateHistoricalChart();
             }
+            
+            console.log('✅ Smart Analysis rendering complete');
         };
         
         app.updateComparisonChart = function() {
