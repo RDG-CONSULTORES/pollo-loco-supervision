@@ -1503,7 +1503,7 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             SELECT 
                 grupo_operativo_limpio as grupo,
                 ROUND(AVG(porcentaje)::numeric, 2) as promedio_general
-            FROM ${DATA_SOURCE}
+            FROM supervision_operativa_clean
             WHERE grupo_operativo_limpio IS NOT NULL
               AND porcentaje IS NOT NULL
             GROUP BY grupo_operativo_limpio
@@ -1580,7 +1580,7 @@ app.get('/api/test-periods', async (req, res) => {
                 estado_normalizado,
                 grupo_operativo_limpio,
                 location_name
-            FROM ${DATA_SOURCE}
+            FROM supervision_operativa_clean
             WHERE porcentaje IS NOT NULL 
             GROUP BY estado_normalizado, grupo_operativo_limpio, location_name
             ORDER BY estado_normalizado, grupo_operativo_limpio
