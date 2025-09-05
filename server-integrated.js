@@ -115,24 +115,26 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
     const { groupId } = req.params;
     const { dateRange = '3months', area = 'all' } = req.query;
 
-    // Build date filter
+    // Build date filter - use available data range
     let dateFilter = '';
-    const now = new Date();
     switch (dateRange) {
       case '1month':
-        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 1, now.getDate()).toISOString()}'`;
+        dateFilter = `AND fecha_supervision >= CURRENT_DATE - INTERVAL '1 month'`;
         break;
       case '3months':
-        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString()}'`;
+        dateFilter = `AND fecha_supervision >= CURRENT_DATE - INTERVAL '3 months'`;
         break;
       case '6months':
-        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 6, now.getDate()).toISOString()}'`;
+        dateFilter = `AND fecha_supervision >= CURRENT_DATE - INTERVAL '6 months'`;
         break;
       case 'year':
-        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear() - 1, now.getMonth(), now.getDate()).toISOString()}'`;
+        dateFilter = `AND fecha_supervision >= CURRENT_DATE - INTERVAL '1 year'`;
+        break;
+      case 'all':
+        dateFilter = ''; // Show all available data
         break;
       default:
-        dateFilter = `AND fecha_supervision >= '${new Date(now.getFullYear(), now.getMonth() - 3, now.getDate()).toISOString()}'`;
+        dateFilter = ''; // Show all data by default
     }
 
     // Build group filter
@@ -151,7 +153,7 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
 
     const query = `
       SELECT 
-        DATE_TRUNC('week', fecha_supervision) as fecha,
+        DATE_TRUNC('month', fecha_supervision) as fecha,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
         COUNT(DISTINCT location_name) as sucursales_evaluadas,
         COUNT(*) as total_evaluaciones,
@@ -159,10 +161,11 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
       FROM supervision_operativa_clean
       WHERE porcentaje IS NOT NULL
         AND grupo_operativo_limpio IS NOT NULL
+        AND fecha_supervision IS NOT NULL
         ${dateFilter}
         ${groupFilter}
         ${areaFilter}
-      GROUP BY DATE_TRUNC('week', fecha_supervision), grupo_operativo_limpio
+      GROUP BY DATE_TRUNC('month', fecha_supervision), grupo_operativo_limpio
       ORDER BY fecha ASC
     `;
 
@@ -313,7 +316,7 @@ app.get('/api/heatmap-data/:groupId?', async (req, res) => {
         AND longitud IS NOT NULL 
         AND porcentaje IS NOT NULL
         AND grupo_operativo_limpio IS NOT NULL
-        AND fecha_supervision >= NOW() - INTERVAL '3 months'
+        AND fecha_supervision IS NOT NULL
         ${groupFilter}
       GROUP BY location_name, estado_normalizado, municipio, latitud, longitud, grupo_operativo_limpio
       ORDER BY promedio_performance DESC
@@ -386,7 +389,7 @@ app.get('/api/performance-areas/:groupId?', async (req, res) => {
         AND area_evaluacion NOT LIKE '%PUNTOS%'
         AND porcentaje IS NOT NULL
         AND grupo_operativo_limpio IS NOT NULL
-        AND fecha_supervision >= NOW() - INTERVAL '3 months'
+        AND fecha_supervision IS NOT NULL
         ${groupFilter}
       GROUP BY area_evaluacion
       ORDER BY promedio_performance DESC

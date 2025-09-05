@@ -90,18 +90,14 @@
         
         .tab {
             flex: 1;
-            max-width: 300px;
-            padding: 1.25rem;
+            min-width: 100px;
+            padding: 1rem;
             text-align: center;
             cursor: pointer;
             transition: var(--transition);
             border-bottom: 3px solid transparent;
             white-space: nowrap;
             user-select: none;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
         }
         
         .tab.active {
@@ -422,12 +418,7 @@
             border-bottom: 1px solid #f1f3f4;
             position: relative;
             font-weight: 600;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            /* Enhanced touch interaction */
-            cursor: pointer;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
+            transition: all 0.2s;
         }
         
         .heatmap-table td:first-child {
@@ -443,19 +434,10 @@
         
         .heatmap-table tbody tr:hover {
             background: #f8f9fa;
-            transform: translateX(2px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
         .heatmap-table tbody tr:active {
             background: #e9ecef;
-            transform: translateX(0) scale(0.995);
-        }
-        
-        /* Enhanced touch feedback for cells */
-        .heatmap-table td:active {
-            transform: scale(0.95);
-            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
         
         /* Cell colors */
@@ -698,132 +680,172 @@
             background: #ffeaa7;
             color: #d63031;
         }
-
-        /* EPL PANTONE COLORS */
-        :root {
-            --epl-red: #D03B34;
-            --epl-yellow: #FFED00; 
-            --epl-orange: #F18523;
-            --epl-purple: #6C109F;
-            --epl-red-light: #d03b3420;
-            --epl-yellow-light: #ffed0020;
-            --epl-orange-light: #f1852320;
-            --epl-purple-light: #6c109f20;
-        }
-
-        /* INSTAGRAM STORIES STYLE SLIDER */
-        .selector-slider {
-            position: relative;
-            overflow: hidden;
-            border-radius: var(--border-radius);
-            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
-            padding: 1rem;
+        
+        /* Selector Options Styles */
+        .selector-options {
+            display: flex;
+            gap: 0.5rem;
             margin-bottom: 1rem;
-            /* Advanced touch optimization */
-            touch-action: pan-x;
-            -webkit-overflow-scrolling: touch;
-            scroll-behavior: smooth;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        }
-        
-        .slider-container-mobile {
             overflow-x: auto;
-            overflow-y: hidden;
-            border-radius: 8px;
-            /* Enhanced scrolling */
-            scroll-snap-type: x mandatory;
-            -webkit-overflow-scrolling: touch;
-            scrollbar-width: none;
-            -ms-overflow-style: none;
+            padding-bottom: 0.25rem;
         }
         
-        .slider-container-mobile::-webkit-scrollbar {
+        .selector-option-btn {
+            padding: 0.5rem 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 20px;
+            background: white;
+            font-size: 0.75rem;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition);
+        }
+        
+        .selector-option-btn.active {
+            border-color: var(--primary);
+            background: var(--primary);
+            color: white;
+        }
+        
+        /* OPTION M: TikTok Style */
+        .selector-tiktok {
+            position: relative;
+            height: 120px;
+            width: 200px;
+            margin: 0 auto;
+            background: #1a1a1a;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+        
+        .tiktok-card {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, #FF6B35, #D63031);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .tiktok-arrows {
+            position: absolute;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .tiktok-arrow {
+            width: 30px;
+            height: 30px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .tiktok-arrow:hover {
+            background: rgba(255,255,255,0.4);
+        }
+        
+        /* OPTION K: Mini Cards */
+        .selector-cards {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding: 0.5rem 0;
+            scrollbar-width: none;
+        }
+        
+        .selector-cards::-webkit-scrollbar {
             display: none;
         }
         
-        .slider-track {
-            display: flex;
-            gap: 1rem;
-            padding: 0.75rem;
-            transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-            scroll-snap-type: x mandatory;
-            /* Touch momentum */
-            will-change: transform;
-            justify-content: flex-start;
-            align-items: center;
-        }
-        
-        /* CIRCULAR STORIES STYLE */
-        .slider-item {
+        .mini-card {
             min-width: 80px;
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            background: white;
-            border: 3px solid #e9ecef;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-align: center;
-            scroll-snap-align: center;
-            /* Advanced touch optimization */
+            height: 60px;
+            border-radius: 8px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            touch-action: manipulation;
-            user-select: none;
-            -webkit-user-select: none;
-            /* Haptic feedback simulation */
-            transform-origin: center;
-            backface-visibility: hidden;
-            -webkit-backface-visibility: hidden;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 2px solid #e9ecef;
+            background: white;
             position: relative;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
         
-        .slider-item:active {
-            transform: scale(0.88);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-            transition: all 0.1s ease;
-        }
-        
-        .slider-item:hover {
-            transform: translateY(-2px) scale(1.02);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-        }
-        
-        /* CIRCULAR ITEM STATES */
-        .slider-item.selected {
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-        }
-        
-        .slider-item.group-tier-1 { border-color: var(--epl-red); }
-        .slider-item.group-tier-1.selected { 
-            background: var(--epl-red);
+        .mini-card.selected {
+            border-color: var(--primary);
+            background: var(--primary);
             color: white;
-            border-color: var(--epl-red);
         }
         
-        .slider-item.group-tier-2 { border-color: var(--epl-orange); }
-        .slider-item.group-tier-2.selected { 
-            background: var(--epl-orange);
+        .mini-card-name {
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.1;
+        }
+        
+        .mini-card-check {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--success);
             color: white;
-            border-color: var(--epl-orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            transform: scale(0);
+            transition: var(--transition);
         }
         
-        .slider-item.group-tier-3 { border-color: var(--epl-yellow); }
-        .slider-item.group-tier-3.selected { 
-            background: var(--epl-yellow);
-            color: #333;
-            border-color: var(--epl-yellow);
+        .mini-card.selected .mini-card-check {
+            transform: scale(1);
         }
         
-        .slider-item.group-tier-4 { border-color: var(--epl-purple); }
-        .slider-item.group-tier-4.selected { 
-            background: var(--epl-purple);
-            color: white;
-            border-color: var(--epl-purple);
+        /* OPTION E: Horizontal Slider */
+        .selector-slider {
+            position: relative;
+            overflow: hidden;
+            border-radius: var(--border-radius);
+            background: #f8f9fa;
+            padding: 0.5rem 0;
+        }
+        
+        .slider-track {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0 0.5rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .slider-item {
+            min-width: 120px;
+            padding: 0.75rem;
+            border-radius: 8px;
+            background: white;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
         }
         
         .slider-item.selected {
@@ -832,146 +854,34 @@
             color: white;
         }
         
-        .slider-item-name {
-            font-size: 0.65rem;
-            font-weight: 700;
-            line-height: 1;
-            margin-bottom: 0.125rem;
-            text-transform: uppercase;
-            letter-spacing: 0.25px;
-        }
-        
-        .slider-item-score {
-            font-size: 0.55rem;
-            font-weight: 600;
-            opacity: 0.9;
-            line-height: 1;
-        }
-        
-        /* PROGRESS RING AROUND CIRCLE */
-        .slider-item::before {
-            content: '';
+        .slider-controls {
             position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
             border-radius: 50%;
-            background: conic-gradient(
-                from 0deg,
-                transparent 0deg,
-                transparent calc(var(--progress, 0) * 3.6deg),
-                transparent calc(var(--progress, 0) * 3.6deg),
-                transparent 360deg
-            );
-            z-index: -1;
-            opacity: 0.3;
-            transition: opacity 0.3s ease;
-        }
-        
-        .slider-item.selected::before {
-            opacity: 0.6;
-        }
-        
-        /* Enhanced Selection Controls */
-        .selection-controls-section {
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: rgba(248, 249, 250, 0.6);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-        }
-        
-        .controls-title {
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: #636e72;
-            text-align: center;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-        
-        .slider-controls-mobile {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid #e9ecef;
             display: flex;
-            justify-content: center;
-            gap: 1rem;
-            padding: 0.25rem;
-        }
-        
-        .control-group {
-            display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 0.25rem;
-        }
-        
-        .control-label {
-            font-size: 0.625rem;
-            font-weight: 600;
-            color: #636e72;
-            text-align: center;
-        }
-        
-        .slider-btn-mobile {
-            width: 48px;
-            height: 48px;
-            border: none;
-            border-radius: 50%;
-            background: white;
-            color: #636e72;
-            font-size: 1rem;
+            justify-content: center;
             cursor: pointer;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-            touch-action: manipulation;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            /* Enhanced touch feedback */
-            user-select: none;
-            -webkit-user-select: none;
-            transform-origin: center;
-            position: relative;
-            overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.12);
-            border: 2px solid transparent;
-        }"}
-        
-        .slider-btn-mobile:active {
-            transform: scale(0.88);
-            background: var(--epl-orange);
-            color: white;
-            box-shadow: 0 4px 16px rgba(241, 133, 35, 0.4);
-            transition: all 0.1s ease;
+            transition: var(--transition);
         }
         
-        .slider-btn-mobile:hover {
-            background: var(--epl-orange);
-            color: white;
-            transform: translateY(-2px) scale(1.05);
-            box-shadow: 0 6px 20px rgba(241, 133, 35, 0.3);
+        .slider-controls:hover {
+            background: white;
+            box-shadow: var(--shadow);
         }
         
-        /* Special button colors */
-        .slider-btn-mobile.btn-primary {
-            background: var(--epl-red);
-            color: white;
+        .slider-prev {
+            left: 5px;
         }
         
-        .slider-btn-mobile.btn-secondary {
-            background: var(--epl-orange);
-            color: white;
+        .slider-next {
+            right: 5px;
         }
-        
-        .slider-btn-mobile.btn-success {
-            background: var(--epl-yellow);
-            color: #333;
-        }
-        
-        .slider-btn-mobile.btn-outline {
-            background: var(--epl-purple);
-            color: white;
-        }"}
         
         .selector-info {
             text-align: center;
@@ -980,366 +890,112 @@
             color: #636e72;
         }
         
-        /* Performance Area Cards */
-        .performance-area-card {
-            padding: 1rem;
+        /* Mobile-Optimized Slider Styles */
+        .slider-container-mobile {
+            position: relative;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+            padding: 0.5rem 0;
         }
         
-        .performance-area-card h4 {
-            margin-bottom: 1rem;
-            font-size: 1rem;
-            color: var(--dark);
+        .slider-container-mobile::-webkit-scrollbar {
+            display: none;
         }
         
-        .performance-metrics {
+        .slider-controls-mobile {
             display: flex;
-            justify-content: space-around;
-            margin-bottom: 1rem;
-            gap: 0.5rem;
-        }
-        
-        .metric {
-            text-align: center;
-            flex: 1;
-        }
-        
-        .metric-value {
-            display: block;
-            font-size: 1.25rem;
-            font-weight: 600;
-            color: var(--primary);
-        }
-        
-        .metric-label {
-            display: block;
-            font-size: 0.75rem;
-            color: #636e72;
-            margin-top: 0.25rem;
-        }
-        
-        .performance-range {
-            text-align: center;
-            font-size: 0.875rem;
-            color: #636e72;
-            padding-top: 0.75rem;
-            border-top: 1px solid #e9ecef;
-        }
-        
-        /* Perfected Slider Guide - Fully Responsive */
-        .slider-guide {
-            display: flex;
-            align-items: center;
             justify-content: center;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            padding: 0.75rem;
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(248, 249, 250, 0.9) 100%);
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-            flex-wrap: wrap;
-            width: 100%;
-            box-sizing: border-box;
+            gap: 0.75rem;
+            margin-top: 0.75rem;
         }
         
-        .guide-step {
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.4rem 0.6rem;
+        .slider-btn-mobile {
+            padding: 0.75rem 1.25rem;
+            border: 2px solid var(--primary);
+            border-radius: 25px;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            flex: 0 1 auto;
-            min-width: fit-content;
-        }
-        
-        .guide-step:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(241, 133, 35, 0.15);
-        }
-        
-        .step-number {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: var(--epl-orange);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.65rem;
-            font-weight: 700;
-            flex-shrink: 0;
-        }
-        
-        .step-content {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        
-        .step-content i {
-            font-size: 0.85rem;
-            color: var(--epl-orange);
-            opacity: 0.8;
-            flex-shrink: 0;
-        }
-        
-        .step-content span {
-            font-size: 0.65rem;
-            color: #2d3436;
-            font-weight: 500;
-            line-height: 1.2;
-        }
-        
-        .guide-arrow {
-            color: #dfe6e9;
-            font-size: 0.7rem;
-            animation: pulse 2s infinite;
-            flex-shrink: 0;
-        }
-        
-        /* Hide arrows on very small screens */
-        @media (max-width: 400px) {
-            .guide-arrow {
-                display: none;
-            }
-            .slider-guide {
-                gap: 0.3rem;
-            }
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 0.4; transform: translateX(0); }
-            50% { opacity: 1; transform: translateX(2px); }
-        }
-        
-        /* Professional Button Styles */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            border: none;
-            border-radius: 8px;
+            color: var(--primary);
             font-size: 0.875rem;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
-            text-decoration: none;
-            min-height: 44px;
+            transition: var(--transition);
+            min-height: 48px;  /* Touch-friendly size */
+            min-width: 48px;
+        }
+        
+        .slider-btn-mobile:hover,
+        .slider-btn-mobile:active {
+            background: var(--primary);
+            color: white;
+            transform: scale(0.98);
+        }
+        
+        /* Enhanced slider items for touch */
+        .slider-track .slider-item {
+            min-width: 140px;
+            min-height: 60px;
+            padding: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
             touch-action: manipulation;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
-        .btn-primary {
-            background: var(--primary);
-            color: white;
+        .slider-item:active {
+            transform: scale(0.95);
         }
         
-        .btn-primary:hover {
-            background: #e55a2b;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
-        }
-        
-        .btn-primary:active {
-            transform: scale(0.98);
-        }
-        
-        .btn-secondary {
-            background: white;
-            color: var(--primary);
-            border: 2px solid var(--primary);
-        }
-        
-        .btn-secondary:hover {
-            background: var(--primary);
-            color: white;
-        }
-        
-        .btn-secondary:active {
-            transform: scale(0.98);
-        }
-        
-        .btn-outline {
-            background: transparent;
-            color: var(--dark);
-            border: 2px solid #e9ecef;
-        }
-        
-        .btn-outline:hover {
-            background: #f8f9fa;
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-        
-        .btn-success {
-            background: var(--success);
-            color: white;
-        }
-        
-        .btn-success:hover {
-            background: #00a085;
-        }
-        
-        .btn-warning {
-            background: var(--warning);
-            color: var(--dark);
-        }
-        
-        .btn-warning:hover {
-            background: #e6b800;
-        }
-
-        /* ADVANCED RESPONSIVE BREAKPOINTS */
-        
-        /* Large Mobile / Small Tablet */
-        @media (max-width: 768px) and (min-width: 481px) {
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
             .header h1 { font-size: 1.125rem; }
             .tab span { font-size: 0.7rem; }
-            .chart-container { height: 280px; }
-            .group-grid { grid-template-columns: repeat(2, 1fr); }
-            .slider-item { min-width: 120px; }
-            .slider-track { gap: 0.5rem; }
-        }
-        
-        /* Medium Screens */
-        @media (max-width: 600px) {
-            .step-content span {
-                font-size: 0.6rem;
-            }
-            .slider-guide {
-                padding: 0.5rem;
-                gap: 0.4rem;
-            }
-            .guide-step {
-                padding: 0.35rem 0.5rem;
-            }
-        }
-        
-        /* Standard Mobile */
-        @media (max-width: 480px) {
-            .header h1 { font-size: 1rem; }
-            .header .subtitle { font-size: 0.8rem; }
-            .tab { min-width: 80px; padding: 0.75rem 0.5rem; }
-            .tab i { font-size: 1.25rem; }
-            .tab span { font-size: 0.65rem; }
-            .chart-container { height: 240px; }
+            .chart-container { height: 250px; }
             .group-grid { grid-template-columns: 1fr; }
-            .slider-item { 
-                min-width: 110px; 
-                min-height: 56px; 
-                padding: 0.75rem 0.5rem; 
-            }
-            .slider-track { 
-                gap: 0.5rem; 
-                padding: 0.5rem; 
-            }
-            .slider-btn-mobile { 
-                min-height: 52px; 
-                font-size: 0.65rem; 
-            }
-        }
-        
-        /* Small Mobile */
-        @media (max-width: 375px) {
-            .header { padding: 0.75rem; }
-            .header h1 { font-size: 0.95rem; }
-            .content { padding: 0.75rem; }
-            .card { padding: 0.75rem; }
-            .tab { min-width: 70px; padding: 0.5rem 0.25rem; }
-            .tab i { font-size: 1.1rem; }
-            .tab span { font-size: 0.6rem; }
-            .chart-container { height: 220px; }
-            .slider-item { 
-                width: 70px;
-                height: 70px;
-                min-width: 70px; 
-                font-size: 0.75rem;
-            }
-            .slider-btn-mobile { 
-                width: 40px;
-                height: 40px;
-                font-size: 0.8rem; 
-            }
-            .control-label {
-                font-size: 0.55rem;
-            }
-            .slider-guide {
-                flex-direction: column;
-                gap: 0.25rem;
-                padding: 0.5rem;
-            }
-            .guide-step {
-                width: 100%;
-                padding: 0.4rem 0.6rem;
-            }
-            .step-content span {
-                font-size: 0.65rem;
-            }
-            .guide-arrow {
-                transform: rotate(90deg);
-                margin: 0.25rem 0;
-            }
-            @keyframes pulse {
-                0%, 100% { opacity: 0.4; transform: translateY(0); }
-                50% { opacity: 1; transform: translateY(2px); }
-            }
-            .selection-controls-section {
-                padding: 0.5rem;
-            }
-        }
-        
-        /* Landscape Mobile */
-        @media (max-height: 500px) and (orientation: landscape) {
-            .header { padding: 0.5rem 1rem; }
-            .header h1 { font-size: 1rem; }
-            .tab-container { top: 45px; }
-            .content { padding-top: 0.5rem; }
-            .chart-container { height: 180px; }
-            .slider-item { min-height: 44px; }
-        }
-        
-        /* Tablet Optimizations */
-        @media (min-width: 769px) and (max-width: 1024px) {
-            .chart-container { height: 350px; }
-            .group-grid { grid-template-columns: repeat(3, 1fr); }
-            .slider-item { min-width: 160px; }
-            .heatmap-table { font-size: 0.9rem; }
-        }
-        
-        /* Desktop Enhancements */
-        @media (min-width: 1025px) {
-            .chart-container { height: 400px; }
-            .group-grid { grid-template-columns: repeat(4, 1fr); }
-            .slider-item:hover { 
-                transform: translateY(-2px); 
-                box-shadow: 0 6px 20px rgba(0,0,0,0.1); 
-            }
-            .slider-btn-mobile:hover { 
-                transform: translateY(-1px) scale(1.02); 
-            }
-        }
-
-        /* Mobile Optimizations - LEGACY SUPPORT */
-        @media (max-width: 768px) {
             
+            /* Enhanced mobile heat map table */
             .heatmap-table {
                 font-size: 0.75rem;
             }
             
             .heatmap-table th,
             .heatmap-table td {
-                padding: 0.4rem 0.25rem;
+                padding: 0.75rem 0.5rem;  /* Increased touch area */
+                min-height: 48px;  /* Touch-friendly height */
             }
             
             .heatmap-table td:first-child,
             .heatmap-table th:first-child {
-                min-width: 60px;
-                font-size: 0.7rem;
+                min-width: 100px;  /* More space for group names */
+                font-size: 0.8rem;
+                position: sticky;
+                left: 0;
+                background: white;
+                z-index: 10;
+                font-weight: 600;
+            }
+            
+            /* Enhanced touch-friendly buttons */
+            .filter-btn {
+                min-height: 48px;
+                min-width: 48px;
+                padding: 0.75rem;
+                font-size: 0.875rem;
+            }
+            
+            .slider-btn-mobile {
+                min-height: 52px;  /* Extra large for mobile */
+                padding: 1rem 1.5rem;
+            }
+            
+            .slider-item {
+                min-height: 70px;  /* Larger touch area */
+                min-width: 160px;
+                font-size: 0.9rem;
             }
             
             .group-card-metrics {
@@ -1349,33 +1005,22 @@
             }
             
             .group-card-header {
-                padding: 0.5rem;
+                padding: 1rem;  /* More padding for touch */
+                min-height: 60px;
             }
             
             .group-card-content {
-                padding: 0.5rem;
+                padding: 1rem;
             }
-
-            .slider-track {
-                gap: 0.5rem;
-                padding: 0.5rem;
+            
+            /* Better scroll behavior on mobile */
+            .slider-container-mobile {
+                scroll-behavior: smooth;
+                scroll-snap-type: x mandatory;
             }
             
             .slider-item {
-                min-width: 120px;
-                padding: 0.75rem;
-            }
-            
-            .slider-controls-mobile {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .legend-text {
-                font-size: 0.6rem;
-            }
-            
-            .legend-icon {
-                font-size: 1rem;
+                scroll-snap-align: start;
             }
         }
     </style>
@@ -1383,35 +1028,91 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>Análisis Histórico de Performance</h1>
-        <div class="subtitle">El Pollo Loco - Sistema de Supervisión Operativa</div>
+        <h1>📊 Análisis Histórico</h1>
+        <div class="subtitle">El Pollo Loco - Supervisión Operativa</div>
         <div class="last-update">
-            <i class="fas fa-clock"></i>
-            Actualizado: <span id="lastUpdate">--</span>
+            <i class="fas fa-sync-alt"></i>
+            Última actualización: <span id="lastUpdate">--</span>
         </div>
     </div>
     
     <!-- Tab Navigation -->
     <div class="tab-container" id="tabContainer">
         <div class="tab active" data-tab="heatmap">
-            <i class="fas fa-fire"></i>
-            <span>Heat Map</span>
+            <i class="fas fa-th"></i>
+            <span>Mapa</span>
         </div>
         <div class="tab" data-tab="smart">
-            <i class="fas fa-chart-bar"></i>
-            <span>Análisis Histórico</span>
+            <i class="fas fa-brain"></i>
+            <span>Inteligente</span>
+        </div>
+        <div class="tab" data-tab="trends">
+            <i class="fas fa-chart-line"></i>
+            <span>Tendencias</span>
+        </div>
+        <div class="tab" data-tab="alerts">
+            <i class="fas fa-bell"></i>
+            <span>Alertas</span>
         </div>
     </div>
     
     <!-- Content Area -->
     <div class="content">
+        <!-- Tab 4: Alerts & Insights -->
+        <div class="tab-content" id="alerts">
+            <h2 class="mb-1">🎯 Alertas & Insights</h2>
+            
+            <!-- Critical Alerts -->
+            <div class="card alert-card">
+                <div class="alert-icon critical">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="alert-content">
+                    <h3>3 Grupos Críticos</h3>
+                    <p>SALTILLO (63.97%), NUEVO LAREDO (74.56%) requieren atención inmediata</p>
+                </div>
+            </div>
+            
+            <!-- Warning Alerts -->
+            <div class="card alert-card">
+                <div class="alert-icon warning">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <div class="alert-content">
+                    <h3>5 Grupos en Riesgo</h3>
+                    <p>Performance por debajo del 85% - tendencia negativa</p>
+                </div>
+            </div>
+            
+            <!-- Success Alert -->
+            <div class="card alert-card">
+                <div class="alert-icon success">
+                    <i class="fas fa-trophy"></i>
+                </div>
+                <div class="alert-content">
+                    <h3>Top Performers</h3>
+                    <p>OGAS (99.72%), TEC (94.66%) liderando la red</p>
+                </div>
+            </div>
+            
+            <!-- Quick Stats -->
+            <div class="card">
+                <h3 class="mb-1">📊 Resumen Ejecutivo</h3>
+                <div class="chart-container">
+                    <canvas id="summaryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        
         <!-- Tab 2: Smart Analysis -->
         <div class="tab-content" id="smart">
-            <h2 class="mb-1">Análisis Histórico Comparativo</h2>
+            <h2 class="mb-1">🧠 Análisis Inteligente</h2>
             
-            <!-- Group Selector - ONLY SLIDER -->
+            <!-- Group Selector Options -->
             <div class="card" style="padding: 0.75rem; margin-bottom: 0.75rem;">
-                <h3 style="font-size: 0.875rem; margin-bottom: 0.5rem;">Selecciona los grupos a comparar:</h3>
+                <h3 style="font-size: 0.875rem; margin-bottom: 0.5rem;">Selecciona hasta 5 grupos:</h3>
+                
+                <!-- Selector Style Options - Removed for cleaner mobile UI -->
                 
                 <!-- Mobile-Optimized Horizontal Slider (Principal) -->
                 <div id="selector-slider" class="selector-slider">
@@ -1420,77 +1121,20 @@
                             <!-- Will be populated dynamically -->
                         </div>
                     </div>
-                    <!-- Controles de Selección Rápida -->
-                    <div class="selection-controls-section">
-                        <h4 class="controls-title">Selección Rápida:</h4>
-                        <div class="slider-controls-mobile">
-                            <div class="control-group">
-                                <button class="slider-btn-mobile btn-primary" onclick="app.selectTop5()" title="Seleccionar los 5 mejores grupos">
-                                    <i class="fas fa-trophy"></i>
-                                </button>
-                                <span class="control-label">Top 5</span>
-                            </div>
-                            <div class="control-group">
-                                <button class="slider-btn-mobile btn-secondary" onclick="app.selectBottom5()" title="Seleccionar los 5 grupos con menor desempeño">
-                                    <i class="fas fa-chart-line-down"></i>
-                                </button>
-                                <span class="control-label">Bottom 5</span>
-                            </div>
-                            <div class="control-group">
-                                <button class="slider-btn-mobile btn-success" onclick="app.selectAll()" title="Seleccionar todos los grupos">
-                                    <i class="fas fa-check-circle"></i>
-                                </button>
-                                <span class="control-label">Todos</span>
-                            </div>
-                            <div class="control-group">
-                                <button class="slider-btn-mobile btn-outline" onclick="app.clearGroupSelection()" title="Limpiar selección">
-                                    <i class="fas fa-ban"></i>
-                                </button>
-                                <span class="control-label">Limpiar</span>
-                            </div>
-                        </div>
+                    <div class="slider-controls-mobile">
+                        <button class="slider-btn-mobile" onclick="app.selectTop5()">📊 Top 5</button>
+                        <button class="slider-btn-mobile" onclick="app.clearGroupSelection()">🗑️ Limpiar</button>
                     </div>
                 </div>
                 
                 <div class="selector-info">
-                    <span id="selectorInfo">Seleccionados: 3 grupos</span>
-                </div>
-                
-                <!-- Instrucciones Elegantes del Slider -->
-                <div class="slider-guide">
-                    <div class="guide-step">
-                        <div class="step-number">1</div>
-                        <div class="step-content">
-                            <i class="fas fa-arrows-alt-h"></i>
-                            <span>Desliza</span>
-                        </div>
-                    </div>
-                    <div class="guide-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                    <div class="guide-step">
-                        <div class="step-number">2</div>
-                        <div class="step-content">
-                            <i class="fas fa-circle-dot"></i>
-                            <span>Selecciona</span>
-                        </div>
-                    </div>
-                    <div class="guide-arrow">
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                    <div class="guide-step">
-                        <div class="step-number">3</div>
-                        <div class="step-content">
-                            <i class="fas fa-chart-simple"></i>
-                            <span>Compara</span>
-                        </div>
-                    </div>
+                    <span id="selectorInfo">Seleccionados: 3/5 grupos</span>
                 </div>
             </div>
             
             <!-- Comparison Chart -->
             <div class="card">
-                <h3 class="mb-1">Comparación vs EPL CAS</h3>
+                <h3 class="mb-1">📊 Comparación vs EPL CAS</h3>
                 <div class="chart-container">
                     <canvas id="comparisonChart"></canvas>
                 </div>
@@ -1503,7 +1147,7 @@
             
             <!-- Insights -->
             <div class="card">
-                <h3 class="mb-1">Análisis de Insights</h3>
+                <h3 class="mb-1">💡 Insights Automáticos</h3>
                 <div id="smartInsights">
                     <!-- Will be populated dynamically -->
                 </div>
@@ -1512,7 +1156,7 @@
         
         <!-- Tab 1: Heat Map -->
         <div class="tab-content active" id="heatmap">
-            <h2 class="mb-1">Mapa de Calor - Evolución de Performance</h2>
+            <h2 class="mb-1">🗺️ Mapa de Calor - Evolución</h2>
             
             <!-- Color Legend -->
             <div class="card" style="padding: 0.5rem; margin-bottom: 0.75rem;">
@@ -1589,8 +1233,59 @@
                 </table>
             </div>
             
+            <!-- Legend -->
+            <div class="card">
+                <h3 class="mb-1">Leyenda</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; font-size: 0.875rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #00b894; border-radius: 4px;"></div>
+                        <span>≥95% Excelente</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #74b9ff; border-radius: 4px;"></div>
+                        <span>85-94% Bueno</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #fdcb6e; border-radius: 4px;"></div>
+                        <span>75-84% Regular</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <div style="width: 20px; height: 20px; background: #d63031; border-radius: 4px;"></div>
+                        <span><75% Crítico</span>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dfe6e9;">
+                    <h4 style="font-size: 0.875rem; margin-bottom: 0.5rem;">📊 Indicadores de Cambio</h4>
+                    <div style="font-size: 0.75rem; color: #636e72;">
+                        <span style="color: #00b894;">↗️ Mejora</span> • 
+                        <span style="color: #d63031;">↘️ Caída</span> • 
+                        <span>— Sin datos</span>
+                    </div>
+                </div>
+            </div>
         </div>
         
+        <!-- Tab 4: Trends -->
+        <div class="tab-content" id="trends">
+            <h2 class="mb-1">📈 Evolución & Tendencias</h2>
+            
+            <!-- Evolution Chart -->
+            <div class="card">
+                <h3 class="mb-1">Evolución Temporal</h3>
+                <div class="chart-container">
+                    <canvas id="evolutionChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Trend Analysis -->
+            <div class="card">
+                <h3 class="mb-1">🔮 Análisis de Tendencias</h3>
+                <div id="trendAnalysis">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
     </div>
     
     <!-- Pull to Refresh Indicator -->
@@ -1607,9 +1302,11 @@
         // Initialize app
         const app = {
             currentTab: 0,
-            tabs: ['heatmap', 'smart'],
+            tabs: ['heatmap', 'smart', 'trends', 'alerts'],
             charts: {},
             selectedGroups: new Set(['OGAS', 'TEPEYAC', 'RAP']),
+            selectorStyle: 'tiktok',
+            tiktokIndex: 0,
             sliderOffset: 0,
             groupsList: [],
             touchStartX: 0,
@@ -1756,75 +1453,160 @@
         };
         
         // =====================================================
-        // SLIDER SELECTOR FUNCTIONS - OPTIMIZED FOR MOBILE
+        // SELECTOR FUNCTIONS
         // =====================================================
         
+        app.changeSelectorStyle = function(style) {
+            // Update active button
+            document.querySelectorAll('.selector-option-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            // Hide all selectors
+            document.getElementById('selector-tiktok').style.display = 'none';
+            document.getElementById('selector-cards').style.display = 'none';
+            document.getElementById('selector-slider').style.display = 'none';
+            document.getElementById('selector-original').style.display = 'none';
+            
+            // Show selected selector
+            document.getElementById('selector-' + style).style.display = 'block';
+            this.selectorStyle = style;
+            
+            // Initialize the selector
+            this.initSelector(style);
+        };
+        
+        app.initSelector = function(style) {
+            switch(style) {
+                case 'tiktok':
+                    this.initTikTokSelector();
+                    break;
+                case 'cards':
+                    this.initCardsSelector();
+                    break;
+                case 'slider':
+                    this.initSliderSelector();
+                    break;
+                case 'original':
+                    this.initOriginalSelector();
+                    break;
+            }
+            this.updateSelectorInfo();
+        };
+        
+        // TIKTOK SELECTOR
+        app.initTikTokSelector = function() {
+            this.updateTikTokCard();
+        };
+        
+        app.updateTikTokCard = function() {
+            const group = this.groupsList[this.tiktokIndex];
+            const card = document.getElementById('tiktokCard');
+            const status = document.getElementById('tiktokStatus');
+            const isSelected = this.selectedGroups.has(group.nombre);
+            
+            card.innerHTML = `
+                <div style="font-size: 1rem; font-weight: 600;">${group.nombre}</div>
+                <div style="font-size: 0.75rem; opacity: 0.8;">${group.promedio.toFixed(1)}%</div>
+                <div style="font-size: 0.7rem; margin-top: 0.5rem;">
+                    <span>${isSelected ? '✅ Seleccionado' : '❌ Tap to select'}</span>
+                </div>
+            `;
+            
+            card.onclick = () => this.toggleTikTokGroup();
+        };
+        
+        app.toggleTikTokGroup = function() {
+            const group = this.groupsList[this.tiktokIndex];
+            if (this.selectedGroups.has(group.nombre)) {
+                this.selectedGroups.delete(group.nombre);
+            } else if (this.selectedGroups.size < 5) {
+                this.selectedGroups.add(group.nombre);
+            } else {
+                alert('Máximo 5 grupos permitidos');
+                return;
+            }
+            this.updateTikTokCard();
+            this.updateSelectorInfo();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        app.tiktokPrev = function() {
+            this.tiktokIndex = (this.tiktokIndex - 1 + this.groupsList.length) % this.groupsList.length;
+            this.updateTikTokCard();
+        };
+        
+        app.tiktokNext = function() {
+            this.tiktokIndex = (this.tiktokIndex + 1) % this.groupsList.length;
+            this.updateTikTokCard();
+        };
+        
+        // CARDS SELECTOR
+        app.initCardsSelector = function() {
+            const container = document.getElementById('selector-cards');
+            container.innerHTML = '';
+            
+            this.groupsList.forEach(group => {
+                const isSelected = this.selectedGroups.has(group.nombre);
+                const card = document.createElement('div');
+                card.className = `mini-card ${isSelected ? 'selected' : ''}`;
+                card.innerHTML = `
+                    <div class="mini-card-name">${group.nombre}</div>
+                    <div class="mini-card-check">✓</div>
+                `;
+                
+                card.onclick = () => this.toggleCardGroup(group.nombre, card);
+                container.appendChild(card);
+            });
+        };
+        
+        app.toggleCardGroup = function(groupName, cardElement) {
+            if (this.selectedGroups.has(groupName)) {
+                this.selectedGroups.delete(groupName);
+                cardElement.classList.remove('selected');
+            } else if (this.selectedGroups.size < 5) {
+                this.selectedGroups.add(groupName);
+                cardElement.classList.add('selected');
+            } else {
+                alert('Máximo 5 grupos permitidos');
+                return;
+            }
+            this.updateSelectorInfo();
+            this.updateComparisonChart();
+            this.renderGroupCards();
+            this.renderSmartInsights();
+        };
+        
+        // SLIDER SELECTOR
         app.initSliderSelector = function() {
             const track = document.getElementById('sliderTrack');
-            if (!track) return;
-            
             track.innerHTML = '';
             
-            this.groupsList.forEach((group, index) => {
+            this.groupsList.forEach(group => {
                 const isSelected = this.selectedGroups.has(group.nombre);
                 const item = document.createElement('div');
-                
-                // Assign EPL Pantone tier colors based on performance ranking
-                let tierClass = 'group-tier-4'; // Default purple (lowest)
-                const performance = group.promedio;
-                const totalGroups = this.groupsList.length;
-                const position = index + 1;
-                
-                // Top 25% - EPL Red (Premium)
-                if (position <= totalGroups * 0.25) {
-                    tierClass = 'group-tier-1';
-                }
-                // Next 25% - EPL Orange (High)
-                else if (position <= totalGroups * 0.5) {
-                    tierClass = 'group-tier-2';
-                }
-                // Next 25% - EPL Yellow (Medium)
-                else if (position <= totalGroups * 0.75) {
-                    tierClass = 'group-tier-3';
-                }
-                // Bottom 25% - EPL Purple (Attention needed)
-                
-                item.className = `slider-item ${tierClass} ${isSelected ? 'selected' : ''}`;
-                
-                // Add performance progress as CSS custom property
-                const progressPercent = Math.min(Math.max(performance, 0), 100);
-                item.style.setProperty('--progress', progressPercent);
-                
-                // Shorter group names for better fit in circles
-                let displayName = group.nombre;
-                if (displayName.length > 8) {
-                    displayName = displayName.replace('GRUPO ', 'G.')
-                                             .replace('PLOG ', 'P.')
-                                             .replace('OCHTER ', 'O.');
-                    if (displayName.length > 8) {
-                        displayName = displayName.substring(0, 6) + '.';
-                    }
-                }
-                
+                item.className = `slider-item ${isSelected ? 'selected' : ''}`;
                 item.innerHTML = `
-                    <div class="slider-item-name">${displayName}</div>
-                    <div class="slider-item-score">${group.promedio.toFixed(1)}%</div>
+                    <div style="font-weight: 600; font-size: 0.8rem;">${group.nombre}</div>
+                    <div style="font-size: 0.7rem; margin-top: 0.25rem;">${group.promedio.toFixed(1)}%</div>
                 `;
                 
                 item.onclick = () => this.toggleSliderGroup(group.nombre, item);
                 track.appendChild(item);
             });
-            
-            this.updateSelectorInfo();
         };
         
         app.toggleSliderGroup = function(groupName, itemElement) {
             if (this.selectedGroups.has(groupName)) {
                 this.selectedGroups.delete(groupName);
                 itemElement.classList.remove('selected');
-            } else {
+            } else if (this.selectedGroups.size < 5) {
                 this.selectedGroups.add(groupName);
                 itemElement.classList.add('selected');
+            } else {
+                alert('Máximo 5 grupos permitidos');
+                return;
             }
             this.updateSelectorInfo();
             this.updateComparisonChart();
@@ -1832,69 +1614,69 @@
             this.renderSmartInsights();
         };
         
-        app.selectTop5 = function() {
-            // Clear current selection
-            this.selectedGroups.clear();
-            
-            // Select top 5 groups
-            const top5 = this.groupsList.slice(0, 5);
-            top5.forEach(group => {
-                this.selectedGroups.add(group.nombre);
-            });
-            
-            // Update UI
-            this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+        app.sliderPrev = function() {
+            const track = document.getElementById('sliderTrack');
+            this.sliderOffset = Math.max(0, this.sliderOffset - 120);
+            track.style.transform = `translateX(-${this.sliderOffset}px)`;
         };
         
-        app.selectBottom5 = function() {
-            // Clear current selection
-            this.selectedGroups.clear();
-            
-            // Select bottom 5 groups (lowest scores)
-            const bottom5 = this.groupsList.slice(-5);
-            bottom5.forEach(group => {
-                this.selectedGroups.add(group.nombre);
-            });
-            
-            // Update UI
-            this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+        app.sliderNext = function() {
+            const track = document.getElementById('sliderTrack');
+            const maxOffset = Math.max(0, (this.groupsList.length * 130) - 300);
+            this.sliderOffset = Math.min(maxOffset, this.sliderOffset + 120);
+            track.style.transform = `translateX(-${this.sliderOffset}px)`;
         };
         
-        app.selectAll = function() {
-            // Clear current selection
-            this.selectedGroups.clear();
-            
-            // Select all groups
-            this.groupsList.forEach(group => {
-                this.selectedGroups.add(group.nombre);
-            });
-            
-            // Update UI
-            this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
-        };
-        
-        app.clearGroupSelection = function() {
-            this.selectedGroups.clear();
-            this.initSliderSelector();
-            this.updateComparisonChart();
-            this.renderGroupCards();
-            this.renderSmartInsights();
+        // ORIGINAL SELECTOR
+        app.initOriginalSelector = function() {
+            const container = document.getElementById('selector-original');
+            if (container.children.length === 0) {
+                this.groupsList.forEach(group => {
+                    const div = document.createElement('div');
+                    div.className = 'group-checkbox';
+                    if (this.selectedGroups.has(group.nombre)) {
+                        div.classList.add('selected');
+                    }
+                    
+                    div.innerHTML = `
+                        <input type="checkbox" id="group_${group.nombre}" 
+                               ${this.selectedGroups.has(group.nombre) ? 'checked' : ''}>
+                        <label for="group_${group.nombre}">${group.nombre}</label>
+                    `;
+                    
+                    div.addEventListener('click', (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            const checkbox = div.querySelector('input');
+                            checkbox.checked = !checkbox.checked;
+                        }
+                        
+                        const checkbox = div.querySelector('input');
+                        if (checkbox.checked && this.selectedGroups.size < 5) {
+                            this.selectedGroups.add(group.nombre);
+                            div.classList.add('selected');
+                        } else if (!checkbox.checked) {
+                            this.selectedGroups.delete(group.nombre);
+                            div.classList.remove('selected');
+                        } else {
+                            checkbox.checked = false;
+                            alert('Máximo 5 grupos permitidos');
+                            return;
+                        }
+                        
+                        this.updateSelectorInfo();
+                        this.updateComparisonChart();
+                        this.renderGroupCards();
+                        this.renderSmartInsights();
+                    });
+                    
+                    container.appendChild(div);
+                });
+            }
         };
         
         app.updateSelectorInfo = function() {
             const info = document.getElementById('selectorInfo');
-            if (info) {
-                info.textContent = `Seleccionados: ${this.selectedGroups.size} grupos`;
-            }
+            info.textContent = `Seleccionados: ${this.selectedGroups.size}/5 grupos`;
         };
         
         // Initialize groups list
@@ -1910,9 +1692,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             app.initGroupsList();
             app.init();
-            
-            // Load real data from Neon PostgreSQL
-            app.loadRealData();
         });
         
         app.init = function() {
@@ -1971,238 +1750,45 @@
         app.setupTouch = function() {
             const content = document.querySelector('.content');
             
-            // Advanced touch gesture variables
-            this.touchState = {
-                startX: 0, startY: 0, endX: 0, endY: 0,
-                startTime: 0, endTime: 0,
-                isMoving: false, velocity: 0,
-                direction: null, distance: 0
-            };
-            
-            // Enhanced touch start
+            // Swipe detection
             content.addEventListener('touchstart', (e) => {
-                const touch = e.touches[0];
-                this.touchState.startX = touch.clientX;
-                this.touchState.startY = touch.clientY;
-                this.touchState.startTime = Date.now();
-                this.touchState.isMoving = false;
-                
-                // Legacy support
-                this.touchStartX = touch.clientX;
-                this.touchStartY = touch.clientY;
-                this.pullStartY = window.scrollY === 0 ? touch.clientY : 0;
-                
-                // Add touch feedback
-                if (e.target.classList.contains('slider-item') || 
-                    e.target.classList.contains('slider-btn-mobile')) {
-                    e.target.style.transform = 'scale(0.95)';
-                }
-            }, { passive: true });
+                this.touchStartX = e.touches[0].clientX;
+                this.touchStartY = e.touches[0].clientY;
+                this.pullStartY = window.scrollY === 0 ? e.touches[0].clientY : 0;
+            });
             
-            // Enhanced touch move with momentum tracking
             content.addEventListener('touchmove', (e) => {
-                const touch = e.touches[0];
-                this.touchState.isMoving = true;
-                
-                // Calculate real-time velocity
-                const deltaX = touch.clientX - this.touchState.startX;
-                const deltaY = touch.clientY - this.touchState.startY;
-                const deltaTime = Date.now() - this.touchState.startTime;
-                this.touchState.velocity = Math.abs(deltaX) / deltaTime;
-                this.touchState.distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-                
-                // Pull to refresh enhanced
-                if (this.pullStartY && touch.clientY > this.pullStartY + 50) {
+                if (this.pullStartY && e.touches[0].clientY > this.pullStartY + 50) {
                     this.isPulling = true;
-                    const pullDistance = touch.clientY - this.pullStartY;
-                    const pullProgress = Math.min(pullDistance / 100, 1);
-                    
-                    const refreshElement = document.getElementById('pullToRefresh');
-                    if (refreshElement) {
-                        refreshElement.classList.add('active');
-                        refreshElement.style.transform = `translateY(${pullDistance * 0.5}px) rotate(${pullProgress * 360}deg)`;
-                    }
+                    document.getElementById('pullToRefresh').classList.add('active');
                 }
-                
-                // Horizontal slider momentum (if in slider area)
-                const sliderTrack = e.target.closest('.slider-track');
-                if (sliderTrack && Math.abs(deltaX) > Math.abs(deltaY)) {
-                    e.preventDefault(); // Prevent vertical scroll
-                }
-            }, { passive: false });
+            });
             
-            // Enhanced touch end with gesture recognition
             content.addEventListener('touchend', (e) => {
-                const touch = e.changedTouches[0];
-                this.touchState.endX = touch.clientX;
-                this.touchState.endY = touch.clientY;
-                this.touchState.endTime = Date.now();
-                
-                const diffX = this.touchState.startX - this.touchState.endX;
-                const diffY = this.touchState.startY - this.touchState.endY;
-                const absDiffX = Math.abs(diffX);
-                const absDiffY = Math.abs(diffY);
-                const duration = this.touchState.endTime - this.touchState.startTime;
-                const velocity = this.touchState.velocity;
-                
-                // Remove touch feedback
-                if (e.target.classList.contains('slider-item') || 
-                    e.target.classList.contains('slider-btn-mobile')) {
-                    e.target.style.transform = '';
-                }
+                const touchEndX = e.changedTouches[0].clientX;
+                const touchEndY = e.changedTouches[0].clientY;
+                const diffX = this.touchStartX - touchEndX;
+                const diffY = Math.abs(this.touchStartY - touchEndY);
                 
                 // Pull to refresh
                 if (this.isPulling) {
                     this.refresh();
-                    const refreshElement = document.getElementById('pullToRefresh');
-                    if (refreshElement) {
-                        refreshElement.classList.remove('active');
-                        refreshElement.style.transform = '';
-                    }
+                    document.getElementById('pullToRefresh').classList.remove('active');
                     this.isPulling = false;
                     return;
                 }
                 
-                // Enhanced swipe detection with velocity consideration
-                const minSwipeDistance = 30;
-                const minSwipeVelocity = 0.3;
-                const maxVerticalThreshold = 80;
-                
-                if ((absDiffX > minSwipeDistance && velocity > minSwipeVelocity && absDiffY < maxVerticalThreshold) ||
-                    (absDiffX > 80 && absDiffY < maxVerticalThreshold)) {
-                    
-                    // Determine swipe direction and strength
-                    this.touchState.direction = diffX > 0 ? 'left' : 'right';
-                    const swipeStrength = Math.min(velocity * absDiffX / 100, 2);
-                    
-                    // Tab navigation with momentum
-                    if (this.touchState.direction === 'left' && this.currentTab < this.tabs.length - 1) {
+                // Swipe detection
+                if (Math.abs(diffX) > 50 && diffY < 100) {
+                    if (diffX > 0 && this.currentTab < this.tabs.length - 1) {
+                        // Swipe left - next tab
                         this.switchTab(this.currentTab + 1);
-                        this.addSwipeEffect('left', swipeStrength);
-                    } else if (this.touchState.direction === 'right' && this.currentTab > 0) {
+                    } else if (diffX < 0 && this.currentTab > 0) {
+                        // Swipe right - previous tab
                         this.switchTab(this.currentTab - 1);
-                        this.addSwipeEffect('right', swipeStrength);
                     }
                 }
-                
-                // Double tap detection for quick actions
-                if (!this.touchState.isMoving && duration < 300 && this.touchState.distance < 10) {
-                    if (this.lastTapTime && Date.now() - this.lastTapTime < 300) {
-                        this.handleDoubleTap(e);
-                    }
-                    this.lastTapTime = Date.now();
-                }
-                
-                // Reset touch state
-                this.touchState = {
-                    startX: 0, startY: 0, endX: 0, endY: 0,
-                    startTime: 0, endTime: 0,
-                    isMoving: false, velocity: 0,
-                    direction: null, distance: 0
-                };
-            }, { passive: true });
-            
-            // Setup slider-specific gestures
-            this.setupSliderGestures();
-        };
-        
-        // Add swipe visual effect
-        app.addSwipeEffect = function(direction, strength) {
-            const content = document.querySelector('.tab-content.active');
-            if (!content) return;
-            
-            const translateX = direction === 'left' ? -20 : 20;
-            content.style.transition = 'transform 0.15s cubic-bezier(0.4, 0, 0.2, 1)';
-            content.style.transform = `translateX(${translateX * strength}px)`;
-            
-            setTimeout(() => {
-                content.style.transform = '';
-                setTimeout(() => content.style.transition = '', 150);
-            }, 150);
-        };
-        
-        // Double tap handler
-        app.handleDoubleTap = function(e) {
-            // Double tap on chart to fit data
-            if (e.target.closest('.chart-container')) {
-                this.fitChartData();
-                return;
-            }
-            
-            // Double tap on slider to select all visible
-            if (e.target.closest('.selector-slider')) {
-                this.selectVisibleGroups();
-                return;
-            }
-            
-            // Double tap on tab to refresh that section
-            if (e.target.closest('.tab-content')) {
-                this.refresh();
-            }
-        };
-        
-        // Enhanced slider gestures
-        app.setupSliderGestures = function() {
-            const sliders = document.querySelectorAll('.slider-container-mobile');
-            
-            sliders.forEach(slider => {
-                let isScrolling = false;
-                let scrollMomentum = 0;
-                
-                slider.addEventListener('scroll', (e) => {
-                    isScrolling = true;
-                    clearTimeout(this.scrollTimeout);
-                    
-                    // Add scroll momentum effect
-                    const scrollLeft = slider.scrollLeft;
-                    const maxScroll = slider.scrollWidth - slider.clientWidth;
-                    
-                    if (scrollLeft <= 5 || scrollLeft >= maxScroll - 5) {
-                        slider.style.boxShadow = '0 0 10px rgba(255, 107, 53, 0.3)';
-                        setTimeout(() => slider.style.boxShadow = '', 200);
-                    }
-                    
-                    this.scrollTimeout = setTimeout(() => {
-                        isScrolling = false;
-                    }, 150);
-                }, { passive: true });
             });
-        };
-        
-        // Utility functions for advanced gestures
-        app.fitChartData = function() {
-            // Reset chart zoom/pan if implemented
-            console.log('Chart fit to data triggered');
-        };
-        
-        app.selectVisibleGroups = function() {
-            // Select currently visible groups in slider
-            const visibleGroups = this.getVisibleSliderGroups();
-            visibleGroups.forEach(group => {
-                this.selectedGroups.add(group);
-            });
-            this.renderGroupSelector();
-            this.updateCharts();
-        };
-        
-        app.getVisibleSliderGroups = function() {
-            const slider = document.querySelector('.slider-container-mobile');
-            if (!slider) return [];
-            
-            const items = slider.querySelectorAll('.slider-item');
-            const visibleGroups = [];
-            
-            items.forEach(item => {
-                const rect = item.getBoundingClientRect();
-                const sliderRect = slider.getBoundingClientRect();
-                
-                if (rect.left >= sliderRect.left && rect.right <= sliderRect.right) {
-                    const groupName = item.textContent.trim().split('\n')[0];
-                    visibleGroups.push(groupName);
-                }
-            });
-            
-            return visibleGroups;
         };
         
         app.updateLastUpdate = function() {
@@ -2275,8 +1861,8 @@
         };
         
         app.renderSmartAnalysis = function() {
-            // Initialize slider selector
-            this.initSliderSelector();
+            // Initialize current selector
+            this.initSelector(this.selectorStyle);
             this.updateComparisonChart();
             this.renderGroupCards();
             this.renderSmartInsights();
@@ -2319,8 +1905,7 @@
                 pointBackgroundColor: '#FF6B35',
                 pointBorderColor: '#FF6B35',
                 pointRadius: 4,
-                fill: false,
-                spanGaps: true  // Connect line even with null values
+                fill: false
             });
             
             // Add selected groups
@@ -2334,8 +1919,7 @@
                     tension: 0.3,
                     pointBackgroundColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
                     pointBorderColor: `hsl(${index * 60 + 30}, 70%, 50%)`,
-                    pointRadius: 3,
-                    spanGaps: true  // Connect line even with null values
+                    pointRadius: 3
                 });
             });
             
@@ -2733,8 +2317,7 @@
                         data: [88.5, 86.2, 87.8, 88.6, 89.1],
                         borderColor: '#ff6b35',
                         borderWidth: 3,
-                        fill: false,
-                        spanGaps: true
+                        fill: false
                     }, {
                         label: 'Grupos Evaluados',
                         data: [10, 12, 15, 13, 11],
@@ -2757,343 +2340,33 @@
             if (analysis) {
                 analysis.innerHTML = `
                     <div style="font-size: 0.875rem; line-height: 1.5;">
-                        <p><strong>Tendencia General:</strong> Mejora de +0.6% en los últimos 3 períodos</p>
-                        <p><strong>Proyección:</strong> Se espera alcanzar 90% en el próximo período</p>
-                        <p><strong>Atención:</strong> 3 grupos requieren intervención inmediata</p>
+                        <p><strong>📈 Tendencia General:</strong> Mejora de +0.6% en los últimos 3 períodos</p>
+                        <p><strong>🎯 Proyección:</strong> Se espera alcanzar 90% en el próximo período</p>
+                        <p><strong>⚠️ Atención:</strong> 3 grupos requieren intervención inmediata</p>
                     </div>
                 `;
             }
         };
         
         app.calculateTrends = function() {
-            // Real trend calculation based on historical data
-            if (!this.historicalData || !this.historicalData.datasets) {
-                return { improving: 0, declining: 0, stable: 0 };
-            }
-            
-            let improving = 0, declining = 0, stable = 0;
-            
-            this.historicalData.datasets.forEach(dataset => {
-                const data = dataset.data.filter(d => d !== null);
-                if (data.length < 2) return;
-                
-                const recent = data.slice(-3); // Last 3 data points
-                const trend = recent[recent.length - 1] - recent[0];
-                
-                if (trend > 2) improving++;
-                else if (trend < -2) declining++;
-                else stable++;
-            });
-            
-            return { improving, declining, stable };
+            // Placeholder for trend calculation
+            return {
+                improving: 12,
+                declining: 5,
+                stable: 3
+            };
         };
         
-        // REAL API INTEGRATION - Connected to Neon PostgreSQL
+        // TODO: Add real API integration
         app.loadRealData = async function() {
             try {
-                console.log('🔄 Loading real data from Neon PostgreSQL...');
-                
-                // Load operational groups for slider
-                const groupsResponse = await fetch('/api/operational-groups');
-                const groupsData = await groupsResponse.json();
-                
-                if (groupsData.success) {
-                    this.operationalGroups = groupsData.data;
-                    this.renderGroupSlider();
-                    console.log('✅ Loaded', groupsData.data.length, 'operational groups');
-                    
-                    // Update last update time
-                    document.querySelector('.last-update').textContent = 
-                        `Última actualización: ${new Date().toLocaleString('es-MX')}`;
-                } else {
-                    throw new Error('Failed to load groups: ' + groupsData.error);
-                }
-                
-                // Load initial data for all groups
-                await this.loadGroupData('all');
-                
-            } catch (error) {
-                console.error('❌ Error loading real data:', error);
-                this.showErrorMessage('No se pudieron cargar los datos. Verificando conexión...');
-                // Fallback to static data
+                const response = await fetch('/api/historico/data');
+                const data = await response.json();
+                this.data = data;
                 this.renderAllTabs();
-            }
-        };
-        
-        // Load specific group data
-        app.loadGroupData = async function(groupId) {
-            try {
-                this.currentGroupId = groupId;
-                
-                // Show loading state
-                this.showLoadingState();
-                
-                // Load historical performance data
-                const performanceResponse = await fetch(`/api/historical-performance/${groupId}?dateRange=3months`);
-                const performanceData = await performanceResponse.json();
-                
-                if (performanceData.success) {
-                    this.historicalData = performanceData.data;
-                    this.updateHistoricalChart();
-                    console.log('✅ Historical data loaded for group:', groupId);
-                } else {
-                    throw new Error('Performance data error: ' + performanceData.error);
-                }
-                
-                // Load heatmap data
-                const heatmapResponse = await fetch(`/api/heatmap-data/${groupId}`);
-                const heatmapData = await heatmapResponse.json();
-                
-                if (heatmapData.success) {
-                    this.heatmapData = heatmapData.data;
-                    this.updateHeatMap();
-                    console.log('✅ Heatmap data loaded:', heatmapData.data.length, 'locations');
-                } else {
-                    throw new Error('Heatmap data error: ' + heatmapData.error);
-                }
-                
-                // Load performance areas data
-                const areasResponse = await fetch(`/api/performance-areas/${groupId}`);
-                const areasData = await areasResponse.json();
-                
-                if (areasData.success) {
-                    this.performanceAreas = areasData.data;
-                    this.updatePerformanceCards();
-                    console.log('✅ Performance areas loaded:', areasData.data.length, 'areas');
-                } else {
-                    throw new Error('Performance areas error: ' + areasData.error);
-                }
-                
-                // Hide loading state
-                this.hideLoadingState();
-                
             } catch (error) {
-                console.error('❌ Error loading group data:', error);
-                this.showErrorMessage(`Error cargando datos del grupo: ${error.message}`);
-                this.hideLoadingState();
+                console.error('Error loading data:', error);
             }
-        };
-        
-        // Render group slider with real data
-        app.renderGroupSlider = function() {
-            const slider = document.querySelector('.slider-items');
-            if (!slider || !this.operationalGroups) return;
-            
-            slider.innerHTML = '';
-            
-            // Add "All Groups" option
-            const allGroupsItem = document.createElement('div');
-            allGroupsItem.className = 'slider-item active';
-            allGroupsItem.innerHTML = `
-                <div class="group-circle" style="background: linear-gradient(135deg, #FF6B35, #D63031); color: white;">
-                    <span class="group-text">TODOS</span>
-                </div>
-            `;
-            allGroupsItem.addEventListener('click', () => {
-                this.selectGroup('all', allGroupsItem);
-            });
-            slider.appendChild(allGroupsItem);
-            
-            // Add operational groups from database
-            this.operationalGroups.forEach(group => {
-                const item = document.createElement('div');
-                item.className = 'slider-item';
-                item.innerHTML = `
-                    <div class="group-circle" style="background: ${group.color}; color: white;">
-                        <span class="group-text">${this.formatGroupName(group.name)}</span>
-                    </div>
-                `;
-                item.addEventListener('click', () => {
-                    this.selectGroup(group.id, item);
-                });
-                slider.appendChild(item);
-            });
-        };
-        
-        // Format group name for display
-        app.formatGroupName = function(name) {
-            if (name.length <= 8) return name;
-            
-            // Handle specific cases
-            const abbreviations = {
-                'GRUPO CANTERA ROSA (MORELIA)': 'MORELIA',
-                'GRUPO NUEVO LAREDO (RUELAS)': 'RUELAS',
-                'GRUPO SALTILLO': 'SALTILLO',
-                'GRUPO MATAMOROS': 'MATAM.',
-                'OCHTER TAMPICO': 'TAMPICO',
-                'PLOG LAGUNA': 'LAGUNA',
-                'PLOG NUEVO LEON': 'PLOG NL',
-                'PLOG QUERETARO': 'PLOG QRO'
-            };
-            
-            return abbreviations[name] || name.substring(0, 8);
-        };
-        
-        // Group selection handler
-        app.selectGroup = function(groupId, element) {
-            // Update active state
-            document.querySelectorAll('.slider-item').forEach(item => item.classList.remove('active'));
-            element.classList.add('active');
-            
-            // Load data for selected group
-            this.loadGroupData(groupId);
-        };
-        
-        // Update historical chart with real data
-        app.updateHistoricalChart = function() {
-            if (!this.historicalChart || !this.historicalData) return;
-            
-            this.historicalChart.data = this.historicalData;
-            this.historicalChart.update();
-        };
-        
-        // Update heatmap with real data
-        app.updateHeatMap = function() {
-            if (!this.heatmapData || this.heatmapData.length === 0) return;
-            
-            // Update the heatmap table with real data
-            const heatmapBody = document.getElementById('heatmapBody');
-            if (heatmapBody) {
-                heatmapBody.innerHTML = '';
-                
-                // Group data by grupo
-                const groupedData = {};
-                this.heatmapData.forEach(location => {
-                    if (!groupedData[location.grupo]) {
-                        groupedData[location.grupo] = [];
-                    }
-                    groupedData[location.grupo].push(location);
-                });
-                
-                // Create rows for each group
-                Object.entries(groupedData).forEach(([grupo, locations]) => {
-                    const avgPerformance = locations.reduce((sum, loc) => sum + loc.performance, 0) / locations.length;
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${grupo}</td>
-                        <td class="${this.getHeatClass(avgPerformance)}">${avgPerformance.toFixed(2)}%</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="heat-no-data">-</td>
-                        <td class="${this.getHeatClass(avgPerformance)}"><strong>${avgPerformance.toFixed(2)}%</strong></td>
-                    `;
-                    heatmapBody.appendChild(row);
-                });
-            }
-            
-            console.log('🗺️ Heatmap updated with', this.heatmapData.length, 'locations');
-        };
-        
-        // Get heat class based on performance
-        app.getHeatClass = function(performance) {
-            if (performance >= 95) return 'heat-excelente';
-            if (performance >= 91) return 'heat-muy-bueno';
-            if (performance >= 87) return 'heat-bueno';
-            if (performance >= 82) return 'heat-regular';
-            return 'heat-critico';
-        };
-        
-        // Update performance cards with real data
-        app.updatePerformanceCards = function() {
-            if (!this.performanceAreas || this.performanceAreas.length === 0) return;
-            
-            const groupCards = document.getElementById('groupCards');
-            if (groupCards) {
-                groupCards.innerHTML = '';
-                
-                // Create cards for top areas
-                this.performanceAreas.slice(0, 5).forEach(area => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.innerHTML = `
-                        <div class="performance-area-card">
-                            <h4>${area.area}</h4>
-                            <div class="performance-metrics">
-                                <div class="metric">
-                                    <span class="metric-value">${area.promedio}%</span>
-                                    <span class="metric-label">Promedio</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-value">${area.sucursales}</span>
-                                    <span class="metric-label">Sucursales</span>
-                                </div>
-                                <div class="metric">
-                                    <span class="metric-value">${area.evaluaciones}</span>
-                                    <span class="metric-label">Evaluaciones</span>
-                                </div>
-                            </div>
-                            <div class="performance-range">
-                                <span>Rango: ${area.rango.min}% - ${area.rango.max}%</span>
-                            </div>
-                        </div>
-                    `;
-                    groupCards.appendChild(card);
-                });
-            }
-            
-            // Update insights
-            const smartInsights = document.getElementById('smartInsights');
-            if (smartInsights) {
-                const topArea = this.performanceAreas[0];
-                const lowestArea = this.performanceAreas[this.performanceAreas.length - 1];
-                
-                smartInsights.innerHTML = `
-                    <div style="font-size: 0.875rem; line-height: 1.5;">
-                        <p><strong>Mejor área:</strong> ${topArea.area} con ${topArea.promedio}%</p>
-                        <p><strong>Área de oportunidad:</strong> ${lowestArea.area} con ${lowestArea.promedio}%</p>
-                        <p><strong>Diferencia:</strong> ${(topArea.promedio - lowestArea.promedio).toFixed(2)}% entre mejor y peor área</p>
-                    </div>
-                `;
-            }
-        };
-        
-        // Loading state management
-        app.showLoadingState = function() {
-            const charts = document.querySelectorAll('.chart-container');
-            charts.forEach(chart => {
-                chart.style.opacity = '0.5';
-                chart.style.pointerEvents = 'none';
-            });
-        };
-        
-        app.hideLoadingState = function() {
-            const charts = document.querySelectorAll('.chart-container');
-            charts.forEach(chart => {
-                chart.style.opacity = '1';
-                chart.style.pointerEvents = 'auto';
-            });
-        };
-        
-        // Error message display
-        app.showErrorMessage = function(message) {
-            // Create or update error banner
-            let errorBanner = document.querySelector('.error-banner');
-            if (!errorBanner) {
-                errorBanner = document.createElement('div');
-                errorBanner.className = 'error-banner';
-                errorBanner.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    background: #d63031;
-                    color: white;
-                    padding: 10px;
-                    text-align: center;
-                    z-index: 1000;
-                    animation: slideDown 0.3s ease;
-                `;
-                document.body.prepend(errorBanner);
-            }
-            errorBanner.textContent = message;
-            
-            // Auto-hide after 5 seconds
-            setTimeout(() => {
-                if (errorBanner && errorBanner.parentNode) {
-                    errorBanner.remove();
-                }
-            }, 5000);
         };
     </script>
 </body>

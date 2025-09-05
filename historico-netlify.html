@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Demo Histórico Mobile - El Pollo Loco</title>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Reset & Variables */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        :root {
+            --primary: #FF6B35;
+            --secondary: #D63031;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --danger: #d63031;
+            --dark: #2d3436;
+            --light: #dfe6e9;
+            --white: #ffffff;
+            --shadow: 0 2px 10px rgba(0,0,0,0.1);
+            --border-radius: 12px;
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            color: var(--dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--shadow);
+        }
+        
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .header .subtitle {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+        
+        .last-update {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 0.5rem;
+        }
+        
+        /* Tab Navigation */
+        .tab-container {
+            background: white;
+            display: flex;
+            overflow-x: auto;
+            scrollbar-width: none;
+            -webkit-overflow-scrolling: touch;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 60px;
+            z-index: 90;
+        }
+        
+        .tab-container::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .tab {
+            flex: 1;
+            min-width: 100px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+            white-space: nowrap;
+            user-select: none;
+        }
+        
+        .tab:hover {
+            background: #f8f9fa;
+        }
+        
+        .tab.active {
+            background: white;
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .tab i {
+            display: block;
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        /* Content Areas */
+        .content {
+            padding: 1rem;
+            display: none;
+        }
+        
+        .content.active {
+            display: block;
+        }
+        
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        /* Heat Map Table */
+        .heat-table-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            margin: 1rem 0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+        }
+        
+        .heat-table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        .heat-table th,
+        .heat-table td {
+            padding: 0.75rem;
+            text-align: center;
+            border: 1px solid #e1e8ed;
+            font-size: 0.875rem;
+            position: relative;
+        }
+        
+        .heat-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .heat-table .grupo-name {
+            text-align: left;
+            font-weight: 600;
+            min-width: 140px;
+            position: sticky;
+            left: 0;
+            background: #f8f9fa;
+            z-index: 5;
+        }
+        
+        /* EPL CAS Row - Sticky */
+        .epl-cas-row {
+            position: sticky;
+            top: 40px;
+            z-index: 15;
+            background: #fff3cd;
+            border: 2px solid #ffeaa7;
+        }
+        
+        .epl-cas-row .grupo-name {
+            background: #fff3cd;
+            font-weight: bold;
+            color: black;
+        }
+        
+        .epl-cas-row td {
+            background: #fff3cd;
+            font-weight: bold;
+            color: black;
+        }
+        
+        /* Heat Map Colors */
+        .heat-excelente { background: #27ae60; color: white; }
+        .heat-muy-bueno { background: #2ecc71; color: white; }
+        .heat-bueno { background: #f39c12; color: white; }
+        .heat-regular { background: #e67e22; color: white; }
+        .heat-critico { background: #e74c3c; color: white; }
+        
+        /* Trend Indicators */
+        .trend-indicator {
+            display: inline-block;
+            margin-left: 0.25rem;
+            font-size: 0.75rem;
+        }
+        
+        .diff-positive, .diff-negative {
+            color: white !important;
+            font-weight: bold;
+            font-size: 0.7rem;
+            margin-left: 0.25rem;
+        }
+        
+        /* Mobile Selectors */
+        .selector-container {
+            margin: 1rem 0;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            box-shadow: var(--shadow);
+        }
+        
+        .selector-info {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--dark);
+            text-align: center;
+        }
+        
+        /* TikTok Style Selector */
+        .tiktok-selector {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .tiktok-current {
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            text-align: center;
+            font-weight: 600;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .tiktok-controls {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .tiktok-arrow {
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            font-size: 1.25rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .tiktok-arrow:hover {
+            background: var(--secondary);
+            transform: scale(1.1);
+        }
+        
+        /* Mini Cards Selector */
+        .minicards-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 0.5rem 0;
+        }
+        
+        .minicards-scroll {
+            display: flex;
+            gap: 0.75rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .minicard {
+            min-width: 120px;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: var(--border-radius);
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            position: relative;
+        }
+        
+        .minicard.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--secondary);
+        }
+        
+        .minicard-check {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--success);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Horizontal Slider */
+        .slider-container {
+            position: relative;
+        }
+        
+        .slider-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 1rem 0;
+        }
+        
+        .slider-items {
+            display: flex;
+            gap: 1rem;
+            padding-bottom: 0.5rem;
+        }
+        
+        .slider-item {
+            min-width: 100px;
+            padding: 1rem;
+            background: #f8f9fa;
+            border: 2px solid transparent;
+            border-radius: var(--border-radius);
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .slider-item.selected {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .slider-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .slider-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .slider-btn:hover {
+            background: var(--secondary);
+        }
+        
+        /* Original List */
+        .original-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.75rem;
+        }
+        
+        .list-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: #f8f9fa;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .list-item:hover {
+            background: #e9ecef;
+        }
+        
+        .list-item.selected {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .list-checkbox {
+            width: 18px;
+            height: 18px;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            box-shadow: var(--shadow);
+        }
+        
+        .chart-canvas {
+            max-height: 300px;
+        }
+        
+        /* Group Cards */
+        .groups-container {
+            display: grid;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .group-card {
+            background: white;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: var(--transition);
+        }
+        
+        .group-header {
+            background: var(--primary);
+            color: white;
+            padding: 1rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        
+        .group-header:hover {
+            background: var(--secondary);
+        }
+        
+        .group-details {
+            padding: 1rem;
+            display: none;
+        }
+        
+        .group-details.expanded {
+            display: block;
+        }
+        
+        .branch-list {
+            display: grid;
+            gap: 0.5rem;
+        }
+        
+        .branch-item {
+            background: #f8f9fa;
+            padding: 0.75rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: between;
+            align-items: center;
+        }
+        
+        .branch-score {
+            background: var(--primary);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        /* Color Legend */
+        .color-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin: 1rem 0;
+            font-size: 0.75rem;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.125rem;
+            }
+            
+            .tab {
+                padding: 0.75rem;
+                font-size: 0.875rem;
+            }
+            
+            .tab i {
+                font-size: 1rem;
+            }
+            
+            .content {
+                padding: 0.75rem;
+            }
+            
+            .card {
+                padding: 1rem;
+            }
+            
+            .heat-table th,
+            .heat-table td {
+                padding: 0.5rem;
+                font-size: 0.75rem;
+            }
+            
+            .grupo-name {
+                min-width: 120px;
+            }
+        }
+        
+        /* Hidden by default */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1>📈 Análisis Histórico Mobile</h1>
+        <div class="subtitle">El Pollo Loco - Demo Selectores</div>
+        <div class="last-update">Demo actualizado: 3 Sep 2025</div>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="tab-container">
+        <div class="tab active" data-tab="mapa">
+            <i class="fas fa-map"></i>
+            <span>Mapa</span>
+        </div>
+        <div class="tab" data-tab="inteligente">
+            <i class="fas fa-brain"></i>
+            <span>Inteligente</span>
+        </div>
+        <div class="tab" data-tab="tendencias">
+            <i class="fas fa-chart-line"></i>
+            <span>Tendencias</span>
+        </div>
+        <div class="tab" data-tab="alertas">
+            <i class="fas fa-exclamation-triangle"></i>
+            <span>Alertas</span>
+        </div>
+    </div>
+
+    <!-- Mapa Tab -->
+    <div class="content active" id="mapa">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-fire"></i>
+                Mapa de Calor con Evolución
+            </div>
+            
+            <!-- Color Legend -->
+            <div class="color-legend">
+                <div class="legend-item">
+                    <div class="legend-color heat-excelente"></div>
+                    <span>95-100% Excelente</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color heat-muy-bueno"></div>
+                    <span>91-94.9% Muy Bueno</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color heat-bueno"></div>
+                    <span>87-90.9% Bueno</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color heat-regular"></div>
+                    <span>82-86.9% Regular</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color heat-critico"></div>
+                    <span>0-81.9% Crítico</span>
+                </div>
+            </div>
+            
+            <div class="heat-table-container">
+                <table class="heat-table" id="heatTable">
+                    <thead>
+                        <tr>
+                            <th class="grupo-name">Grupo</th>
+                            <th>NL T1</th>
+                            <th>FOR S1</th>
+                            <th>NL T2</th>
+                            <th>FOR S2</th>
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="heatTableBody">
+                        <!-- Content will be generated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Inteligente Tab -->
+    <div class="content" id="inteligente">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-brain"></i>
+                Análisis Inteligente - Test Selectores
+            </div>
+            
+            <!-- Selector Options -->
+            <div style="margin-bottom: 1rem;">
+                <label for="selectorType" style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Tipo de Selector:</label>
+                <select id="selectorType" style="padding: 0.5rem; border-radius: 8px; border: 2px solid #ddd; width: 100%;">
+                    <option value="tiktok">M - TikTok Style (Vertical Swipe)</option>
+                    <option value="minicards">K - Mini Cards (Horizontal Scroll)</option>
+                    <option value="slider">E - Horizontal Slider (Full)</option>
+                    <option value="original">Original List (Grid)</option>
+                </select>
+            </div>
+            
+            <!-- Dynamic Selector Container -->
+            <div id="dynamicSelector" class="selector-container">
+                <!-- Content will be generated by JavaScript -->
+            </div>
+            
+            <!-- Chart -->
+            <div class="chart-container">
+                <canvas id="intelligentChart" class="chart-canvas"></canvas>
+            </div>
+            
+            <!-- Group Cards -->
+            <div id="groupCards" class="groups-container">
+                <!-- Content will be generated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Tendencias Tab -->
+    <div class="content" id="tendencias">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-chart-line"></i>
+                Análisis de Tendencias
+            </div>
+            <div class="chart-container">
+                <canvas id="trendsChart" class="chart-canvas"></canvas>
+            </div>
+            <p style="text-align: center; color: #666; margin-top: 1rem;">
+                📈 Evolución trimestral con línea EPL CAS
+            </p>
+        </div>
+    </div>
+
+    <!-- Alertas Tab -->
+    <div class="content" id="alertas">
+        <div class="card">
+            <div class="card-title">
+                <i class="fas fa-exclamation-triangle"></i>
+                Sistema de Alertas
+            </div>
+            <div id="alertsList">
+                <!-- Content will be generated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data
+        const data = {
+            periodos: ['NL T1', 'FOR S1', 'NL T2', 'FOR S2'],
+            grupos: {
+                'GRUPO EXPO': [88.5, 90.2, 87.1, 89.8],
+                'GRUPO SALTILLO': [92.1, null, 91.5, 93.2],
+                'GRUPO MONTERREY': [85.3, 87.8, 86.9, 88.1],
+                'GRUPO NORTE': [89.7, 88.5, 90.2, 89.1],
+                'GRUPO CENTRO': [91.2, 89.8, 92.1, 90.5],
+                'GRUPO SUR': [87.4, 86.1, 88.7, 87.9],
+                'GRUPO OCCIDENTE': [90.1, 88.9, 89.5, 91.2],
+                'GRUPO BAJIO': [86.8, 87.2, 88.3, 87.1],
+                'GRUPO PACIFICO': [89.3, 90.1, 88.8, 89.7],
+                'GRUPO GOLFO': [88.1, 87.5, 89.2, 88.6],
+                'GRUPO PENINSULA': [91.5, 90.8, 92.3, 91.1],
+                'GRUPO FRONTERA': [87.9, 88.2, 87.6, 88.9],
+                'GRUPO METROPOLI': [92.8, 91.4, 93.1, 92.5],
+                'GRUPO REGIONAL': [86.2, 87.1, 86.8, 87.4],
+                'GRUPO COSTA': [90.5, 89.7, 90.8, 90.2],
+                'GRUPO SIERRA': [88.7, 88.1, 89.4, 88.8],
+                'GRUPO VALLE': [91.1, 90.3, 91.7, 91.4],
+                'GRUPO ALTIPLANO': [87.3, 86.9, 88.1, 87.7],
+                'GRUPO TROPICAL': [89.8, 90.4, 89.2, 90.1],
+                'GRUPO DESIERTO': [88.4, 87.8, 88.9, 88.2]
+            }
+        };
+
+        // Selected groups for intelligent analysis
+        let selectedGroups = ['GRUPO EXPO', 'GRUPO SALTILLO', 'GRUPO MONTERREY'];
+        let currentSelectorType = 'tiktok';
+        let currentTikTokIndex = 0;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeTabs();
+            generateHeatMap();
+            initializeIntelligentTab();
+            initializeTrendsChart();
+            initializeAlertas();
+        });
+
+        // Tab functionality
+        function initializeTabs() {
+            const tabs = document.querySelectorAll('.tab');
+            const contents = document.querySelectorAll('.content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+                    
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and corresponding content
+                    this.classList.add('active');
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
+        }
+
+        // Generate Heat Map
+        function generateHeatMap() {
+            const tableBody = document.getElementById('heatTableBody');
+            
+            // Calculate EPL CAS cumulative averages
+            const eplPromedios = data.periodos.map((periodo, currentIndex) => {
+                let suma = 0;
+                let count = 0;
+                
+                // Sum ALL supervisions from period 0 up to currentIndex (cumulative)
+                Object.values(data.grupos).forEach(valores => {
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (valores[i] !== null) {
+                            suma += valores[i];
+                            count++;
+                        }
+                    }
+                });
+                
+                return count > 0 ? suma / count : 0;
+            });
+            
+            // Add EPL CAS row
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-cas-row';
+            eplRow.innerHTML = `
+                <td class="grupo-name">Promedio EPL CAS</td>
+                ${eplPromedios.map(promedio => `<td>${promedio.toFixed(1)}%</td>`).join('')}
+                <td>${(eplPromedios[eplPromedios.length - 1]).toFixed(1)}%</td>
+            `;
+            tableBody.appendChild(eplRow);
+            
+            // Generate rows for each group
+            Object.entries(data.grupos).forEach(([grupo, valores]) => {
+                const row = document.createElement('tr');
+                
+                // Calculate average
+                const validValues = valores.filter(v => v !== null);
+                const promedio = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0;
+                
+                let cells = `<td class="grupo-name">${grupo}</td>`;
+                
+                // Add period cells with trend indicators
+                valores.forEach((valor, index) => {
+                    if (valor === null) {
+                        cells += '<td style="background: #f8f9fa; color: #666;">N/A</td>';
+                    } else {
+                        // Calculate trend
+                        let trendHtml = '';
+                        if (index > 0 && valores[index - 1] !== null) {
+                            const diff = valor - valores[index - 1];
+                            if (Math.abs(diff) >= 0.5) {
+                                const arrow = diff > 0 ? '↗️' : '↘️';
+                                const diffText = diff > 0 ? `+${diff.toFixed(1)}` : diff.toFixed(1);
+                                trendHtml = `<span class="${diff > 0 ? 'diff-positive' : 'diff-negative'}">${diffText}</span>`;
+                            }
+                        }
+                        
+                        // Apply color based on new scale
+                        let className = '';
+                        if (valor >= 95) className = 'heat-excelente';
+                        else if (valor >= 91) className = 'heat-muy-bueno';
+                        else if (valor >= 87) className = 'heat-bueno';
+                        else if (valor >= 82) className = 'heat-regular';
+                        else className = 'heat-critico';
+                        
+                        cells += `<td class="${className}">${valor.toFixed(1)}% ${trendHtml}</td>`;
+                    }
+                });
+                
+                // Add average cell
+                if (promedio > 0) {
+                    let className = '';
+                    if (promedio >= 95) className = 'heat-excelente';
+                    else if (promedio >= 91) className = 'heat-muy-bueno';
+                    else if (promedio >= 87) className = 'heat-bueno';
+                    else if (promedio >= 82) className = 'heat-regular';
+                    else className = 'heat-critico';
+                    
+                    cells += `<td class="${className}">${promedio.toFixed(1)}%</td>`;
+                } else {
+                    cells += '<td style="background: #f8f9fa; color: #666;">N/A</td>';
+                }
+                
+                row.innerHTML = cells;
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Initialize Intelligent Tab
+        function initializeIntelligentTab() {
+            const selectorTypeSelect = document.getElementById('selectorType');
+            selectorTypeSelect.addEventListener('change', function() {
+                currentSelectorType = this.value;
+                updateSelector();
+            });
+            
+            updateSelector();
+            updateIntelligentChart();
+            updateGroupCards();
+        }
+
+        // Update Selector based on type
+        function updateSelector() {
+            const container = document.getElementById('dynamicSelector');
+            const grupos = Object.keys(data.grupos);
+            
+            switch(currentSelectorType) {
+                case 'tiktok':
+                    container.innerHTML = `
+                        <div class="selector-info">Estilo TikTok: Usa las flechas para navegar • Seleccionados: ${selectedGroups.length}/5</div>
+                        <div class="tiktok-selector">
+                            <div class="tiktok-current" id="tiktokCurrent">${grupos[currentTikTokIndex]}</div>
+                            <div class="tiktok-controls">
+                                <button class="tiktok-arrow" onclick="changeTikTokGroup(-1)">↑</button>
+                                <button class="tiktok-arrow" onclick="toggleCurrentGroup()" id="tiktokSelect">
+                                    ${selectedGroups.includes(grupos[currentTikTokIndex]) ? '✓' : '+'}
+                                </button>
+                                <button class="tiktok-arrow" onclick="changeTikTokGroup(1)">↓</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'minicards':
+                    container.innerHTML = `
+                        <div class="selector-info">Mini Cards: Scroll horizontal • Seleccionados: ${selectedGroups.length}/5</div>
+                        <div class="minicards-container">
+                            <div class="minicards-scroll">
+                                ${grupos.map(grupo => `
+                                    <div class="minicard ${selectedGroups.includes(grupo) ? 'selected' : ''}" onclick="toggleGroup('${grupo}')">
+                                        ${grupo.replace('GRUPO ', '')}
+                                        ${selectedGroups.includes(grupo) ? '<div class="minicard-check">✓</div>' : ''}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'slider':
+                    container.innerHTML = `
+                        <div class="selector-info">Slider Completo: Scroll y botones • Seleccionados: ${selectedGroups.length}/5</div>
+                        <div class="slider-container">
+                            <div class="slider-scroll">
+                                <div class="slider-items">
+                                    ${grupos.map(grupo => `
+                                        <div class="slider-item ${selectedGroups.includes(grupo) ? 'selected' : ''}" onclick="toggleGroup('${grupo}')">
+                                            ${grupo.replace('GRUPO ', '')}
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                            <div class="slider-controls">
+                                <button class="slider-btn" onclick="clearSelection()">Limpiar</button>
+                                <button class="slider-btn" onclick="selectTop5()">Top 5</button>
+                            </div>
+                        </div>
+                    `;
+                    break;
+                    
+                case 'original':
+                    container.innerHTML = `
+                        <div class="selector-info">Lista Original: Grid con checkboxes • Seleccionados: ${selectedGroups.length}/5</div>
+                        <div class="original-list">
+                            ${grupos.map(grupo => `
+                                <div class="list-item ${selectedGroups.includes(grupo) ? 'selected' : ''}" onclick="toggleGroup('${grupo}')">
+                                    <input type="checkbox" class="list-checkbox" ${selectedGroups.includes(grupo) ? 'checked' : ''}>
+                                    <span>${grupo.replace('GRUPO ', '')}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                    break;
+            }
+        }
+
+        // TikTok specific functions
+        function changeTikTokGroup(direction) {
+            const grupos = Object.keys(data.grupos);
+            currentTikTokIndex = (currentTikTokIndex + direction + grupos.length) % grupos.length;
+            
+            document.getElementById('tiktokCurrent').textContent = grupos[currentTikTokIndex];
+            document.getElementById('tiktokSelect').textContent = selectedGroups.includes(grupos[currentTikTokIndex]) ? '✓' : '+';
+        }
+
+        function toggleCurrentGroup() {
+            const grupos = Object.keys(data.grupos);
+            const currentGroup = grupos[currentTikTokIndex];
+            toggleGroup(currentGroup);
+        }
+
+        // General selection functions
+        function toggleGroup(grupo) {
+            if (selectedGroups.includes(grupo)) {
+                selectedGroups = selectedGroups.filter(g => g !== grupo);
+            } else if (selectedGroups.length < 5) {
+                selectedGroups.push(grupo);
+            } else {
+                alert('Máximo 5 grupos permitidos');
+                return;
+            }
+            
+            updateSelector();
+            updateIntelligentChart();
+            updateGroupCards();
+        }
+
+        function clearSelection() {
+            selectedGroups = [];
+            updateSelector();
+            updateIntelligentChart();
+            updateGroupCards();
+        }
+
+        function selectTop5() {
+            // Calculate averages and select top 5
+            const promedios = Object.entries(data.grupos).map(([grupo, valores]) => {
+                const validValues = valores.filter(v => v !== null);
+                const promedio = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0;
+                return { grupo, promedio };
+            });
+            
+            promedios.sort((a, b) => b.promedio - a.promedio);
+            selectedGroups = promedios.slice(0, 5).map(item => item.grupo);
+            
+            updateSelector();
+            updateIntelligentChart();
+            updateGroupCards();
+        }
+
+        // Update Intelligent Chart
+        function updateIntelligentChart() {
+            const ctx = document.getElementById('intelligentChart').getContext('2d');
+            
+            if (window.intelligentChart) {
+                window.intelligentChart.destroy();
+            }
+            
+            const datasets = selectedGroups.map((grupo, index) => ({
+                label: grupo,
+                data: data.grupos[grupo],
+                borderColor: `hsl(${index * 60}, 70%, 50%)`,
+                backgroundColor: `hsla(${index * 60}, 70%, 50%, 0.1)`,
+                tension: 0.4
+            }));
+            
+            // Add EPL CAS line
+            const eplPromedios = data.periodos.map((periodo, currentIndex) => {
+                let suma = 0;
+                let count = 0;
+                Object.values(data.grupos).forEach(valores => {
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (valores[i] !== null) {
+                            suma += valores[i];
+                            count++;
+                        }
+                    }
+                });
+                return count > 0 ? suma / count : 0;
+            });
+            
+            datasets.push({
+                label: 'EPL CAS Promedio',
+                data: eplPromedios,
+                borderColor: '#ffd700',
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 3,
+                tension: 0.4
+            });
+            
+            window.intelligentChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.periodos,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Evolución de Grupos Seleccionados'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 80,
+                            max: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update Group Cards
+        function updateGroupCards() {
+            const container = document.getElementById('groupCards');
+            
+            if (selectedGroups.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">Selecciona grupos para ver detalles</p>';
+                return;
+            }
+            
+            container.innerHTML = selectedGroups.map(grupo => {
+                const valores = data.grupos[grupo];
+                const validValues = valores.filter(v => v !== null);
+                const promedio = validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0;
+                
+                return `
+                    <div class="group-card">
+                        <div class="group-header" onclick="toggleGroupDetails('${grupo}')">
+                            <div>
+                                <strong>${grupo}</strong>
+                                <div style="font-size: 0.875rem; opacity: 0.9;">
+                                    Promedio: ${promedio.toFixed(1)}% • ${validValues.length} evaluaciones
+                                </div>
+                            </div>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="group-details" id="details-${grupo}">
+                            <div class="branch-list">
+                                ${data.periodos.map((periodo, index) => {
+                                    const valor = valores[index];
+                                    return valor !== null ? `
+                                        <div class="branch-item">
+                                            <span>${periodo}</span>
+                                            <span class="branch-score">${valor.toFixed(1)}%</span>
+                                        </div>
+                                    ` : `
+                                        <div class="branch-item">
+                                            <span>${periodo}</span>
+                                            <span style="color: #666;">N/A</span>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function toggleGroupDetails(grupo) {
+            const details = document.getElementById(`details-${grupo}`);
+            details.classList.toggle('expanded');
+        }
+
+        // Initialize Trends Chart
+        function initializeTrendsChart() {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            
+            // Calculate period averages
+            const periodAverages = data.periodos.map(periodo => {
+                const periodIndex = data.periodos.indexOf(periodo);
+                let suma = 0;
+                let count = 0;
+                
+                Object.values(data.grupos).forEach(valores => {
+                    if (valores[periodIndex] !== null) {
+                        suma += valores[periodIndex];
+                        count++;
+                    }
+                });
+                
+                return count > 0 ? suma / count : 0;
+            });
+            
+            // Calculate EPL CAS cumulative averages
+            const eplPromedios = data.periodos.map((periodo, currentIndex) => {
+                let suma = 0;
+                let count = 0;
+                Object.values(data.grupos).forEach(valores => {
+                    for (let i = 0; i <= currentIndex; i++) {
+                        if (valores[i] !== null) {
+                            suma += valores[i];
+                            count++;
+                        }
+                    }
+                });
+                return count > 0 ? suma / count : 0;
+            });
+            
+            window.trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.periodos,
+                    datasets: [
+                        {
+                            label: 'Promedio por Período',
+                            data: periodAverages,
+                            borderColor: '#FF6B35',
+                            backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'EPL CAS Acumulado',
+                            data: eplPromedios,
+                            borderColor: '#ffd700',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            borderWidth: 3,
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Evolución General de Performance'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 85,
+                            max: 95
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize Alertas
+        function initializeAlertas() {
+            const alertsList = document.getElementById('alertsList');
+            
+            const alerts = [
+                {
+                    type: 'warning',
+                    title: 'Rendimiento Bajo',
+                    message: 'GRUPO REGIONAL tiene promedio de 86.9% (por debajo del 87%)',
+                    action: 'Revisar sucursales'
+                },
+                {
+                    type: 'success',
+                    title: 'Mejora Detectada',
+                    message: 'GRUPO METROPOLI mejoró +1.7% en NL T2',
+                    action: 'Analizar factores'
+                },
+                {
+                    type: 'info',
+                    title: 'Datos Faltantes',
+                    message: 'GRUPO SALTILLO sin datos en FOR S1',
+                    action: 'Verificar evaluaciones'
+                },
+                {
+                    type: 'danger',
+                    title: 'Meta No Cumplida',
+                    message: '3 grupos por debajo del 87% en último período',
+                    action: 'Plan de mejora urgente'
+                }
+            ];
+            
+            alertsList.innerHTML = alerts.map(alert => {
+                const icons = {
+                    warning: 'fas fa-exclamation-triangle',
+                    success: 'fas fa-check-circle',
+                    info: 'fas fa-info-circle',
+                    danger: 'fas fa-times-circle'
+                };
+                
+                const colors = {
+                    warning: '#f39c12',
+                    success: '#27ae60',
+                    info: '#3498db',
+                    danger: '#e74c3c'
+                };
+                
+                return `
+                    <div class="card" style="border-left: 4px solid ${colors[alert.type]};">
+                        <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                            <i class="${icons[alert.type]}" style="color: ${colors[alert.type]}; font-size: 1.25rem; margin-top: 0.25rem;"></i>
+                            <div style="flex: 1;">
+                                <h3 style="color: ${colors[alert.type]}; margin-bottom: 0.5rem;">${alert.title}</h3>
+                                <p style="color: #666; margin-bottom: 1rem;">${alert.message}</p>
+                                <button style="background: ${colors[alert.type]}; color: white; border: none; padding: 0.5rem 1rem; border-radius: 6px; cursor: pointer;">
+                                    ${alert.action}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
