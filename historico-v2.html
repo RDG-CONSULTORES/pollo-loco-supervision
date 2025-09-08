@@ -2393,14 +2393,19 @@
                     }
                     
                     console.log(`🔍 Fetching data for ${group.name} (ID: ${group.id})`);
-                    const response = await fetch(`/api/historical-performance/${encodeURIComponent(group.id || group.name)}`);
+                    const apiUrl = `/api/historical-performance/${encodeURIComponent(group.id || group.name)}`;
+                    console.log(`🌐 API URL: ${apiUrl}`);
+                    
+                    const response = await fetch(apiUrl);
                     
                     if (!response.ok) {
+                        console.error(`❌ API Error: ${response.status}: ${response.statusText}`);
                         throw new Error(`API returned ${response.status}: ${response.statusText}`);
                     }
                     
                     const historicalData = await response.json();
-                    console.log(`📊 Response for ${group.name}:`, historicalData);
+                    console.log(`📊 Full API Response for ${group.name}:`, historicalData);
+                    console.log(`📊 Data structure:`, JSON.stringify(historicalData, null, 2));
                     
                     if (historicalData.success && historicalData.data?.datasets?.[0]?.data) {
                         const color = colors[colorIndex % colors.length];
@@ -2421,10 +2426,14 @@
                             spanGaps: true
                         });
                         colorIndex++;
-                        console.log(`✅ Added ${group.name} to chart with data:`, data);
+                        console.log(`✅ Added REAL data for ${group.name} to chart:`, data);
                     } else {
                         // If API doesn't return expected format, use simulated data based on group performance
-                        console.warn(`⚠️  Using simulated data for ${group.name} across CAS periods`);
+                        console.warn(`⚠️  API data invalid for ${group.name}, using simulated data`);
+                        console.warn(`⚠️  Expected: historicalData.success && historicalData.data?.datasets?.[0]?.data`);
+                        console.warn(`⚠️  Got success:`, historicalData.success);
+                        console.warn(`⚠️  Got data:`, historicalData.data);
+                        console.warn(`⚠️  Got datasets:`, historicalData.data?.datasets);
                         const basePerformance = parseFloat(group.promedioPerformance) || 95;
                         const simulatedData = chartLabels.map((period, index) => {
                             // Create realistic variation around the base performance for each CAS period
@@ -2465,6 +2474,10 @@
                     // Show error but continue with other groups
                 }
             }
+            
+            console.log(`📈 Total datasets created: ${datasets.length}`);
+            console.log(`📈 Chart labels: ${chartLabels}`);
+            console.log(`📈 Selected groups: ${Array.from(this.selectedGroups)}`);
             
             // If no groups selected, show message
             if (this.selectedGroups.size === 0) {
@@ -3296,14 +3309,27 @@
                 }
                 
                 // Load heatmap periods data
-                const heatmapResponse = await fetch(`/api/heatmap-periods/${groupId}`);
+                console.log(`🔥 Loading heatmap for groupId: ${groupId}`);
+                const heatmapUrl = `/api/heatmap-periods/${groupId}`;
+                console.log(`🔥 Heatmap API URL: ${heatmapUrl}`);
+                
+                const heatmapResponse = await fetch(heatmapUrl);
+                console.log(`🔥 Heatmap response status: ${heatmapResponse.status}`);
+                
+                if (!heatmapResponse.ok) {
+                    throw new Error(`Heatmap API error: ${heatmapResponse.status}: ${heatmapResponse.statusText}`);
+                }
+                
                 const heatmapData = await heatmapResponse.json();
+                console.log(`🔥 Heatmap raw response:`, heatmapData);
                 
                 if (heatmapData.success) {
                     this.heatmapPeriodsData = heatmapData.data;
+                    console.log(`🔥 Heatmap data structure:`, JSON.stringify(heatmapData.data, null, 2));
                     this.updateHeatMapWithPeriods();
                     console.log('✅ Heatmap periods data loaded:', heatmapData.data.groups.length, 'groups');
                 } else {
+                    console.error(`❌ Heatmap data failed:`, heatmapData);
                     throw new Error('Heatmap data error: ' + heatmapData.error);
                 }
                 
