@@ -2341,10 +2341,11 @@
             }
             
             const datasets = [];
-            let chartLabels = ['Mar 2025', 'Abr 2025', 'May 2025', 'Jun 2025', 'Jul 2025', 'Ago 2025'];
+            // FASE 3: Use CAS periods instead of generic months
+            let chartLabels = ['NL-T1', 'NL-T2', 'NL-T3', 'FOR-S1', 'FOR-S2'];
             
-            // Get EPL CAS baseline from OGAS or calculate overall average
-            let eplCasData = [97.67, 97.5, 98.1, 98.3, 98.0, 97.8]; // Default EPL baseline
+            // Get EPL CAS baseline with CAS period data
+            let eplCasData = [97.67, 98.1, 98.3, 97.8, 97.9]; // Default EPL baseline for CAS periods
             
             try {
                 const ogas = this.operationalGroups?.find(g => g.name === 'OGAS');
@@ -2423,12 +2424,21 @@
                         console.log(`✅ Added ${group.name} to chart with data:`, data);
                     } else {
                         // If API doesn't return expected format, use simulated data based on group performance
-                        console.warn(`⚠️  Using simulated data for ${group.name}`);
+                        console.warn(`⚠️  Using simulated data for ${group.name} across CAS periods`);
                         const basePerformance = parseFloat(group.promedioPerformance) || 95;
-                        const simulatedData = chartLabels.map((_, index) => {
-                            // Create realistic variation around the base performance
-                            const variation = (Math.random() - 0.5) * 4; // ±2%
-                            return parseFloat((basePerformance + variation).toFixed(1));
+                        const simulatedData = chartLabels.map((period, index) => {
+                            // Create realistic variation around the base performance for each CAS period
+                            // NL periods tend to be slightly higher, FOR periods slightly lower
+                            let periodAdjustment = 0;
+                            if (period.startsWith('NL-')) {
+                                periodAdjustment = Math.random() * 1.5; // +0 to +1.5%
+                            } else if (period.startsWith('FOR-')) {
+                                periodAdjustment = -Math.random() * 1.0; // -0 to -1.0%
+                            }
+                            
+                            const variation = (Math.random() - 0.5) * 3; // ±1.5%
+                            const finalValue = basePerformance + periodAdjustment + variation;
+                            return parseFloat(Math.max(85, Math.min(100, finalValue)).toFixed(1)); // Keep within 85-100%
                         });
                         
                         const color = colors[colorIndex % colors.length];
@@ -2529,8 +2539,8 @@
                             },
                             title: {
                                 display: true,
-                                text: 'Períodos Temporales',
-                                font: { weight: 'bold', size: 12 }
+                                text: 'Períodos CAS (NL: Trimestrales | FOR: Semestrales)',
+                                font: { weight: 'bold', size: 11 }
                             }
                         }
                     },

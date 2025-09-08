@@ -165,9 +165,34 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
         : `AND area_evaluacion = '${area}'`;
     }
 
+    // FASE 4: Use CAS periods instead of monthly grouping
     const query = `
       SELECT 
-        DATE_TRUNC('month', fecha_supervision) as fecha,
+        CASE 
+            -- LOCALES NL: períodos trimestrales con rangos corregidos
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'NL-T1'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'NL-T2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                THEN 'NL-T3'
+            -- FORÁNEAS: períodos semestrales con rangos corregidos
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                THEN 'FOR-S1'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                THEN 'FOR-S2'
+            ELSE 'OTROS'
+        END as periodo_cas,
         ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
         COUNT(DISTINCT location_name) as sucursales_evaluadas,
         COUNT(*) as total_evaluaciones,
@@ -176,36 +201,94 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
       WHERE porcentaje IS NOT NULL
         AND grupo_operativo_limpio IS NOT NULL
         AND fecha_supervision IS NOT NULL
-        ${dateFilter}
         ${groupFilter}
         ${areaFilter}
-      GROUP BY DATE_TRUNC('month', fecha_supervision), grupo_operativo_limpio
-      ORDER BY fecha ASC
+      GROUP BY 
+        CASE 
+            -- Same CASE logic for grouping
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'NL-T1'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'NL-T2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                THEN 'NL-T3'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                THEN 'FOR-S1'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                THEN 'FOR-S2'
+            ELSE 'OTROS'
+        END, grupo_operativo_limpio
+      HAVING 
+        CASE 
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'NL-T1'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'NL-T2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                THEN 'NL-T3'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                THEN 'FOR-S1'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                THEN 'FOR-S2'
+            ELSE 'OTROS'
+        END != 'OTROS'
+      ORDER BY 
+        CASE periodo_cas
+            WHEN 'NL-T1' THEN 1
+            WHEN 'NL-T2' THEN 2  
+            WHEN 'NL-T3' THEN 3
+            WHEN 'FOR-S1' THEN 4
+            WHEN 'FOR-S2' THEN 5
+            ELSE 6
+        END
     `;
 
     const params = groupId && groupId !== 'all' ? [groupId] : [];
     const result = await pool.query(query, params);
 
-    // Transform data for Chart.js format
+    // Transform data for Chart.js format with CAS periods
     const chartData = {
-      labels: [],
+      labels: ['NL-T1', 'NL-T2', 'NL-T3', 'FOR-S1', 'FOR-S2'],
       datasets: []
     };
 
     if (result.rows.length > 0) {
-      // Get unique dates and groups
-      const dates = [...new Set(result.rows.map(row => row.fecha.toISOString().split('T')[0]))];
+      // Get unique CAS periods and groups
+      const periods = [...new Set(result.rows.map(row => row.periodo_cas))].sort((a, b) => {
+        const order = { 'NL-T1': 1, 'NL-T2': 2, 'NL-T3': 3, 'FOR-S1': 4, 'FOR-S2': 5 };
+        return (order[a] || 99) - (order[b] || 99);
+      });
       const groups = [...new Set(result.rows.map(row => row.grupo))];
 
-      chartData.labels = dates;
+      chartData.labels = periods;
 
       // EPL colors
       const colors = ['#D03B34', '#FFED00', '#F18523', '#6C109F'];
 
       groups.forEach((group, index) => {
-        const groupData = dates.map(date => {
+        const groupData = chartData.labels.map(period => {
           const match = result.rows.find(row => 
-            row.fecha.toISOString().split('T')[0] === date && row.grupo === group
+            row.periodo_cas === period && row.grupo === group
           );
           return match ? parseFloat(match.promedio_performance) : null;
         });
