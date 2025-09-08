@@ -2268,7 +2268,10 @@
             const ctx = document.getElementById('summaryChart')?.getContext('2d');
             if (!ctx) return;
             
-            if (this.charts.summary) this.charts.summary.destroy();
+            if (this.charts.summary) {
+                this.charts.summary.destroy();
+                this.charts.summary = null;
+            }
             
             this.charts.summary = new Chart(ctx, {
                 type: 'doughnut',
@@ -2334,10 +2337,19 @@
             ctx.textAlign = 'center';
             ctx.fillText('Cargando datos...', ctx.canvas.width/2, ctx.canvas.height/2);
             
-            // Destroy existing chart if exists
+            // Destroy existing chart if exists - ENHANCED cleanup to prevent Canvas ID conflicts
             if (this.charts.comparison) {
                 this.charts.comparison.destroy();
                 this.charts.comparison = null;
+                console.log('📊 Comparison chart destroyed to prevent Canvas ID conflict');
+            }
+            
+            // Additional safety check - clear any lingering Chart.js instances
+            const canvas = ctx.canvas;
+            if (canvas.chart) {
+                canvas.chart.destroy();
+                delete canvas.chart;
+                console.log('📊 Cleared lingering Chart.js instance from canvas');
             }
             
             const datasets = [];
@@ -2972,194 +2984,16 @@
             const tbody = document.getElementById('heatmapBody');
             if (!tbody) return;
             
-            tbody.innerHTML = '';
-            
-            const showDifferences = document.getElementById('showDifferences')?.checked ?? true;
-            
-            // Calculate EPL CAS cumulative averages (all supervisions up to that period)
-            const eplPromedios = this.data.periodos.map((periodo, currentIndex) => {
-                let suma = 0;
-                let count = 0;
-                
-                // Sum ALL supervisions from period 0 up to currentIndex (cumulative)
-                Object.values(this.data.grupos).forEach(valores => {
-                    for (let i = 0; i <= currentIndex; i++) {
-                        if (valores[i] !== null) {
-                            suma += valores[i];
-                            count++;
-                        }
-                    }
-                });
-                
-                return count > 0 ? suma / count : 0;
-            });
-            
-            // Calculate overall EPL average
-            const eplPromedioGeneral = eplPromedios.filter(p => p > 0).reduce((a, b) => a + b, 0) / 
-                                      eplPromedios.filter(p => p > 0).length;
-            
-            // Calculate averages and trends for groups
-            const gruposConDatos = Object.entries(this.data.grupos).map(([grupo, valores]) => {
-                const valoresValidos = valores.filter(v => v !== null);
-                const promedio = valoresValidos.length > 0 
-                    ? valoresValidos.reduce((a, b) => a + b, 0) / valoresValidos.length 
-                    : 0;
-                
-                // Calculate overall trend
-                let trend = 'stable';
-                if (valoresValidos.length >= 2) {
-                    const firstValue = valoresValidos[0];
-                    const lastValue = valoresValidos[valoresValidos.length - 1];
-                    const diff = lastValue - firstValue;
-                    if (diff > 2) trend = 'improving';
-                    else if (diff < -2) trend = 'declining';
-                }
-                
-                // Check if critical
-                const isCritical = valoresValidos.some(v => v < 75);
-                
-                return { grupo, valores, promedio, trend, isCritical };
-            });
-            
-            // Apply filter
-            let gruposFiltrados = gruposConDatos;
-            switch(filter) {
-                case 'critical':
-                    gruposFiltrados = gruposConDatos.filter(g => g.isCritical);
-                    break;
-                case 'improving':
-                    gruposFiltrados = gruposConDatos.filter(g => g.trend === 'improving');
-                    break;
-                case 'declining':
-                    gruposFiltrados = gruposConDatos.filter(g => g.trend === 'declining');
-                    break;
-            }
-            
-            // Sort by average
-            gruposFiltrados.sort((a, b) => b.promedio - a.promedio);
-            
-            // Add EPL CAS average row first
-            const eplRow = document.createElement('tr');
-            eplRow.className = 'epl-row';
-            
-            // EPL CAS label cell
-            const eplLabelCell = document.createElement('td');
-            eplLabelCell.innerHTML = `
-                <div style="color: black; font-weight: bold; font-size: 0.8rem; text-align: center;">
-                    Promedio EPL CAS
-                </div>
+            // Show loading state while waiting for real data
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" style="text-align: center; padding: 2rem; color: #666;">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 1.5rem; margin-bottom: 1rem;"></i>
+                        <br>Cargando datos del mapa de calor...
+                    </td>
+                </tr>
             `;
-            eplRow.appendChild(eplLabelCell);
-            
-            // EPL period cells
-            let lastValidEpl = null;
-            eplPromedios.forEach((promedio, index) => {
-                const cell = document.createElement('td');
-                
-                if (promedio === 0) {
-                    cell.innerHTML = '—';
-                } else {
-                    let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
-                    
-                    // Add difference vs previous EPL period if enabled
-                    if (showDifferences && lastValidEpl !== null) {
-                        const diff = promedio - lastValidEpl;
-                        const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
-                        const diffSign = diff > 0 ? '+' : '';
-                        const trendSymbol = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
-                        
-                        cellContent += `<div class="diff-value ${diffClass}" style="color: rgba(255,255,255,0.8);">${trendSymbol} ${diffSign}${diff.toFixed(1)}</div>`;
-                    }
-                    
-                    // Add tooltip explaining cumulative average
-                    cell.title = `Promedio EPL CAS acumulativo hasta ${this.data.periodos[index]}: incluye todas las supervisiones desde el inicio hasta este período`;
-                    cell.innerHTML = cellContent;
-                    lastValidEpl = promedio;
-                }
-                
-                eplRow.appendChild(cell);
-            });
-            
-            // EPL overall average cell
-            const eplAvgCell = document.createElement('td');
-            eplAvgCell.innerHTML = `${eplPromedioGeneral.toFixed(1)}%`;
-            eplRow.appendChild(eplAvgCell);
-            
-            tbody.appendChild(eplRow);
-            
-            // Render each group
-            gruposFiltrados.forEach(({ grupo, valores, promedio }) => {
-                const row = document.createElement('tr');
-                
-                // Group name cell
-                const groupCell = document.createElement('td');
-                groupCell.textContent = grupo;
-                row.appendChild(groupCell);
-                
-                // Track previous non-null value for differences
-                let lastValidValue = null;
-                let lastValidIndex = -1;
-                
-                // Period cells
-                valores.forEach((valor, index) => {
-                    const cell = document.createElement('td');
-                    
-                    if (valor === null) {
-                        cell.className = 'heat-none';
-                        cell.textContent = '—';
-                    } else {
-                        // Apply color based on new scale
-                        if (valor >= 95) cell.className = 'heat-excelente';
-                        else if (valor >= 91) cell.className = 'heat-muy-bueno';
-                        else if (valor >= 87) cell.className = 'heat-bueno';
-                        else if (valor >= 82) cell.className = 'heat-regular';
-                        else cell.className = 'heat-critico';
-                        
-                        // Main value - clean without emojis
-                        let cellContent = `<div style="font-weight: 600;">${valor.toFixed(1)}%</div>`;
-                        
-                        // Add difference if enabled and there's a previous value
-                        if (showDifferences && lastValidValue !== null) {
-                            const diff = valor - lastValidValue;
-                            const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
-                            const diffSign = diff > 0 ? '+' : '';
-                            const trendSymbol = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
-                            
-                            cellContent += `<div class="diff-value ${diffClass}">${trendSymbol} ${diffSign}${diff.toFixed(1)}</div>`;
-                        }
-                        
-                        cell.innerHTML = cellContent;
-                        
-                        // Update last valid value
-                        lastValidValue = valor;
-                        lastValidIndex = index;
-                    }
-                    
-                    row.appendChild(cell);
-                });
-                
-                // Average cell
-                const avgCell = document.createElement('td');
-                avgCell.style.fontWeight = 'bold';
-                if (promedio >= 95) avgCell.className = 'heat-excelente';
-                else if (promedio >= 91) avgCell.className = 'heat-muy-bueno';
-                else if (promedio >= 87) avgCell.className = 'heat-bueno';
-                else if (promedio >= 82) avgCell.className = 'heat-regular';
-                else avgCell.className = 'heat-critico';
-                avgCell.textContent = promedio.toFixed(1) + '%';
-                row.appendChild(avgCell);
-                
-                tbody.appendChild(row);
-            });
-            
-            // Setup filter buttons if not already done
-            if (!this.filtersSetup) {
-                this.setupHeatmapFilters();
-                this.filtersSetup = true;
-            }
-        };
-        
-        app.setupHeatmapFilters = function() {
+        };        app.setupHeatmapFilters = function() {
             // Filter buttons
             document.querySelectorAll('.filter-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
@@ -3186,7 +3020,10 @@
             const ctx = document.getElementById('evolutionChart')?.getContext('2d');
             if (!ctx) return;
             
-            if (this.charts.evolution) this.charts.evolution.destroy();
+            if (this.charts.evolution) {
+                this.charts.evolution.destroy();
+                this.charts.evolution = null;
+            }
             
             // Calculate trends
             const trendData = this.calculateTrends();
