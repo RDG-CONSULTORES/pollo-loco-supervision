@@ -255,10 +255,10 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
       ORDER BY 
         CASE periodo_cas
             WHEN 'NL-T1' THEN 1
-            WHEN 'NL-T2' THEN 2  
-            WHEN 'NL-T3' THEN 3
-            WHEN 'FOR-S1' THEN 4
-            WHEN 'FOR-S2' THEN 5
+            WHEN 'FOR-S1' THEN 2  
+            WHEN 'NL-T2' THEN 3
+            WHEN 'FOR-S2' THEN 4
+            WHEN 'NL-T3' THEN 5
             ELSE 6
         END
     `;
@@ -266,16 +266,17 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
     const params = groupId && groupId !== 'all' ? [groupId] : [];
     const result = await pool.query(query, params);
 
-    // Transform data for Chart.js format with CAS periods
+    // Transform data for Chart.js format with CAS periods (SAME ORDER as HeatMap)
     const chartData = {
-      labels: ['NL-T1', 'NL-T2', 'NL-T3', 'FOR-S1', 'FOR-S2'],
+      labels: ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'],
       datasets: []
     };
 
     if (result.rows.length > 0) {
       // Get unique CAS periods and groups
       const periods = [...new Set(result.rows.map(row => row.periodo_cas))].sort((a, b) => {
-        const order = { 'NL-T1': 1, 'NL-T2': 2, 'NL-T3': 3, 'FOR-S1': 4, 'FOR-S2': 5 };
+        // SAME ORDER as HeatMap: NL-T1, FOR-S1, NL-T2, FOR-S2, NL-T3
+        const order = { 'NL-T1': 1, 'FOR-S1': 2, 'NL-T2': 3, 'FOR-S2': 4, 'NL-T3': 5 };
         return (order[a] || 99) - (order[b] || 99);
       });
       const groups = [...new Set(result.rows.map(row => row.grupo))];

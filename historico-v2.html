@@ -2341,11 +2341,11 @@
             }
             
             const datasets = [];
-            // FASE 3: Use CAS periods instead of generic months
-            let chartLabels = ['NL-T1', 'NL-T2', 'NL-T3', 'FOR-S1', 'FOR-S2'];
+            // FASE 3: Use CAS periods in SAME ORDER as HeatMap
+            let chartLabels = ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'];
             
-            // Get EPL CAS baseline with CAS period data
-            let eplCasData = [97.67, 98.1, 98.3, 97.8, 97.9]; // Default EPL baseline for CAS periods
+            // Get EPL CAS baseline with CAS period data (in HeatMap order)
+            let eplCasData = [97.67, 97.8, 98.1, 97.9, 98.3]; // Default EPL baseline for CAS periods
             
             try {
                 const ogas = this.operationalGroups?.find(g => g.name === 'OGAS');
