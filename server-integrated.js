@@ -242,7 +242,10 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
       });
       const groups = [...new Set(result.rows.map(row => row.grupo))];
 
-      chartData.labels = periods;
+      // Use fixed CAS periods order regardless of what data returns
+      chartData.labels = ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'];
+      console.log(`📊 Historical Performance periods found in data: ${periods.join(', ')}`);
+      console.log(`📊 Using fixed CAS periods order: ${chartData.labels.join(', ')}`);
 
       // EPL colors
       const colors = ['#D03B34', '#FFED00', '#F18523', '#6C109F'];
@@ -1689,6 +1692,158 @@ app.get('/api/heatmap-periods/:groupId?', async (req, res) => {
             details: error.message 
         });
     }
+});
+
+// DIAGNOSTIC ENDPOINT - Check CAS periods availability
+app.get('/api/debug-periods', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        CASE 
+            -- LOCALES NL: períodos trimestrales
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'NL-T1'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'NL-T2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                THEN 'NL-T3'
+            -- FORÁNEAS: períodos semestrales
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                THEN 'FOR-S1'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                THEN 'FOR-S2'
+            ELSE 'OTROS'
+        END as periodo_cas,
+        COUNT(*) as total_records,
+        MIN(fecha_supervision) as fecha_min,
+        MAX(fecha_supervision) as fecha_max,
+        COUNT(DISTINCT grupo_operativo_limpio) as grupos_unicos,
+        COUNT(DISTINCT location_name) as sucursales_unicas
+      FROM supervision_operativa_clean
+      WHERE porcentaje IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+        AND fecha_supervision IS NOT NULL
+      GROUP BY 
+        CASE 
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'NL-T1'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'NL-T2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                THEN 'NL-T3'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                THEN 'FOR-S1'
+            WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                  OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                 AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                THEN 'FOR-S2'
+            ELSE 'OTROS'
+        END
+      ORDER BY 
+        CASE periodo_cas
+            WHEN 'NL-T1' THEN 1
+            WHEN 'FOR-S1' THEN 2  
+            WHEN 'NL-T2' THEN 3
+            WHEN 'FOR-S2' THEN 4
+            WHEN 'NL-T3' THEN 5
+            ELSE 6
+        END
+    `;
+
+    const result = await pool.query(query);
+    
+    res.json({
+      success: true,
+      periods_found: result.rows,
+      analysis: {
+        total_periods: result.rows.length,
+        has_foraneas: result.rows.some(row => row.periodo_cas.startsWith('FOR')),
+        has_locales: result.rows.some(row => row.periodo_cas.startsWith('NL')),
+        periods_list: result.rows.map(row => row.periodo_cas)
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Debug Periods API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching debug periods data',
+      details: error.message 
+    });
+  }
+});
+
+// DIAGNOSTIC ENDPOINT 2 - Check actual date ranges in database
+app.get('/api/debug-dates', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        MIN(fecha_supervision) as fecha_minima,
+        MAX(fecha_supervision) as fecha_maxima,
+        COUNT(*) as total_registros,
+        COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
+        COUNT(DISTINCT location_name) as total_sucursales,
+        -- FORÁNEAS específicas
+        COUNT(CASE WHEN location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN 1 END) as registros_foraneas_especificas,
+        COUNT(CASE WHEN estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO' THEN 1 END) as registros_foraneas_estado,
+        -- LOCALES específicas
+        COUNT(CASE WHEN estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO' THEN 1 END) as registros_locales
+      FROM supervision_operativa_clean
+      WHERE porcentaje IS NOT NULL
+        AND grupo_operativo_limpio IS NOT NULL
+        AND fecha_supervision IS NOT NULL
+    `;
+
+    const result = await pool.query(query);
+    
+    res.json({
+      success: true,
+      date_analysis: result.rows[0],
+      period_definitions: {
+        "NL-T1": "2025-03-12 a 2025-04-16",
+        "FOR-S1": "2025-04-10 a 2025-06-09", 
+        "NL-T2": "2025-06-11 a 2025-08-18",
+        "FOR-S2": "2025-07-30 a 2025-08-15",
+        "NL-T3": "2025-08-19 a 2025-12-31"
+      },
+      foraneas_locations: ["57 - Harold R. Pape", "30 - Carrizo", "28 - Guerrero"],
+      note: "Si fecha_minima/maxima está fuera de los rangos CAS, no habrá datos FORÁNEAS"
+    });
+
+  } catch (error) {
+    console.error('❌ Debug Dates API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching debug dates data',
+      details: error.message 
+    });
+  }
 });
 
 // TEST ENDPOINT - Remove after debugging
