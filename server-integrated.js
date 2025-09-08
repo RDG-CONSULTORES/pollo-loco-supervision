@@ -250,6 +250,42 @@ app.get('/api/operational-groups', async (req, res) => {
   }
 
   try {
+    // FASE 1: Define the complete list of 20 known operational groups
+    const knownGroups = [
+      'CRR', 'EFM', 'EPL SO', 'EXPO', 'GRUPO CANTERA ROSA (MORELIA)',
+      'GRUPO CENTRITO', 'GRUPO MATAMOROS', 'GRUPO NUEVO LAREDO (RUELAS)',
+      'GRUPO PIEDRAS NEGRAS', 'GRUPO RIO BRAVO', 'GRUPO SABINAS HIDALGO',
+      'GRUPO SALTILLO', 'OCHTER TAMPICO', 'OGAS', 'PLOG LAGUNA',
+      'PLOG NUEVO LEON', 'PLOG QUERETARO', 'RAP', 'TEC', 'TEPEYAC'
+    ];
+    
+    console.log(`📋 Expected operational groups: ${knownGroups.length}`);
+    
+    // Get ALL unique groups from database to compare
+    const allGroupsQuery = `
+      SELECT DISTINCT grupo_operativo_limpio as name
+      FROM supervision_operativa_clean
+      WHERE grupo_operativo_limpio IS NOT NULL
+        AND grupo_operativo_limpio != ''
+      ORDER BY grupo_operativo_limpio
+    `;
+    
+    const allGroupsResult = await pool.query(allGroupsQuery);
+    console.log(`📊 Found ${allGroupsResult.rows.length} total unique groups in database`);
+    
+    // Log any groups in database that are not in our known list
+    const dbGroups = allGroupsResult.rows.map(row => row.name);
+    const unknownGroups = dbGroups.filter(group => !knownGroups.includes(group));
+    const missingGroups = knownGroups.filter(group => !dbGroups.includes(group));
+    
+    if (unknownGroups.length > 0) {
+      console.log(`🔍 Unknown groups found in database:`, unknownGroups);
+    }
+    if (missingGroups.length > 0) {
+      console.log(`⚠️  Missing groups from database:`, missingGroups);
+    }
+    
+    // Then get performance data with a wider time range to include all groups
     const query = `
       SELECT 
         grupo_operativo_limpio as name,
@@ -259,30 +295,75 @@ app.get('/api/operational-groups', async (req, res) => {
       FROM supervision_operativa_clean
       WHERE grupo_operativo_limpio IS NOT NULL
         AND porcentaje IS NOT NULL
-        AND fecha_supervision >= NOW() - INTERVAL '3 months'
+        -- Expanded to 6 months to capture more groups
+        AND fecha_supervision >= NOW() - INTERVAL '6 months'
       GROUP BY grupo_operativo_limpio
       ORDER BY promedio_performance DESC
     `;
 
     const result = await pool.query(query);
     
-    // Map to match the expected format from grupo-operativo-sucursales-mapping.json
-    const groups = result.rows.map((row, index) => {
-      // EPL colors rotation
-      const colors = ['#D03B34', '#FFED00', '#F18523', '#6C109F'];
-      return {
-        id: row.name,
-        name: row.name,
-        color: colors[index % colors.length],
-        totalSucursales: row.total_sucursales,
-        promedioPerformance: row.promedio_performance,
-        totalEvaluaciones: row.total_evaluaciones
+    // Merge results to ensure all groups are included
+    const performanceMap = new Map();
+    result.rows.forEach(row => {
+      performanceMap.set(row.name, row);
+    });
+    
+    // ENSURE ALL 20 KNOWN GROUPS ARE INCLUDED, even without recent data
+    const allGroups = knownGroups.map(groupName => {
+      const perfData = performanceMap.get(groupName);
+      return perfData || {
+        name: groupName,
+        total_sucursales: 0,
+        promedio_performance: null,
+        total_evaluaciones: 0
       };
     });
+    
+    // Add any additional groups found in database but not in our known list
+    dbGroups.forEach(dbGroup => {
+      if (!knownGroups.includes(dbGroup)) {
+        const perfData = performanceMap.get(dbGroup);
+        if (perfData) {
+          allGroups.push(perfData);
+        }
+      }
+    });
+    
+    // Map to match the expected format - now including ALL groups
+    const groups = allGroups
+      .filter(row => row.name) // Filter out any null names
+      .sort((a, b) => {
+        // Sort by performance (nulls at the end)
+        if (a.promedio_performance === null) return 1;
+        if (b.promedio_performance === null) return -1;
+        return b.promedio_performance - a.promedio_performance;
+      })
+      .map((row, index) => {
+        // EPL colors rotation - expanded for more groups
+        const colors = [
+          '#D03B34', '#FFED00', '#F18523', '#6C109F',
+          '#0984e3', '#00b894', '#fdcb6e', '#e17055',
+          '#74b9ff', '#a29bfe', '#fd79a8', '#55a3ff',
+          '#ff7675', '#dfe6e9', '#636e72', '#2d3436',
+          '#00cec9', '#6c5ce7', '#e84393', '#ffeaa7'
+        ];
+        return {
+          id: row.name,
+          name: row.name,
+          color: colors[index % colors.length],
+          totalSucursales: parseInt(row.total_sucursales) || 0,
+          promedioPerformance: row.promedio_performance || 'N/A',
+          totalEvaluaciones: parseInt(row.total_evaluaciones) || 0
+        };
+      });
 
+    console.log(`✅ Returning ${groups.length} operational groups (including those without recent data)`);
+    
     res.json({
       success: true,
-      data: groups
+      data: groups,
+      totalGroups: groups.length
     });
 
   } catch (error) {

@@ -3356,23 +3356,26 @@
             });
         };
         
-        // Format group name for display
+        // FASE 2: Format group name - NOMBRES COMPLETOS en lugar de truncados
         app.formatGroupName = function(name) {
-            if (name.length <= 8) return name;
-            
-            // Handle specific cases
-            const abbreviations = {
-                'GRUPO CANTERA ROSA (MORELIA)': 'MORELIA',
-                'GRUPO NUEVO LAREDO (RUELAS)': 'RUELAS',
+            // IMPROVED: Show full names with better formatting
+            const nameMapping = {
+                'GRUPO CANTERA ROSA (MORELIA)': 'CANTERA ROSA (MORELIA)',
+                'GRUPO NUEVO LAREDO (RUELAS)': 'NUEVO LAREDO (RUELAS)', 
+                'GRUPO MATAMOROS': 'MATAMOROS',
+                'GRUPO PIEDRAS NEGRAS': 'PIEDRAS NEGRAS',
+                'GRUPO RIO BRAVO': 'RIO BRAVO',
+                'GRUPO SABINAS HIDALGO': 'SABINAS HIDALGO',
                 'GRUPO SALTILLO': 'SALTILLO',
-                'GRUPO MATAMOROS': 'MATAM.',
+                'GRUPO CENTRITO': 'CENTRITO',
                 'OCHTER TAMPICO': 'TAMPICO',
                 'PLOG LAGUNA': 'LAGUNA',
-                'PLOG NUEVO LEON': 'PLOG NL',
-                'PLOG QUERETARO': 'PLOG QRO'
+                'PLOG NUEVO LEON': 'NUEVO LEON',
+                'PLOG QUERETARO': 'QUERETARO'
             };
             
-            return abbreviations[name] || name.substring(0, 8);
+            // Return cleaner version or full name
+            return nameMapping[name] || name;
         };
         
         // Group selection handler
