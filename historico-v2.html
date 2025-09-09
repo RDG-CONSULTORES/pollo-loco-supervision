@@ -2536,7 +2536,7 @@
                 pointBorderWidth: 2,
                 pointRadius: 6,
                 fill: false,
-                spanGaps: false // CHANGED: Don't connect gaps to show real data only
+                spanGaps: true // IMPROVED: Connect EPL baseline smoothly
             });
             
             // Add lines for selected groups with real API data
@@ -2595,7 +2595,7 @@
                             pointBorderWidth: 2,
                             pointRadius: 5,
                             fill: false,
-                            spanGaps: false // CHANGED: Show gaps for honest data representation
+                            spanGaps: activeFilter === 'todos' ? true : false // IMPROVED: Connect lines smoothly for 'Todos', show gaps for filtered views
                             });
                             colorIndex++;
                             console.log(`✅ Added ${group.name} to chart (${isLocal ? 'LOCAL' : ''} ${isForaneo ? 'FORÁNEO' : ''}):`, data);
@@ -2639,7 +2639,7 @@
                             pointBorderWidth: 2,
                             pointRadius: 5,
                             fill: false,
-                            spanGaps: false // CHANGED: Show gaps for honest data representation
+                            spanGaps: activeFilter === 'todos' ? true : false // IMPROVED: Connect lines smoothly for 'Todos', show gaps for filtered views
                         });
                         colorIndex++;
                         console.log(`✅ Added simulated data for ${group.name}:`, simulatedData);
