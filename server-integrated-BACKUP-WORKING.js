@@ -472,6 +472,151 @@ app.get('/api/trimestres', async (req, res) => {
     }
 });
 
+// Heatmap periods endpoint for historical analysis
+app.get('/api/heatmap-periods/:groupId', async (req, res) => {
+    if (!dbConnected) {
+        // Fallback data structure for offline development
+        return res.json({
+            success: true,
+            data: {
+                periods: ['nl_t1', 'for_s1', 'nl_t2', 'for_s2', 'nl_t3'],
+                periodLabels: {
+                    'nl_t1': 'NL-T1',
+                    'for_s1': 'FOR-S1', 
+                    'nl_t2': 'NL-T2',
+                    'for_s2': 'FOR-S2',
+                    'nl_t3': 'NL-T3'
+                },
+                groups: [
+                    {
+                        grupo: 'OGAS',
+                        promedio_general: 94.5,
+                        periodos: {
+                            nl_t1: { promedio: 95.2, evaluaciones: 12, sucursales: 8 },
+                            for_s1: { promedio: 93.8, evaluaciones: 15, sucursales: 10 },
+                            nl_t2: { promedio: 94.1, evaluaciones: 18, sucursales: 12 },
+                            for_s2: { promedio: 94.9, evaluaciones: 14, sucursales: 9 },
+                            nl_t3: { promedio: 95.0, evaluaciones: 16, sucursales: 11 }
+                        }
+                    }
+                ]
+            }
+        });
+    }
+    
+    try {
+        const { groupId } = req.params;
+        console.log(`🔥 Generating heatmap periods data for groupId: ${groupId}`);
+        
+        // Query to get all groups with period-based performance
+        const query = `
+            WITH period_classification AS (
+                SELECT 
+                    submission_id,
+                    sucursal_clean,
+                    grupo_operativo,
+                    area_evaluacion,
+                    porcentaje,
+                    fecha_supervision,
+                    EXTRACT(QUARTER FROM fecha_supervision) as quarter,
+                    EXTRACT(MONTH FROM fecha_supervision) as month,
+                    -- Classification logic: NL (No Foránea) for Q1,Q2,Q3 and FOR (Foránea) for semester analysis
+                    CASE 
+                        WHEN EXTRACT(QUARTER FROM fecha_supervision) = 1 THEN 'nl_t1'
+                        WHEN EXTRACT(QUARTER FROM fecha_supervision) = 2 AND EXTRACT(MONTH FROM fecha_supervision) <= 4 THEN 'for_s1'
+                        WHEN EXTRACT(QUARTER FROM fecha_supervision) = 2 AND EXTRACT(MONTH FROM fecha_supervision) > 4 THEN 'nl_t2'
+                        WHEN EXTRACT(QUARTER FROM fecha_supervision) = 3 AND EXTRACT(MONTH FROM fecha_supervision) <= 7 THEN 'for_s2'
+                        WHEN EXTRACT(QUARTER FROM fecha_supervision) = 3 AND EXTRACT(MONTH FROM fecha_supervision) > 7 THEN 'nl_t3'
+                        ELSE 'nl_t3'
+                    END as period_type
+                FROM supervision_operativa_detalle 
+                WHERE porcentaje IS NOT NULL 
+                AND fecha_supervision IS NOT NULL
+                AND area_evaluacion = ''  -- General evaluation
+            ),
+            group_period_summary AS (
+                SELECT 
+                    grupo_operativo,
+                    period_type,
+                    ROUND(AVG(porcentaje), 1) as promedio,
+                    COUNT(DISTINCT submission_id) as evaluaciones,
+                    COUNT(DISTINCT sucursal_clean) as sucursales
+                FROM period_classification
+                WHERE grupo_operativo IS NOT NULL
+                GROUP BY grupo_operativo, period_type
+            ),
+            group_overall AS (
+                SELECT 
+                    grupo_operativo,
+                    ROUND(AVG(porcentaje), 1) as promedio_general
+                FROM supervision_operativa_detalle 
+                WHERE porcentaje IS NOT NULL 
+                AND area_evaluacion = ''
+                AND grupo_operativo IS NOT NULL
+                GROUP BY grupo_operativo
+            )
+            SELECT 
+                go.grupo_operativo as grupo,
+                go.promedio_general,
+                json_object_agg(
+                    gps.period_type, 
+                    json_build_object(
+                        'promedio', gps.promedio,
+                        'evaluaciones', gps.evaluaciones,
+                        'sucursales', gps.sucursales
+                    )
+                ) FILTER (WHERE gps.period_type IS NOT NULL) as periodos
+            FROM group_overall go
+            LEFT JOIN group_period_summary gps ON go.grupo_operativo = gps.grupo_operativo
+            GROUP BY go.grupo_operativo, go.promedio_general
+            ORDER BY go.promedio_general DESC
+        `;
+        
+        const result = await pool.query(query);
+        
+        const responseData = {
+            periods: ['nl_t1', 'for_s1', 'nl_t2', 'for_s2', 'nl_t3'],
+            periodLabels: {
+                'nl_t1': 'NL-T1',
+                'for_s1': 'FOR-S1',
+                'nl_t2': 'NL-T2', 
+                'for_s2': 'FOR-S2',
+                'nl_t3': 'NL-T3'
+            },
+            groups: result.rows.map(row => ({
+                grupo: row.grupo,
+                promedio_general: parseFloat(row.promedio_general) || 0,
+                periodos: row.periodos || {}
+            }))
+        };
+        
+        console.log(`🔥 Heatmap periods generated: ${result.rows.length} groups with period data`);
+        
+        res.json({
+            success: true,
+            data: responseData
+        });
+        
+    } catch (error) {
+        console.error('❌ API /heatmap-periods error:', error);
+        res.json({
+            success: false,
+            error: error.message,
+            data: {
+                periods: ['nl_t1', 'for_s1', 'nl_t2', 'for_s2', 'nl_t3'],
+                periodLabels: {
+                    'nl_t1': 'NL-T1',
+                    'for_s1': 'FOR-S1',
+                    'nl_t2': 'NL-T2',
+                    'for_s2': 'FOR-S2', 
+                    'nl_t3': 'NL-T3'
+                },
+                groups: []
+            }
+        });
+    }
+});
+
 // Debug endpoint for locations
 app.get('/api/debug/locations', async (req, res) => {
     if (!dbConnected) {
