@@ -2356,28 +2356,46 @@
             // FASE 3: Use CAS periods in SAME ORDER as HeatMap
             let chartLabels = ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'];
             
-            // Get EPL CAS baseline with CAS period data (in HeatMap order)
-            let eplCasData = [97.67, 97.8, 98.1, 97.9, 98.3]; // Default EPL baseline for CAS periods
+            // Calculate REAL EPL CAS average from HeatMap data (not OGAS)
+            let eplCasData = [null, null, null, null, null]; // Initialize with nulls
             
             try {
-                const ogas = this.operationalGroups?.find(g => g.name === 'OGAS');
-                if (ogas) {
-                    const response = await fetch(`/api/historical-performance/${ogas.id}`);
-                    const data = await response.json();
+                // Use real HeatMap data to calculate EPL CAS average per period
+                if (this.heatmapPeriodsData && this.heatmapPeriodsData.groups) {
+                    const periods = ['nl_t1', 'for_s1', 'nl_t2', 'for_s2', 'nl_t3'];
                     
-                    if (data.success && data.data.datasets[0]?.data) {
-                        eplCasData = data.data.datasets[0].data;
-                        chartLabels = data.data.labels;
-                        console.log('✅ EPL CAS data loaded from OGAS:', eplCasData);
-                    }
+                    eplCasData = periods.map((period, index) => {
+                        let sum = 0;
+                        let count = 0;
+                        
+                        // Calculate average across ALL groups for this period
+                        this.heatmapPeriodsData.groups.forEach(group => {
+                            const periodData = group.periodos[period];
+                            if (periodData && periodData.promedio !== null && periodData.promedio > 0) {
+                                sum += periodData.promedio;
+                                count++;
+                            }
+                        });
+                        
+                        // Return average or null if no data
+                        const average = count > 0 ? sum / count : null;
+                        if (average !== null) {
+                            console.log(`📊 EPL CAS ${chartLabels[index]}: ${average.toFixed(2)}% (${count} grupos)`);
+                        }
+                        return average;
+                    });
+                    
+                    console.log('✅ EPL CAS real calculado desde HeatMap:', eplCasData);
                 }
             } catch (error) {
-                console.error('⚠️  Using default EPL CAS data:', error);
+                console.error('❌ Error calculando EPL CAS real:', error);
+                // Fallback to reasonable defaults if error
+                eplCasData = [90, 90, 90, 90, 90];
             }
             
             // Add EPL CAS baseline (dotted orange line)
             datasets.push({
-                label: 'EPL CAS Promedio',
+                label: 'Promedio EPL CAS (Todos los grupos)',
                 data: eplCasData,
                 borderColor: '#FF6B35',
                 backgroundColor: 'rgba(255, 107, 53, 0.1)',
@@ -2389,7 +2407,7 @@
                 pointBorderWidth: 2,
                 pointRadius: 6,
                 fill: false,
-                spanGaps: true
+                spanGaps: false // CHANGED: Don't connect gaps to show real data only
             });
             
             // Add lines for selected groups with real API data
@@ -2435,7 +2453,7 @@
                             pointBorderWidth: 2,
                             pointRadius: 5,
                             fill: false,
-                            spanGaps: true
+                            spanGaps: false // CHANGED: Show gaps for honest data representation
                         });
                         colorIndex++;
                         console.log(`✅ Added REAL data for ${group.name} to chart:`, data);
@@ -2476,7 +2494,7 @@
                             pointBorderWidth: 2,
                             pointRadius: 5,
                             fill: false,
-                            spanGaps: true
+                            spanGaps: false // CHANGED: Show gaps for honest data representation
                         });
                         colorIndex++;
                         console.log(`✅ Added simulated data for ${group.name}:`, simulatedData);
@@ -2521,7 +2539,24 @@
                                 padding: 20,
                                 usePointStyle: true,
                                 font: { size: 11, weight: '600' },
-                                boxWidth: 8
+                                boxWidth: 8,
+                                generateLabels: function(chart) {
+                                    // Add custom legend labels
+                                    const original = Chart.defaults.plugins.legend.labels.generateLabels;
+                                    const labels = original.call(this, chart);
+                                    
+                                    // Add informative note at the end
+                                    labels.push({
+                                        text: '📌 Líneas cortadas = Períodos sin supervisión',
+                                        fillStyle: 'transparent',
+                                        strokeStyle: 'transparent',
+                                        fontColor: '#666',
+                                        hidden: false,
+                                        index: 999
+                                    });
+                                    
+                                    return labels;
+                                }
                             }
                         },
                         tooltip: {
@@ -2531,7 +2566,34 @@
                             borderColor: '#FF6B35',
                             borderWidth: 2,
                             cornerRadius: 8,
-                            displayColors: true
+                            displayColors: true,
+                            callbacks: {
+                                afterLabel: function(context) {
+                                    // Add context about why data might be missing
+                                    const label = context.dataset.label;
+                                    const periodIndex = context.dataIndex;
+                                    const periods = ['NL-T1', 'FOR-S1', 'NL-T2', 'FOR-S2', 'NL-T3'];
+                                    const period = periods[periodIndex];
+                                    
+                                    // Determine if group is LOCAL or FORÁNEO based on data pattern
+                                    const hasLocalData = context.dataset.data[0] !== null || 
+                                                       context.dataset.data[2] !== null || 
+                                                       context.dataset.data[4] !== null;
+                                    const hasForaneoData = context.dataset.data[1] !== null || 
+                                                          context.dataset.data[3] !== null;
+                                    
+                                    if (label !== 'Promedio EPL CAS (Todos los grupos)') {
+                                        if (hasLocalData && !hasForaneoData) {
+                                            return '📍 Grupo LOCAL (Supervisión Trimestral)';
+                                        } else if (!hasLocalData && hasForaneoData) {
+                                            return '🌎 Grupo FORÁNEO (Supervisión Semestral)';
+                                        } else if (hasLocalData && hasForaneoData) {
+                                            return '🔄 Grupo MIXTO';
+                                        }
+                                    }
+                                    return '';
+                                }
+                            }
                         }
                     },
                     scales: {

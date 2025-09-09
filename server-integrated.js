@@ -1846,6 +1846,77 @@ app.get('/api/debug-dates', async (req, res) => {
   }
 });
 
+// DIAGNOSTIC ENDPOINT 3 - Check recent Tepeyac data
+app.get('/api/debug-tepeyac', async (req, res) => {
+  if (!dbConnected) {
+    return res.status(503).json({ error: 'Database connection unavailable' });
+  }
+
+  try {
+    const query = `
+      SELECT 
+        fecha_supervision,
+        location_name,
+        grupo_operativo_limpio,
+        estado_normalizado,
+        porcentaje,
+        -- Determine CAS period
+        CASE 
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                THEN 'NL-T3'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                 AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                THEN 'NL-T2'
+            WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                 AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                 AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                THEN 'NL-T1'
+            ELSE 'OTHER'
+        END as periodo_cas
+      FROM supervision_operativa_clean
+      WHERE grupo_operativo_limpio = 'TEPEYAC'
+        AND fecha_supervision >= CURRENT_DATE - INTERVAL '7 days'
+      ORDER BY fecha_supervision DESC
+    `;
+
+    const result = await pool.query(query);
+    
+    // Also check if NL-T3 date range is capturing recent dates
+    const dateCheckQuery = `
+      SELECT 
+        MIN(fecha_supervision) as oldest_date,
+        MAX(fecha_supervision) as newest_date,
+        COUNT(*) as total_records,
+        COUNT(DISTINCT location_name) as unique_locations
+      FROM supervision_operativa_clean
+      WHERE grupo_operativo_limpio = 'TEPEYAC'
+        AND fecha_supervision >= '2025-08-19'
+    `;
+    
+    const dateCheck = await pool.query(dateCheckQuery);
+    
+    res.json({
+      success: true,
+      recent_tepeyac_data: result.rows,
+      nl_t3_date_analysis: dateCheck.rows[0],
+      nl_t3_definition: "2025-08-19 to 2025-12-31",
+      current_date: new Date().toISOString().split('T')[0],
+      note: "Si las supervisiones de ayer no aparecen, puede ser problema con ETL o fechas fuera de rango CAS"
+    });
+
+  } catch (error) {
+    console.error('❌ Debug Tepeyac API Error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Error fetching Tepeyac debug data',
+      details: error.message 
+    });
+  }
+});
+
 // TEST ENDPOINT - Remove after debugging
 app.get('/api/test-periods', async (req, res) => {
     if (!dbConnected) {
