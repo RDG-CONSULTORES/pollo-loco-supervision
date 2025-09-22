@@ -19,7 +19,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // SAFETY SWITCH - Change this to switch between clean view and raw table
-const USE_CLEAN_VIEW = process.env.USE_CLEAN_VIEW === 'true' || false;
+const USE_CLEAN_VIEW = process.env.USE_CLEAN_VIEW === 'true' || true;
 const DATA_SOURCE = USE_CLEAN_VIEW ? 'supervision_operativa_clean' : 'supervision_operativa_detalle';
 console.log(`🔧 Using data source: ${DATA_SOURCE}`);
 
