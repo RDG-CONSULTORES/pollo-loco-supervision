@@ -1947,6 +1947,253 @@ app.get('/api/test-periods', async (req, res) => {
     }
 });
 
+// ===================================================
+// REPORT GENERATION ENDPOINT
+// ===================================================
+
+// Add required imports for report generation
+const puppeteer = require('puppeteer');
+const handlebars = require('handlebars');
+const fs = require('fs').promises;
+const path = require('path');
+
+// Helper function to generate report data
+async function generateReportData(groupId, period) {
+    try {
+        // Build filters
+        let whereConditions = ['porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+
+        if (groupId && groupId !== 'all') {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(groupId);
+            paramIndex++;
+        }
+
+        // Add period filter if specified
+        if (period && period !== 'all') {
+            // This would need to be expanded based on your period logic
+            whereConditions.push(`fecha_supervision >= CURRENT_DATE - INTERVAL '3 months'`);
+        }
+
+        const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
+
+        // Get KPIs
+        const kpiQuery = `
+            SELECT 
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio_general,
+                COUNT(DISTINCT submission_id) as total_supervisiones,
+                COUNT(DISTINCT location_name) as total_sucursales,
+                ROUND((COUNT(CASE WHEN porcentaje >= 70 THEN 1 END) * 100.0 / COUNT(*))::numeric, 2) as tasa_cumplimiento
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+        `;
+
+        // Get top locations
+        const topLocationsQuery = `
+            SELECT 
+                location_name as sucursal,
+                estado_normalizado as estado,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones,
+                CASE 
+                    WHEN AVG(porcentaje) >= 90 THEN 'Excelente'
+                    WHEN AVG(porcentaje) >= 80 THEN 'Bueno'
+                    WHEN AVG(porcentaje) >= 70 THEN 'Regular'
+                    ELSE 'Requiere Atención'
+                END as status
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            GROUP BY location_name, estado_normalizado
+            ORDER BY AVG(porcentaje) DESC
+            LIMIT 10
+        `;
+
+        // Get performance areas
+        const areasQuery = `
+            SELECT 
+                area_evaluacion as area,
+                ROUND(AVG(porcentaje), 2) as score,
+                COUNT(*) as evaluations
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            AND area_evaluacion != ''
+            AND area_evaluacion NOT LIKE '%PUNTOS%'
+            GROUP BY area_evaluacion
+            ORDER BY AVG(porcentaje) DESC
+        `;
+
+        // Get critical areas
+        const criticalAreasQuery = `
+            SELECT 
+                area_evaluacion as area,
+                ROUND(AVG(porcentaje), 2) as score,
+                COUNT(DISTINCT location_name) as affected_locations,
+                CASE 
+                    WHEN AVG(porcentaje) < 50 THEN 'Crítica'
+                    WHEN AVG(porcentaje) < 60 THEN 'Alta'
+                    ELSE 'Media'
+                END as priority
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            AND area_evaluacion != ''
+            AND area_evaluacion NOT LIKE '%PUNTOS%'
+            GROUP BY area_evaluacion
+            HAVING AVG(porcentaje) < 70
+            ORDER BY AVG(porcentaje) ASC
+        `;
+
+        // Execute all queries
+        const [kpiResult, topLocationsResult, areasResult, criticalAreasResult] = await Promise.all([
+            pool.query(kpiQuery, params),
+            pool.query(topLocationsQuery, params),
+            pool.query(areasQuery, params),
+            pool.query(criticalAreasQuery, params)
+        ]);
+
+        // Process results
+        const kpis = kpiResult.rows[0] || {};
+        const topLocations = topLocationsResult.rows.map(row => ({
+            ...row,
+            scoreClass: row.promedio >= 90 ? 'score-high' : row.promedio >= 70 ? 'score-medium' : 'score-low'
+        }));
+
+        const performanceAreas = areasResult.rows.map(row => ({
+            ...row,
+            scoreClass: row.score >= 90 ? 'score-high' : row.score >= 70 ? 'score-medium' : 'score-low'
+        }));
+
+        const criticalAreas = criticalAreasResult.rows.map(row => ({
+            area: row.area,
+            score: row.score,
+            affectedLocations: row.affected_locations,
+            priority: row.priority
+        }));
+
+        // Generate recommendations based on data
+        const recommendations = [];
+        if (kpis.promedio_general < 80) {
+            recommendations.push('Implementar programa de capacitación intensiva para mejorar el promedio general.');
+        }
+        if (criticalAreas.length > 0) {
+            recommendations.push(`Priorizar mejoras en ${criticalAreas.length} áreas críticas identificadas.`);
+        }
+        if (topLocations.length > 0 && topLocations[0].promedio > 95) {
+            recommendations.push(`Aplicar mejores prácticas de "${topLocations[0].sucursal}" en otras sucursales.`);
+        }
+        recommendations.push('Realizar seguimiento quincenal de las métricas de performance.');
+        recommendations.push('Establecer metas específicas por sucursal y área de evaluación.');
+
+        return {
+            kpis: {
+                averageScore: kpis.promedio_general || 0,
+                totalSupervisions: kpis.total_supervisiones || 0,
+                totalLocations: kpis.total_sucursales || 0,
+                complianceRate: kpis.tasa_cumplimiento || 0
+            },
+            topLocations,
+            performanceAreas,
+            criticalAreas,
+            recommendations
+        };
+
+    } catch (error) {
+        console.error('Error generating report data:', error);
+        throw error;
+    }
+}
+
+// Report generation endpoint
+app.get('/api/generate-report/:groupId?', async (req, res) => {
+    try {
+        const { groupId = 'all' } = req.params;
+        const { period = 'all', format = 'pdf' } = req.query;
+
+        console.log(`📊 Generating report for group: ${groupId}, period: ${period}`);
+
+        // Generate report data
+        const reportData = await generateReportData(groupId, period);
+
+        // Get group name
+        let groupName = 'Todos los Grupos';
+        if (groupId !== 'all') {
+            const groupQuery = `SELECT DISTINCT grupo_operativo_limpio FROM ${DATA_SOURCE} WHERE grupo_operativo_limpio = $1`;
+            const groupResult = await pool.query(groupQuery, [groupId]);
+            groupName = groupResult.rows[0]?.grupo_operativo_limpio || groupId;
+        }
+
+        // Prepare template data
+        const templateData = {
+            groupName,
+            period: period === 'all' ? 'Todos los Períodos' : period,
+            generationDate: new Date().toLocaleDateString('es-MX', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
+            dateRange: 'Últimos 3 meses',
+            ...reportData
+        };
+
+        // Register Handlebars helper
+        handlebars.registerHelper('add', function(value, addition) {
+            return value + addition;
+        });
+
+        // Load and compile template
+        const templatePath = path.join(__dirname, 'report-template.html');
+        const templateSource = await fs.readFile(templatePath, 'utf8');
+        const template = handlebars.compile(templateSource);
+        const htmlContent = template(templateData);
+
+        if (format === 'html') {
+            res.setHeader('Content-Type', 'text/html');
+            res.send(htmlContent);
+            return;
+        }
+
+        // Generate PDF
+        const browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        });
+        
+        const page = await browser.newPage();
+        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+        
+        const pdfBuffer = await page.pdf({
+            format: 'A4',
+            printBackground: true,
+            margin: {
+                top: '2cm',
+                right: '2cm',
+                bottom: '2cm',
+                left: '2cm'
+            }
+        });
+        
+        await browser.close();
+
+        // Send PDF response
+        const filename = `Reporte-${groupName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(pdfBuffer);
+
+        console.log(`✅ Report generated successfully: ${filename}`);
+
+    } catch (error) {
+        console.error('❌ Error generating report:', error);
+        res.status(500).json({ 
+            error: 'Error al generar el reporte',
+            details: error.message 
+        });
+    }
+});
+
 // Start server
 app.listen(PORT, async () => {
     console.log(`🚀 El Pollo Loco Interactive Dashboard v2.0 running on port ${PORT}`);
