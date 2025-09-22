@@ -196,7 +196,8 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
           END as periodo_cas,
           porcentaje,
           location_name,
-          grupo_operativo_limpio as grupo
+          grupo_operativo_limpio as grupo,
+          area_evaluacion
         FROM supervision_operativa_clean
         WHERE porcentaje IS NOT NULL
           AND grupo_operativo_limpio IS NOT NULL
@@ -206,13 +207,7 @@ app.get('/api/historical-performance/:groupId?', async (req, res) => {
       )
       SELECT 
         periodo_cas,
-        ROUND(
-          CASE 
-            WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-            THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-            ELSE AVG(porcentaje) 
-          END::numeric, 2
-        ) as promedio_performance,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
         COUNT(DISTINCT location_name) as sucursales_evaluadas,
         COUNT(*) as total_evaluaciones,
         grupo
@@ -344,13 +339,7 @@ app.get('/api/operational-groups', async (req, res) => {
       SELECT 
         grupo_operativo_limpio as name,
         COUNT(DISTINCT location_name) as total_sucursales,
-        ROUND(
-          CASE 
-            WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-            THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-            ELSE AVG(porcentaje) 
-          END::numeric, 2
-        ) as promedio_performance,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
         COUNT(*) as total_evaluaciones
       FROM supervision_operativa_clean
       WHERE grupo_operativo_limpio IS NOT NULL
@@ -458,13 +447,7 @@ app.get('/api/heatmap-data/:groupId?', async (req, res) => {
         latitud::numeric as lat,
         longitud::numeric as lng,
         grupo_operativo_limpio as grupo,
-        ROUND(
-          CASE 
-            WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-            THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-            ELSE AVG(porcentaje) 
-          END::numeric, 2
-        ) as promedio_performance,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
         COUNT(*) as total_evaluaciones,
         CASE 
           WHEN AVG(porcentaje) >= 90 THEN 'excellent'
@@ -539,13 +522,7 @@ app.get('/api/performance-areas/:groupId?', async (req, res) => {
     const query = `
       SELECT 
         area_evaluacion,
-        ROUND(
-          CASE 
-            WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-            THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-            ELSE AVG(porcentaje) 
-          END::numeric, 2
-        ) as promedio_performance,
+        ROUND(AVG(porcentaje)::numeric, 2) as promedio_performance,
         COUNT(*) as total_evaluaciones,
         COUNT(DISTINCT location_name) as sucursales_evaluadas,
         ROUND(MIN(porcentaje)::numeric, 2) as min_performance,
@@ -1483,23 +1460,13 @@ app.get('/api/sucursales-ranking', async (req, res) => {
                 location_name as sucursal,
                 grupo_operativo_limpio as grupo_operativo,
                 estado_normalizado as estado,
-                ROUND(
-                    CASE 
-                        WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-                        THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-                        ELSE AVG(porcentaje) 
-                    END, 2
-                ) as promedio,
+                ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(DISTINCT submission_id) as evaluaciones
             FROM supervision_operativa_clean 
             WHERE ${whereClause}
             GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
             HAVING COUNT(DISTINCT area_evaluacion) >= 5
-            ORDER BY CASE 
-                WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-                THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-                ELSE AVG(porcentaje) 
-            END DESC
+            ORDER BY AVG(porcentaje) DESC
             LIMIT ${limitParam}
         `, params);
         
