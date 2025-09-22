@@ -53,7 +53,13 @@ class DataService {
 
       const query = `
         SELECT 
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio_general,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio_general,
           COUNT(DISTINCT submission_id) as total_supervisiones,
           COUNT(DISTINCT location_id) as total_sucursales,
           COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
@@ -97,7 +103,13 @@ class DataService {
       const query = `
         SELECT 
           grupo_operativo_limpio as grupo_operativo,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(DISTINCT submission_id) as supervisiones,
           COUNT(DISTINCT location_id) as sucursales
         FROM supervision_operativa_clean
@@ -131,7 +143,13 @@ class DataService {
       const query = `
         SELECT 
           estado_normalizado as estado,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(DISTINCT submission_id) as supervisiones,
           COUNT(DISTINCT location_id) as sucursales
         FROM supervision_operativa_clean
@@ -173,7 +191,13 @@ class DataService {
       const query = `
         SELECT 
           TRIM(area_evaluacion) as indicador,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(*) as evaluaciones,
           CASE 
             WHEN AVG(porcentaje) >= 90 THEN 'success'
@@ -222,7 +246,13 @@ class DataService {
           municipio,
           latitud::float,
           longitud::float,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(DISTINCT area_evaluacion) as areas_evaluadas,
           COUNT(DISTINCT submission_id) as total_supervisiones,
           CASE 
@@ -263,7 +293,13 @@ class DataService {
           'Q' || EXTRACT(QUARTER FROM fecha_supervision) || ' ' || EXTRACT(YEAR FROM fecha_supervision) as trimestre,
           EXTRACT(YEAR FROM fecha_supervision) as año,
           EXTRACT(QUARTER FROM fecha_supervision) as trimestre_num,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(DISTINCT submission_id) as supervisiones,
           COUNT(DISTINCT location_id) as sucursales
         FROM supervision_operativa_clean
@@ -309,7 +345,13 @@ class DataService {
           location_name as sucursal,
           grupo_operativo_limpio as grupo_operativo,
           estado_normalizado as estado,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(*) as evaluaciones
         FROM supervision_operativa_clean
         ${whereClause}
@@ -355,7 +397,13 @@ class DataService {
           grupo_operativo_limpio as grupo_operativo,
           estado_normalizado as estado,
           municipio,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(DISTINCT area_evaluacion) as areas_evaluadas
         FROM supervision_operativa_clean
         ${whereClause}
@@ -371,7 +419,13 @@ class DataService {
           grupo_operativo_limpio as grupo_operativo,
           estado_normalizado as estado,
           municipio,
-          ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+          ROUND(
+            CASE 
+              WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+              THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+              ELSE AVG(porcentaje) 
+            END::numeric, 2
+          ) as promedio,
           COUNT(DISTINCT area_evaluacion) as areas_evaluadas
         FROM supervision_operativa_clean
         ${whereClause}
