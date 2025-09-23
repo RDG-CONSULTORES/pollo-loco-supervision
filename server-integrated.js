@@ -1954,7 +1954,6 @@ app.get('/api/test-periods', async (req, res) => {
 // Add required imports for report generation
 const handlebars = require('handlebars');
 const fs = require('fs').promises;
-const path = require('path');
 
 // Helper function to generate report data
 async function generateReportData(groupId, period) {
