@@ -92,6 +92,12 @@ La tabla principal `supervision_operativa_detalle` contiene:
 - **561,868 registros** en formato Long
 - **135 supervisiones** únicas
 - **79 sucursales** evaluadas
+
+## 📊 Sistema de Reportes
+- Reportes HTML profesionales optimizados para Render
+- Generación de PDFs desde el navegador (sin Puppeteer)
+- Filtros por grupo operativo y período
+- Deploy optimizado para contenedores Linux
 - **40 indicadores** diferentes
 - **3 trimestres** (Q1, Q2, Q3 2025)
 
