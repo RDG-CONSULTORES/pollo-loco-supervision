@@ -605,10 +605,10 @@ app.get('/dashboard-old', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard-react.html'));
 });
 
-// NEW Dashboard (FIXED VERSION)
+// NEW Dashboard (FIXED VERSION with Reports)
 app.get('/dashboard', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'telegram-bot/web-app/public/index.html');
-    console.log('📊 NEW Dashboard requested:', dashboardPath);
+    const dashboardPath = path.join(__dirname, 'HOTFIX-DASHBOARD.html');
+    console.log('📊 NEW Dashboard with Reports requested:', dashboardPath);
     res.sendFile(dashboardPath);
 });
 
@@ -2162,6 +2162,177 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
             error: 'Error al generar el reporte',
             details: error.message 
         });
+    }
+});
+
+// Dashboard API Endpoints
+app.get('/api/dashboard-data', async (req, res) => {
+    if (!dbConnected) {
+        return res.json({
+            grupos: [],
+            areas: [],
+            tendencias: []
+        });
+    }
+    
+    try {
+        const { grupo, estado, trimestre } = req.query;
+        
+        // Build filters
+        let whereConditions = ['porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+        
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        
+        if (trimestre) {
+            const periodoCasCondition = buildPeriodoCasCondition(trimestre, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+            }
+        }
+        
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        
+        // Get grupos data
+        const gruposQuery = `
+            SELECT 
+                grupo_operativo_limpio as grupo,
+                ROUND(
+                    CASE 
+                        WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+                        THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+                        ELSE AVG(porcentaje) 
+                    END::numeric, 2
+                ) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            GROUP BY grupo_operativo_limpio
+            ORDER BY promedio DESC
+            LIMIT 10
+        `;
+        
+        // Get areas data  
+        const areasQuery = `
+            SELECT 
+                CASE 
+                    WHEN area_evaluacion = '' OR area_evaluacion IS NULL THEN 'GENERAL'
+                    ELSE area_evaluacion 
+                END as area,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+                COUNT(*) as evaluaciones
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            GROUP BY area_evaluacion
+            ORDER BY promedio ASC
+            LIMIT 8
+        `;
+        
+        // Get tendencias data
+        const tendenciasQuery = `
+            SELECT 
+                TO_CHAR(fecha_supervision, 'YYYY-MM') as periodo,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            GROUP BY TO_CHAR(fecha_supervision, 'YYYY-MM')
+            ORDER BY periodo
+            LIMIT 12
+        `;
+        
+        const [gruposResult, areasResult, tendenciasResult] = await Promise.all([
+            pool.query(gruposQuery, params),
+            pool.query(areasQuery, params),
+            pool.query(tendenciasQuery, params)
+        ]);
+        
+        res.json({
+            grupos: gruposResult.rows,
+            areas: areasResult.rows,
+            tendencias: tendenciasResult.rows
+        });
+        
+    } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        res.status(500).json({ error: 'Error al cargar los datos del dashboard' });
+    }
+});
+
+app.get('/api/map/data', async (req, res) => {
+    if (!dbConnected) {
+        return res.json([]);
+    }
+    
+    try {
+        const { grupo, estado, trimestre } = req.query;
+        
+        // Build filters
+        let whereConditions = ['porcentaje IS NOT NULL', 'latitud IS NOT NULL', 'longitud IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+        
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+        
+        if (trimestre) {
+            const periodoCasCondition = buildPeriodoCasCondition(trimestre, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+            }
+        }
+        
+        const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(' AND ')}` : '';
+        
+        const query = `
+            SELECT 
+                location_name as sucursal,
+                estado_normalizado as estado,
+                grupo_operativo_limpio as grupo,
+                ROUND(
+                    CASE 
+                        WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
+                        THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
+                        ELSE AVG(porcentaje) 
+                    END::numeric, 2
+                ) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones,
+                AVG(latitud) as latitud,
+                AVG(longitud) as longitud
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            GROUP BY location_name, estado_normalizado, grupo_operativo_limpio
+            HAVING AVG(latitud) IS NOT NULL AND AVG(longitud) IS NOT NULL
+            ORDER BY promedio DESC
+        `;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+        
+    } catch (error) {
+        console.error('Error fetching map data:', error);
+        res.status(500).json({ error: 'Error al cargar los datos del mapa' });
     }
 });
 
