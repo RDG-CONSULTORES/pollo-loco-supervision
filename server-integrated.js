@@ -605,20 +605,11 @@ app.get('/dashboard-old', (req, res) => {
     res.sendFile(path.join(__dirname, 'dashboard-react.html'));
 });
 
-// NEW Dashboard (FIXED VERSION with Reports)
+// NEW Dashboard (ORIGINAL WORKING VERSION)
 app.get('/dashboard', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'HOTFIX-DASHBOARD.html');
-    console.log('📊 NEW Dashboard with Reports requested:', dashboardPath);
-    
-    // Check if file exists
-    const fs = require('fs');
-    if (fs.existsSync(dashboardPath)) {
-        console.log('✅ HOTFIX-DASHBOARD.html found, serving it');
-        res.sendFile(dashboardPath);
-    } else {
-        console.log('❌ HOTFIX-DASHBOARD.html not found, falling back');
-        res.sendFile(path.join(__dirname, 'telegram-bot/web-app/public/index.html'));
-    }
+    const dashboardPath = path.join(__dirname, 'telegram-bot/web-app/public/index.html');
+    console.log('📊 Dashboard requested:', dashboardPath);
+    res.sendFile(dashboardPath);
 });
 
 // Análisis Histórico route

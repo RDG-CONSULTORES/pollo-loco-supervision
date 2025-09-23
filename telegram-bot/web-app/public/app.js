@@ -1821,3 +1821,35 @@ if (window.location.search.includes('debug=true')) {
         testApiEndpoints();
     }, 2000);
 }
+
+// =====================================================
+// FUNCIÓN PARA GENERAR REPORTE
+// =====================================================
+function generateReport() {
+    try {
+        // Get current filter values from the dashboard
+        const grupo = document.getElementById('grupoFilter')?.value || 'all';
+        const estado = document.getElementById('estadoFilter')?.value || 'all';
+        const trimestre = document.getElementById('trimestreFilter')?.value || 'all';
+        const periodoCas = document.getElementById('periodoCasFilter')?.value || 'all';
+        
+        // Create download URL with all current filters
+        const params = new URLSearchParams({
+            estado: estado,
+            trimestre: trimestre,
+            periodoCas: periodoCas,
+            format: 'html'
+        });
+        
+        const reportUrl = `${window.location.origin}/api/generate-report/${grupo}?${params}`;
+        
+        console.log('📊 Generating report with URL:', reportUrl);
+        
+        // Open report in new window
+        window.open(reportUrl, '_blank');
+        
+    } catch (error) {
+        console.error('Error generating report:', error);
+        alert('Error al generar el reporte');
+    }
+}
