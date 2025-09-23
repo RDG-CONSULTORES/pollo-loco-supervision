@@ -2155,10 +2155,34 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
             return;
         }
 
-        // Generate PDF
+        // Check if Puppeteer is available, fallback to HTML if not
+        try {
+            require.resolve('puppeteer');
+        } catch (e) {
+            console.log('⚠️ Puppeteer not available, serving HTML report');
+            res.setHeader('Content-Type', 'text/html');
+            res.setHeader('Content-Disposition', 'inline; filename="report.html"');
+            res.send(htmlContent);
+            return;
+        }
+
+        // Generate PDF with Render-optimized settings
         const browser = await puppeteer.launch({
             headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox', 
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--no-first-run',
+                '--no-default-browser-check',
+                '--disable-background-timer-throttling',
+                '--disable-backgrounding-occluded-windows',
+                '--disable-renderer-backgrounding'
+            ],
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
         });
         
         const page = await browser.newPage();

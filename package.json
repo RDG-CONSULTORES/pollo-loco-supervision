@@ -4,7 +4,7 @@
   "description": "El Pollo Loco CAS - Sistema de Supervisión Operativa con Telegram Bot LLM-powered y Mini Web App",
   "main": "server-integrated.js",
   "scripts": {
-    "start": "NODE_ENV=production node server-integrated.js",
+    "start": "NODE_ENV=production PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true node server-integrated.js",
     "dev": "concurrently \"npm run server\" \"npm run bot\"",
     "server": "cd backend && npm run dev",
     "bot": "node telegram-bot/bot-simple.js",
@@ -41,6 +41,7 @@
     "axios": "^1.6.2",
     "openai": "^5.15.0",
     "puppeteer": "^21.6.1",
+    "puppeteer-core": "^21.6.1",
     "handlebars": "^4.7.8"
   },
   "devDependencies": {
