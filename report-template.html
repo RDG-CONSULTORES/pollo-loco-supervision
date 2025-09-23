@@ -7,11 +7,25 @@
     <style>
         @page {
             size: A4;
-            margin: 2cm;
+            margin: 1.5cm;
             @bottom-center {
-                content: "Página " counter(page) " de " counter(pages);
+                content: "Página " counter(page);
                 font-size: 10px;
                 color: #666;
+            }
+        }
+        
+        @media print {
+            body { 
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .page-break { 
+                page-break-before: always; 
+            }
+            .no-print { 
+                display: none !important; 
             }
         }
 
@@ -248,6 +262,16 @@
     </style>
 </head>
 <body>
+    <!-- Print Button (hidden in print) -->
+    <div class="no-print" style="text-align: center; padding: 20px; background: #f8f9fa; border-bottom: 1px solid #ddd;">
+        <button onclick="window.print()" style="background: #FF6B35; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: 600;">
+            <i class="fas fa-print"></i> Imprimir / Guardar como PDF
+        </button>
+        <p style="margin-top: 10px; color: #666; font-size: 14px;">
+            Tip: En el diálogo de impresión, selecciona "Guardar como PDF" como destino
+        </p>
+    </div>
+
     <!-- Header -->
     <div class="report-header">
         <div class="logo-section">

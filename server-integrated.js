@@ -1952,7 +1952,6 @@ app.get('/api/test-periods', async (req, res) => {
 // ===================================================
 
 // Add required imports for report generation
-const puppeteer = require('puppeteer');
 const handlebars = require('handlebars');
 const fs = require('fs').promises;
 const path = require('path');
@@ -2149,65 +2148,14 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
         const template = handlebars.compile(templateSource);
         const htmlContent = template(templateData);
 
-        if (format === 'html') {
-            res.setHeader('Content-Type', 'text/html');
-            res.send(htmlContent);
-            return;
-        }
-
-        // Check if Puppeteer is available, fallback to HTML if not
-        try {
-            require.resolve('puppeteer');
-        } catch (e) {
-            console.log('⚠️ Puppeteer not available, serving HTML report');
-            res.setHeader('Content-Type', 'text/html');
-            res.setHeader('Content-Disposition', 'inline; filename="report.html"');
-            res.send(htmlContent);
-            return;
-        }
-
-        // Generate PDF with Render-optimized settings
-        const browser = await puppeteer.launch({
-            headless: 'new',
-            args: [
-                '--no-sandbox',
-                '--disable-setuid-sandbox', 
-                '--disable-dev-shm-usage',
-                '--disable-gpu',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-                '--no-first-run',
-                '--no-default-browser-check',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding'
-            ],
-            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined
-        });
+        // Always serve HTML report (printable to PDF from browser)
+        const filename = `Reporte-${groupName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.html`;
         
-        const page = await browser.newPage();
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-        
-        const pdfBuffer = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: {
-                top: '2cm',
-                right: '2cm',
-                bottom: '2cm',
-                left: '2cm'
-            }
-        });
-        
-        await browser.close();
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+        res.send(htmlContent);
 
-        // Send PDF response
-        const filename = `Reporte-${groupName.replace(/\s+/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`;
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-        res.send(pdfBuffer);
-
-        console.log(`✅ Report generated successfully: ${filename}`);
+        console.log(`✅ HTML Report generated successfully: ${filename}`);
 
     } catch (error) {
         console.error('❌ Error generating report:', error);
