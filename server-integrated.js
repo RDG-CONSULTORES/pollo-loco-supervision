@@ -1956,34 +1956,81 @@ const handlebars = require('handlebars');
 const fs = require('fs').promises;
 
 // Helper function to generate report data
-async function generateReportData(groupId, period) {
+async function generateReportData(groupId, estado, trimestre, periodoCas) {
     try {
-        // Build filters
+        console.log(`📊 Generating report data for group: ${groupId}, estado: ${estado}, trimestre: ${trimestre}, periodo: ${periodoCas}`);
+
+        // Build WHERE clause based on filters
         let whereConditions = ['porcentaje IS NOT NULL'];
         let params = [];
         let paramIndex = 1;
 
+        // Add group filter if not 'all'
         if (groupId && groupId !== 'all') {
             whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
             params.push(groupId);
             paramIndex++;
         }
 
-        // Add period filter if specified
-        if (period && period !== 'all') {
-            // This would need to be expanded based on your period logic
-            whereConditions.push(`fecha_supervision >= CURRENT_DATE - INTERVAL '3 months'`);
+        // Add state filter if specified
+        if (estado && estado !== 'all') {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+
+        // Add quarter filter if specified
+        if (trimestre && trimestre !== 'all' && (!periodoCas || periodoCas === 'all')) {
+            whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
+            params.push(parseInt(trimestre));
+            paramIndex++;
+        }
+
+        // Add CAS period filter if specified
+        if (periodoCas && periodoCas !== 'all') {
+            whereConditions.push(`
+                CASE 
+                    -- Locales: períodos trimestrales NL
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-30'
+                        THEN 'nl_t1'
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                         AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-12-31'
+                        THEN 'nl_t2'
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-07-01'
+                        THEN 'nl_t3'
+                    -- Foráneas: períodos semestrales
+                    WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                          OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
+                        THEN 'for_s1'
+                    WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                          OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                         AND fecha_supervision >= '2025-07-01'
+                        THEN 'for_s2'
+                    ELSE 'sin_periodo'
+                END = $${paramIndex}`
+            );
+            params.push(periodoCas);
+            paramIndex++;
         }
 
         const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
 
-        // Get KPIs
+        // Get KPIs (matching dashboard)
         const kpiQuery = `
             SELECT 
                 ROUND(AVG(porcentaje)::numeric, 2) as promedio_general,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
                 COUNT(DISTINCT location_name) as total_sucursales,
-                ROUND((COUNT(CASE WHEN porcentaje >= 70 THEN 1 END) * 100.0 / COUNT(*))::numeric, 2) as tasa_cumplimiento
+                COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
+                COUNT(*) as total_evaluaciones,
+                ROUND((COUNT(CASE WHEN porcentaje >= 70 THEN 1 END) * 100.0 / COUNT(*))::numeric, 2) as tasa_cumplimiento,
+                ROUND((COUNT(CASE WHEN porcentaje >= 90 THEN 1 END) * 100.0 / COUNT(*))::numeric, 2) as tasa_excelencia
             FROM ${DATA_SOURCE}
             ${whereClause}
         `;
@@ -2042,12 +2089,63 @@ async function generateReportData(groupId, period) {
             ORDER BY AVG(porcentaje) ASC
         `;
 
+        // Get groups ranking
+        const groupsRankingQuery = `
+            SELECT 
+                grupo_operativo_limpio as grupo,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones,
+                COUNT(DISTINCT location_name) as sucursales
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            AND grupo_operativo_limpio IS NOT NULL
+            GROUP BY grupo_operativo_limpio
+            ORDER BY AVG(porcentaje) DESC
+        `;
+        
+        // Get sucursales ranking (matching dashboard)
+        const sucursalesRankingQuery = `
+            WITH ranked_locations AS (
+                SELECT 
+                    location_name as sucursal,
+                    estado_normalizado as estado,
+                    grupo_operativo_limpio as grupo,
+                    ROUND(AVG(porcentaje), 2) as promedio,
+                    COUNT(DISTINCT submission_id) as evaluaciones,
+                    MAX(fecha_supervision) as ultima_evaluacion
+                FROM ${DATA_SOURCE}
+                ${whereClause}
+                AND location_name IS NOT NULL
+                GROUP BY location_name, estado_normalizado, grupo_operativo_limpio
+            )
+            SELECT * FROM ranked_locations
+            ORDER BY promedio DESC
+            LIMIT 20
+        `;
+        
+        // Get time trends data
+        const trendsQuery = `
+            SELECT 
+                EXTRACT(YEAR FROM fecha_supervision) as year,
+                EXTRACT(QUARTER FROM fecha_supervision) as quarter,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones
+            FROM ${DATA_SOURCE}
+            ${whereClause}
+            AND fecha_supervision >= CURRENT_DATE - INTERVAL '12 months'
+            GROUP BY EXTRACT(YEAR FROM fecha_supervision), EXTRACT(QUARTER FROM fecha_supervision)
+            ORDER BY year, quarter
+        `;
+
         // Execute all queries
-        const [kpiResult, topLocationsResult, areasResult, criticalAreasResult] = await Promise.all([
+        const [kpiResult, topLocationsResult, areasResult, criticalAreasResult, groupsRankingResult, sucursalesRankingResult, trendsResult] = await Promise.all([
             pool.query(kpiQuery, params),
             pool.query(topLocationsQuery, params),
             pool.query(areasQuery, params),
-            pool.query(criticalAreasQuery, params)
+            pool.query(criticalAreasQuery, params),
+            pool.query(groupsRankingQuery, params),
+            pool.query(sucursalesRankingQuery, params),
+            pool.query(trendsQuery, params)
         ]);
 
         // Process results
@@ -2069,6 +2167,28 @@ async function generateReportData(groupId, period) {
             priority: row.priority
         }));
 
+        // Process groups ranking
+        const gruposRanking = groupsRankingResult.rows.map(row => ({
+            ...row,
+            scoreClass: row.promedio >= 90 ? 'score-high' : row.promedio >= 70 ? 'score-medium' : 'score-low'
+        }));
+        
+        // Process sucursales ranking
+        const sucursalesRanking = sucursalesRankingResult.rows.map(row => ({
+            ...row,
+            scoreClass: row.promedio >= 90 ? 'score-high' : row.promedio >= 70 ? 'score-medium' : 'score-low'
+        }));
+        
+        // Process trends data
+        const tendencias = trendsResult.rows.map(row => ({
+            periodo: `T${row.quarter} ${row.year}`,
+            promedio: row.promedio,
+            evaluaciones: row.evaluaciones
+        }));
+        
+        // Get map data (locations for the map)
+        const mapData = topLocations.slice(0, 10); // Use top 10 locations for map representation
+
         // Generate recommendations based on data
         const recommendations = [];
         if (kpis.promedio_general < 80) {
@@ -2085,15 +2205,29 @@ async function generateReportData(groupId, period) {
 
         return {
             kpis: {
-                averageScore: kpis.promedio_general || 0,
-                totalSupervisions: kpis.total_supervisiones || 0,
-                totalLocations: kpis.total_sucursales || 0,
-                complianceRate: kpis.tasa_cumplimiento || 0
+                performanceGeneral: kpis.promedio_general || 0,
+                sucursalesEvaluadas: kpis.total_sucursales || 0,
+                gruposActivos: kpis.total_grupos || 0,
+                evaluacionesTotales: kpis.total_evaluaciones || 0,
+                promedioGeneral: kpis.promedio_general || 0,
+                cumplimiento: kpis.tasa_cumplimiento || 0,
+                tasaExcelencia: kpis.tasa_excelencia || 0
             },
             topLocations,
             performanceAreas,
             criticalAreas,
-            recommendations
+            gruposRanking,
+            sucursalesRanking,
+            areasSupervision: performanceAreas, // All areas for the grid display
+            tendencias,
+            mapData,
+            recommendations,
+            filters: {
+                grupo: groupId === 'all' ? 'Todos' : groupId,
+                estado: estado === 'all' ? 'Todos' : estado,
+                trimestre: trimestre === 'all' ? 'Todos' : `T${trimestre}`,
+                periodoCas: periodoCas === 'all' ? 'Todos' : periodoCas
+            }
         };
 
     } catch (error) {

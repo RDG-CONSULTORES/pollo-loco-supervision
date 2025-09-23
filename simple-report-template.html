@@ -7,16 +7,54 @@
     <style>
         @page {
             size: A4;
-            margin: 15mm;
+            margin: 12mm;
         }
         
         @media print {
             body { 
                 -webkit-print-color-adjust: exact;
                 color-adjust: exact;
+                print-color-adjust: exact;
+                font-size: 12px;
             }
             .no-print { 
                 display: none !important; 
+            }
+            .kpis-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 8px !important;
+            }
+            .charts-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+            .rankings-grid {
+                grid-template-columns: 1fr !important;
+                gap: 10px !important;
+            }
+            .areas-grid {
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 6px !important;
+            }
+            .ranking-table {
+                font-size: 10px !important;
+            }
+            .area-card {
+                padding: 6px !important;
+                font-size: 9px !important;
+            }
+            .kpi-card {
+                padding: 8px !important;
+            }
+            .kpi-value {
+                font-size: 18px !important;
+            }
+            .section-title {
+                font-size: 14px !important;
+                margin-bottom: 10px !important;
+            }
+            h4 {
+                font-size: 12px !important;
             }
         }
 
@@ -246,6 +284,48 @@
             font-weight: 600;
             cursor: pointer;
             margin-bottom: 20px;
+            transition: background-color 0.3s ease;
+        }
+        
+        .print-btn:hover {
+            background: #e85a2a;
+        }
+        
+        /* Mejorar espaciado para impresión */
+        .page-break {
+            page-break-before: always;
+        }
+        
+        /* Evitar que las tablas se rompan */
+        .ranking-table {
+            page-break-inside: avoid;
+        }
+        
+        /* Evitar que los KPIs se rompan */
+        .kpis-grid {
+            page-break-inside: avoid;
+        }
+        
+        /* Mejor contraste para impresión */
+        @media print {
+            .score-high { 
+                color: #000 !important; 
+                background: #e8f5e8 !important; 
+                padding: 2px 4px !important; 
+                border-radius: 3px !important; 
+            }
+            .score-medium { 
+                color: #000 !important; 
+                background: #fff4e6 !important; 
+                padding: 2px 4px !important; 
+                border-radius: 3px !important; 
+            }
+            .score-low { 
+                color: #000 !important; 
+                background: #ffe6e6 !important; 
+                padding: 2px 4px !important; 
+                border-radius: 3px !important; 
+            }
         }
     </style>
 </head>
@@ -265,20 +345,24 @@
     <!-- Filters Applied -->
     <div class="filters-applied">
         <div class="filter-item">
-            <span class="filter-label">Grupo:</span>
-            <span class="filter-value">{{grupo}}</span>
+            <span class="filter-label">Grupo Operativo:</span>
+            <span class="filter-value">{{filters.grupo}}</span>
         </div>
         <div class="filter-item">
             <span class="filter-label">Estado:</span>
-            <span class="filter-value">{{estado}}</span>
+            <span class="filter-value">{{filters.estado}}</span>
         </div>
         <div class="filter-item">
             <span class="filter-label">Trimestre:</span>
-            <span class="filter-value">{{trimestre}}</span>
+            <span class="filter-value">{{filters.trimestre}}</span>
         </div>
         <div class="filter-item">
             <span class="filter-label">Período CAS:</span>
-            <span class="filter-value">{{periodoCas}}</span>
+            <span class="filter-value">{{filters.periodoCas}}</span>
+        </div>
+        <div class="filter-item">
+            <span class="filter-label">Total Evaluaciones:</span>
+            <span class="filter-value">{{kpis.evaluacionesTotales}}</span>
         </div>
     </div>
 
@@ -312,28 +396,50 @@
             </div>
             <div class="kpi-card">
                 <div class="kpi-value">{{kpis.cumplimiento}}%</div>
-                <div class="kpi-label">Cumplimiento</div>
+                <div class="kpi-label">Cumplimiento (≥70%)</div>
             </div>
+            {{#if kpis.tasaExcelencia}}
+            <div class="kpi-card">
+                <div class="kpi-value">{{kpis.tasaExcelencia}}%</div>
+                <div class="kpi-label">Excelencia (≥90%)</div>
+            </div>
+            {{/if}}
         </div>
     </div>
 
     <!-- Charts Section -->
     <div class="charts-section">
-        <div class="section-title">Visualizaciones</div>
+        <div class="section-title">Resumen de Datos</div>
         <div class="charts-grid">
-            <div class="chart-container">
-                <div class="chart-title">Mapa Interactivo</div>
-                <div class="chart-placeholder">
-                    Distribución geográfica de sucursales<br>
-                    con performance por colores<br>
-                    <small>{{mapData.length}} ubicaciones</small>
+            <div class="chart-container" style="background: white; border: 1px solid #dfe6e9;">
+                <div class="chart-title">Distribución Geográfica</div>
+                <div style="color: #2d3436; font-size: 14px; text-align: left; padding: 10px;">
+                    <strong>{{mapData.length}} ubicaciones principales:</strong><br><br>
+                    {{#each mapData}}
+                    <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px;">{{this.sucursal}}</span>
+                        <span class="{{this.scoreClass}}" style="font-weight: bold;">{{this.promedio}}%</span>
+                    </div>
+                    {{/each}}
                 </div>
             </div>
-            <div class="chart-container">
-                <div class="chart-title">Evolución Histórica</div>
-                <div class="chart-placeholder">
-                    Tendencia de performance a lo largo del tiempo<br>
-                    <small>Últimos {{tendencias.length}} períodos</small>
+            <div class="chart-container" style="background: white; border: 1px solid #dfe6e9;">
+                <div class="chart-title">Evolución Temporal</div>
+                <div style="color: #2d3436; font-size: 14px; text-align: left; padding: 10px;">
+                    {{#if tendencias.length}}
+                    <strong>Últimos {{tendencias.length}} períodos:</strong><br><br>
+                    {{#each tendencias}}
+                    <div style="margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 11px;">{{this.periodo}}</span>
+                        <span style="font-weight: bold; color: #FF6B35;">{{this.promedio}}%</span>
+                        <span style="font-size: 10px; color: #636e72;">({{this.evaluaciones}} eval.)</span>
+                    </div>
+                    {{/each}}
+                    {{else}}
+                    <div style="color: #636e72; font-style: italic;">
+                        No hay datos de tendencias históricas disponibles para los filtros aplicados.
+                    </div>
+                    {{/if}}
                 </div>
             </div>
         </div>
@@ -353,15 +459,17 @@
                             <th>Grupo</th>
                             <th>Score</th>
                             <th>Eval.</th>
+                            <th>Sucursales</th>
                         </tr>
                     </thead>
                     <tbody>
                         {{#each gruposRanking}}
                         <tr>
                             <td>{{add @index 1}}</td>
-                            <td>{{this.grupo}}</td>
+                            <td style="font-size: 10px;">{{this.grupo}}</td>
                             <td class="{{this.scoreClass}}">{{this.promedio}}%</td>
                             <td>{{this.evaluaciones}}</td>
+                            <td>{{this.sucursales}}</td>
                         </tr>
                         {{/each}}
                     </tbody>
@@ -378,15 +486,17 @@
                             <th>Sucursal</th>
                             <th>Score</th>
                             <th>Estado</th>
+                            <th>Eval.</th>
                         </tr>
                     </thead>
                     <tbody>
                         {{#each sucursalesRanking}}
                         <tr>
                             <td>{{add @index 1}}</td>
-                            <td>{{this.sucursal}}</td>
+                            <td style="font-size: 10px;">{{this.sucursal}}</td>
                             <td class="{{this.scoreClass}}">{{this.promedio}}%</td>
-                            <td>{{this.estado}}</td>
+                            <td style="font-size: 10px;">{{this.estado}}</td>
+                            <td>{{this.evaluaciones}}</td>
                         </tr>
                         {{/each}}
                     </tbody>
@@ -396,8 +506,35 @@
     </div>
 
     <!-- Areas Critical Section -->
+    {{#if criticalAreas.length}}
     <div class="areas-section">
-        <div class="section-title">Áreas de Supervisión (29 Indicadores)</div>
+        <div class="section-title">Áreas Críticas que Requieren Atención</div>
+        <table class="ranking-table" style="width: 100%; margin-bottom: 20px;">
+            <thead>
+                <tr>
+                    <th>Área de Evaluación</th>
+                    <th>Score</th>
+                    <th>Sucursales Afectadas</th>
+                    <th>Prioridad</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each criticalAreas}}
+                <tr>
+                    <td style="font-size: 11px;">{{this.area}}</td>
+                    <td class="score-low">{{this.score}}%</td>
+                    <td>{{this.affectedLocations}}</td>
+                    <td><span style="background: #d63031; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px;">{{this.priority}}</span></td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>
+    </div>
+    {{/if}}
+
+    <!-- Areas de Supervisión -->
+    <div class="areas-section">
+        <div class="section-title">Áreas de Supervisión - Performance General</div>
         <div class="areas-grid">
             {{#each areasSupervision}}
             <div class="area-card">
@@ -407,6 +544,20 @@
             {{/each}}
         </div>
     </div>
+
+    <!-- Recommendations Section -->
+    {{#if recommendations.length}}
+    <div class="areas-section">
+        <div class="section-title">Recomendaciones Estratégicas</div>
+        <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #FF6B35;">
+            <ol style="margin: 0; padding-left: 20px;">
+                {{#each recommendations}}
+                <li style="margin-bottom: 8px; font-size: 13px; line-height: 1.4;">{{this}}</li>
+                {{/each}}
+            </ol>
+        </div>
+    </div>
+    {{/if}}
 
     <!-- Footer -->
     <div class="footer">
