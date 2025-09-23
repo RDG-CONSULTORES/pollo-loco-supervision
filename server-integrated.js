@@ -2110,8 +2110,11 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
 
         console.log(`📊 Generating report for group: ${groupId}, period: ${period}`);
 
+        // Get filters from query params
+        const { estado = 'all', trimestre = 'all', periodoCas = 'all' } = req.query;
+        
         // Generate report data
-        const reportData = await generateReportData(groupId, period);
+        const reportData = await generateReportData(groupId, estado, trimestre, periodoCas);
 
         // Get group name
         let groupName = 'Todos los Grupos';
@@ -2123,8 +2126,10 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
 
         // Prepare template data
         const templateData = {
-            groupName,
-            period: period === 'all' ? 'Todos los Períodos' : period,
+            grupo: groupName,
+            estado: estado === 'all' ? 'Todos los Estados' : estado,
+            trimestre: trimestre === 'all' ? 'Todos los Trimestres' : `Q${trimestre} 2025`,
+            periodoCas: periodoCas === 'all' ? 'Todos los Períodos' : periodoCas,
             generationDate: new Date().toLocaleDateString('es-MX', {
                 year: 'numeric',
                 month: 'long',
@@ -2132,7 +2137,6 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
                 hour: '2-digit',
                 minute: '2-digit'
             }),
-            dateRange: 'Últimos 3 meses',
             ...reportData
         };
 
@@ -2141,8 +2145,8 @@ app.get('/api/generate-report/:groupId?', async (req, res) => {
             return value + addition;
         });
 
-        // Load and compile template
-        const templatePath = path.join(__dirname, 'report-template.html');
+        // Load and compile simple template
+        const templatePath = path.join(__dirname, 'simple-report-template.html');
         const templateSource = await fs.readFile(templatePath, 'utf8');
         const template = handlebars.compile(templateSource);
         const htmlContent = template(templateData);

@@ -187,11 +187,11 @@ class DashboardApp {
         try {
             const filters = this.getCurrentFilters();
             const grupo = filters.grupo || 'all';
-            const periodo = filters.trimestre || 'all';
             
-            // Create download URL
+            // Create download URL with all current filters
             const params = new URLSearchParams({
-                period: periodo,
+                estado: filters.estado || 'all',
+                trimestre: filters.trimestre || 'all',
                 format: 'html'
             });
             
