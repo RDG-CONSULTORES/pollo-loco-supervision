@@ -2137,12 +2137,16 @@ async function generateReportData(groupId, estado, trimestre, periodoCas) {
             ORDER BY year, quarter
         `;
 
-        // Execute all queries
-        const [kpiResult, topLocationsResult, areasResult, criticalAreasResult, groupsRankingResult, sucursalesRankingResult, trendsResult] = await Promise.all([
+        // Execute queries in smaller batches to avoid connection issues
+        const [kpiResult, topLocationsResult, areasResult, criticalAreasResult] = await Promise.all([
             pool.query(kpiQuery, params),
             pool.query(topLocationsQuery, params),
             pool.query(areasQuery, params),
-            pool.query(criticalAreasQuery, params),
+            pool.query(criticalAreasQuery, params)
+        ]);
+
+        // Execute additional queries in second batch
+        const [groupsRankingResult, sucursalesRankingResult, trendsResult] = await Promise.all([
             pool.query(groupsRankingQuery, params),
             pool.query(sucursalesRankingQuery, params),
             pool.query(trendsQuery, params)
