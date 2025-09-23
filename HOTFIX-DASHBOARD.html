@@ -28,6 +28,9 @@
                 <div class="last-update">
                     <span id="lastUpdate">Cargando...</span>
                 </div>
+                <button id="downloadReportBtn2" onclick="downloadReportFromHeader()" style="background: #6c5ce7; color: white; border: none; padding: 8px 16px; border-radius: 6px; margin-left: 10px; cursor: pointer; font-size: 14px;">
+                    📄 Generar Reporte
+                </button>
             </div>
         </div>
     </header>
@@ -175,6 +178,33 @@
 
     <!-- Scripts -->
     <script>console.log('🚀 HOTFIX VERSION LOADING...');</script>
+    <script>
+        // Simple function for header report button
+        function downloadReportFromHeader() {
+            try {
+                // Get current filter values
+                const grupo = document.getElementById('grupoFilter')?.value || 'all';
+                const estado = document.getElementById('estadoFilter')?.value || 'all';
+                const trimestre = document.getElementById('trimestreFilter')?.value || 'all';
+                
+                // Create download URL with all current filters
+                const params = new URLSearchParams({
+                    estado: estado,
+                    trimestre: trimestre,
+                    format: 'html'
+                });
+                
+                const reportUrl = `${window.location.origin}/api/generate-report/${grupo}?${params}`;
+                
+                // Open report in new window
+                window.open(reportUrl, '_blank');
+                
+            } catch (error) {
+                console.error('Error generating report:', error);
+                alert('Error al generar el reporte');
+            }
+        }
+    </script>
     <script src="app.js"></script>
     <script src="telegram-webapp.js"></script>
 </body>
