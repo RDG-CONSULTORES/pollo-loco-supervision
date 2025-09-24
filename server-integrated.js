@@ -23,12 +23,18 @@ const USE_CLEAN_VIEW = process.env.USE_CLEAN_VIEW === 'true' || true;
 const DATA_SOURCE = USE_CLEAN_VIEW ? 'supervision_operativa_clean' : 'supervision_operativa_detalle';
 console.log(`🔧 Using data source: ${DATA_SOURCE}`);
 
-// Database connection
+// Database connection with Neon-optimized settings
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
   ssl: {
     rejectUnauthorized: false
-  }
+  },
+  // Neon-specific optimizations
+  max: 10, // Maximum number of clients in the pool
+  idleTimeoutMillis: 30000, // Close idle clients after 30 seconds
+  connectionTimeoutMillis: 10000, // Return an error after 10 seconds if connection cannot be established
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000
 });
 
 // Test database connection with fallback
@@ -51,6 +57,14 @@ pool.on('error', (err) => {
     dbConnected = false;
 });
 
+// Add connection error handler
+pool.on('connect', (client) => {
+    client.on('error', (err) => {
+        console.error('❌ Client connection error:', err);
+        dbConnected = false;
+    });
+});
+
 // Handle uncaught exceptions to prevent server crashes
 process.on('uncaughtException', (err) => {
     console.error('❌ Uncaught Exception:', err);
@@ -61,6 +75,18 @@ process.on('unhandledRejection', (reason, promise) => {
     console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
     console.log('🔄 Server continuing with fallback data');
 });
+
+// Keep-alive query to prevent Neon connection timeout
+setInterval(async () => {
+    if (dbConnected) {
+        try {
+            await pool.query('SELECT 1');
+        } catch (err) {
+            console.error('❌ Keep-alive query failed:', err.message);
+            dbConnected = false;
+        }
+    }
+}, 20000); // Every 20 seconds
 
 // Helper function for Período CAS filtering
 function buildPeriodoCasCondition(periodoCas, paramIndex) {
