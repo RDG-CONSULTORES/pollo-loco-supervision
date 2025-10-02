@@ -2822,4 +2822,321 @@ app.listen(PORT, async () => {
     }
 });
 
+// ===================================================
+// ESSENTIAL API ENDPOINTS
+// ===================================================
+
+// KPIs endpoint
+app.get('/api/kpis', async (req, res) => {
+    try {
+        const { grupo, estado, trimestre, periodoCas } = req.query;
+        
+        let whereConditions = ['porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+
+        if (periodoCas && periodoCas !== 'all') {
+            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+            whereConditions.push(condition);
+            params.push(...casParams);
+            paramIndex += casParams.length;
+        }
+
+        const query = `
+            SELECT 
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_general,
+                COUNT(DISTINCT submission_id) as total_supervisiones,
+                COUNT(DISTINCT location_id) as total_sucursales,
+                COUNT(DISTINCT grupo_operativo_limpio) as total_grupos
+            FROM ${DATA_SOURCE}
+            WHERE ${whereConditions.join(' AND ')}
+        `;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error('❌ API Error /kpis:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Grupos endpoint
+app.get('/api/grupos', async (req, res) => {
+    try {
+        const { grupo, estado, trimestre, periodoCas } = req.query;
+        
+        let whereConditions = ['grupo_operativo_limpio IS NOT NULL', 'porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+
+        if (periodoCas && periodoCas !== 'all') {
+            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+            whereConditions.push(condition);
+            params.push(...casParams);
+            paramIndex += casParams.length;
+        }
+
+        const query = `
+            SELECT 
+                grupo_operativo_limpio as grupo_operativo,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                COUNT(DISTINCT location_id) as sucursales
+            FROM ${DATA_SOURCE}
+            WHERE ${whereConditions.join(' AND ')}
+            GROUP BY grupo_operativo_limpio
+            ORDER BY promedio DESC
+        `;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('❌ API Error /grupos:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Sucursales ranking endpoint - FIXED
+app.get('/api/sucursales-ranking', async (req, res) => {
+    try {
+        const { grupo, estado, trimestre, periodoCas, limit = 1000 } = req.query;
+        
+        let whereConditions = ['porcentaje IS NOT NULL', 'area_evaluacion = \'\''];
+        let params = [];
+        let paramIndex = 1;
+
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+
+        if (periodoCas && periodoCas !== 'all') {
+            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+            whereConditions.push(condition);
+            params.push(...casParams);
+            paramIndex += casParams.length;
+        }
+
+        const query = `
+            SELECT 
+                location_name as sucursal,
+                grupo_operativo_limpio as grupo_operativo,
+                estado_normalizado as estado,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+                MAX(fecha_supervision) as fecha_supervision
+            FROM ${DATA_SOURCE}
+            WHERE ${whereConditions.join(' AND ')}
+            GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
+            ORDER BY promedio DESC
+            LIMIT $${paramIndex}
+        `;
+        
+        params.push(parseInt(limit));
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('❌ API Error /sucursales-ranking:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Locations endpoint
+app.get('/api/locations', async (req, res) => {
+    try {
+        const { grupo, estado, trimestre, periodoCas } = req.query;
+        
+        let whereConditions = ['latitud IS NOT NULL', 'longitud IS NOT NULL', 'porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+
+        if (periodoCas && periodoCas !== 'all') {
+            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+            whereConditions.push(condition);
+            params.push(...casParams);
+            paramIndex += casParams.length;
+        }
+
+        const query = `
+            SELECT 
+                location_id,
+                location_name as name,
+                grupo_operativo_limpio as grupo_operativo,
+                estado_normalizado as estado,
+                municipio,
+                latitud::float,
+                longitud::float,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as performance
+            FROM ${DATA_SOURCE}
+            WHERE ${whereConditions.join(' AND ')}
+            GROUP BY location_id, location_name, grupo_operativo_limpio, estado_normalizado, municipio, latitud, longitud
+        `;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('❌ API Error /locations:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Areas/Indicadores endpoint
+app.get('/api/indicadores', async (req, res) => {
+    try {
+        const { grupo, estado, trimestre, periodoCas } = req.query;
+        
+        let whereConditions = [`area_evaluacion IS NOT NULL`, `TRIM(area_evaluacion) != ''`, `area_evaluacion NOT LIKE '%PUNTOS%'`, 'porcentaje IS NOT NULL'];
+        let params = [];
+        let paramIndex = 1;
+
+        if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+
+        if (estado) {
+            whereConditions.push(`estado_normalizado = $${paramIndex}`);
+            params.push(estado);
+            paramIndex++;
+        }
+
+        if (periodoCas && periodoCas !== 'all') {
+            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+            whereConditions.push(condition);
+            params.push(...casParams);
+            paramIndex += casParams.length;
+        }
+
+        const query = `
+            SELECT 
+                TRIM(area_evaluacion) as indicador,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+                COUNT(*) as evaluaciones
+            FROM ${DATA_SOURCE}
+            WHERE ${whereConditions.join(' AND ')}
+            GROUP BY TRIM(area_evaluacion)
+            ORDER BY promedio DESC
+        `;
+        
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('❌ API Error /indicadores:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Periodos CAS endpoint
+app.get('/api/periodos-cas', async (req, res) => {
+    try {
+        const periods = [
+            { id: 'nl_t1', name: 'NL 1er Trimestre', description: 'Nuevo León y Saltillo: Mar 12 - Abr 16, 2025' },
+            { id: 'nl_t2', name: 'NL 2do Trimestre', description: 'Nuevo León y Saltillo: Jun 11 - Ago 18, 2025' },
+            { id: 'nl_t3', name: 'NL 3er Trimestre', description: 'Nuevo León y Saltillo: Ago 19 - Dic 31, 2025' },
+            { id: 'for_s1', name: 'Foráneas 1er Semestre', description: 'Foráneas: Abr 10 - Jun 9, 2025' },
+            { id: 'for_s2', name: 'Foráneas 2do Semestre', description: 'Foráneas: Jul 30 - Ago 15, 2025' }
+        ];
+        res.json(periods);
+    } catch (error) {
+        console.error('❌ API Error /periodos-cas:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Trimestres endpoint (simple)
+app.get('/api/trimestres', async (req, res) => {
+    try {
+        const trimestres = [
+            { value: '1', label: 'Q1 2025' },
+            { value: '2', label: 'Q2 2025' },
+            { value: '3', label: 'Q3 2025' }
+        ];
+        res.json(trimestres);
+    } catch (error) {
+        console.error('❌ API Error /trimestres:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Diagnostic endpoint for today's data
+app.get('/api/diagnostic-today', async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const query = `
+            SELECT 
+                grupo_operativo_limpio,
+                location_name,
+                fecha_supervision::date as fecha,
+                COUNT(*) as registros,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio
+            FROM ${DATA_SOURCE}
+            WHERE fecha_supervision::date = $1 
+            AND grupo_operativo_limpio = 'GRUPO SALTILLO'
+            GROUP BY grupo_operativo_limpio, location_name, fecha_supervision::date
+            ORDER BY location_name
+        `;
+        
+        const result = await pool.query(query, [today]);
+        
+        res.json({
+            success: true,
+            diagnostic_date: today,
+            data_source: DATA_SOURCE,
+            saltillo_today: result.rows,
+            message: result.rows.length > 0 ? `Found ${result.rows.length} records for today` : 'No data found for today'
+        });
+        
+    } catch (error) {
+        console.error('❌ Diagnostic error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 module.exports = app;
