@@ -3299,4 +3299,41 @@ app.get('/api/verificar-datos-reales', async (req, res) => {
     }
 });
 
+// DEBUG ENDPOINT - Test specific query
+app.get('/api/debug-saltillo', async (req, res) => {
+    try {
+        // Direct query without any complex filtering
+        const simpleQuery = `
+            SELECT 
+                location_name,
+                grupo_operativo_limpio,
+                estado_normalizado,
+                COUNT(*) as registros,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
+            ORDER BY location_name
+        `;
+        
+        console.log('🔍 DEBUG: Executing simple GRUPO SALTILLO query...');
+        const result = await pool.query(simpleQuery);
+        
+        res.json({
+            success: true,
+            query_executed: simpleQuery,
+            data_source: DATA_SOURCE,
+            found_records: result.rows.length,
+            saltillo_sucursales: result.rows
+        });
+        
+    } catch (error) {
+        console.error('❌ Debug error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
 module.exports = app;
