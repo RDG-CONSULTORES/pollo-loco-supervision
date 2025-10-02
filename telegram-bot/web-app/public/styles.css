@@ -188,6 +188,101 @@ body {
     z-index: 1000;
 }
 
+/* Map Popup Styles */
+.location-popup {
+    font-family: inherit;
+    min-width: 280px;
+    max-width: 350px;
+}
+
+.popup-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #E9ECEF;
+}
+
+.popup-header h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--dark-gray);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.performance-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 0.9rem;
+    color: white;
+}
+
+.performance-badge.excellent {
+    background: var(--excellent);
+}
+
+.performance-badge.good {
+    background: var(--warning);
+}
+
+.performance-badge.critical {
+    background: var(--critical);
+}
+
+.popup-body {
+    margin: 12px 0;
+}
+
+.popup-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.popup-row i {
+    width: 16px;
+    color: var(--primary-orange);
+}
+
+.popup-section {
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #E9ECEF;
+}
+
+.areas-list {
+    list-style: none;
+    padding: 0;
+    margin: 8px 0 0 0;
+}
+
+.areas-list li {
+    padding: 4px 0;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.area-percentage {
+    font-weight: bold;
+    color: var(--critical);
+}
+
+.popup-footer {
+    text-align: center;
+    color: var(--light-gray);
+    font-style: italic;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #E9ECEF;
+}
+
 .btn-primary, .btn-secondary {
     padding: 10px 20px;
     border: none;

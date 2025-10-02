@@ -10,7 +10,6 @@ class ElPolloLocoDashboard {
         this.currentFilters = {
             grupo: '',
             estado: '',
-            sucursal: '',
             trimestre: '',
             periodoCas: ''
         };
@@ -417,14 +416,55 @@ class ElPolloLocoDashboard {
                     const marker = L.marker([location.lat, location.lng])
                         .addTo(this.map);
                     
-                    // Create popup content
+                    // Create enhanced popup content with supervision details
+                    const performanceClass = location.performance >= 90 ? 'excellent' : 
+                                           location.performance >= 70 ? 'good' : 'critical';
+                    
                     const popupContent = `
                         <div class="location-popup">
-                            <h4>${location.name}</h4>
-                            <p><strong>Grupo:</strong> ${location.group}</p>
-                            <p><strong>Estado:</strong> ${location.state}</p>
-                            <p><strong>Performance:</strong> ${location.performance}%</p>
-                            <p><strong>Evaluaciones:</strong> ${location.total_evaluations}</p>
+                            <div class="popup-header">
+                                <h4><i class="fas fa-store"></i> ${location.name || location.sucursal}</h4>
+                                <span class="performance-badge ${performanceClass}">
+                                    ${location.performance || location.promedio}%
+                                </span>
+                            </div>
+                            
+                            <div class="popup-body">
+                                <div class="popup-row">
+                                    <i class="fas fa-users"></i>
+                                    <span><strong>Grupo:</strong> ${location.group || location.grupo_operativo}</span>
+                                </div>
+                                
+                                <div class="popup-row">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span><strong>Estado:</strong> ${location.state || location.estado}</span>
+                                </div>
+                                
+                                <div class="popup-row">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span><strong>Supervisiones:</strong> ${location.total_evaluations || location.total_supervisiones || 'N/A'}</span>
+                                </div>
+                                
+                                <div class="popup-row">
+                                    <i class="fas fa-calendar"></i>
+                                    <span><strong>Última supervisión:</strong> ${location.fecha_supervision || 'N/A'}</span>
+                                </div>
+                                
+                                ${location.areas_criticas ? `
+                                <div class="popup-section">
+                                    <strong><i class="fas fa-exclamation-triangle"></i> Áreas de Oportunidad:</strong>
+                                    <ul class="areas-list">
+                                        ${location.areas_criticas.map(area => 
+                                            `<li>${area.nombre}: <span class="area-percentage">${area.porcentaje}%</span></li>`
+                                        ).join('')}
+                                    </ul>
+                                </div>
+                                ` : ''}
+                            </div>
+                            
+                            <div class="popup-footer">
+                                <small>Click para más detalles</small>
+                            </div>
                         </div>
                     `;
                     
@@ -513,6 +553,44 @@ class ElPolloLocoDashboard {
                                 display: true,
                                 position: 'top'
                             },
+                            tooltip: {
+                                backgroundColor: 'rgba(33, 37, 41, 0.95)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: 'var(--primary-orange)',
+                                borderWidth: 2,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return `📊 ${context[0].label}`;
+                                    },
+                                    beforeBody: function(context) {
+                                        const dataIndex = context[0].dataIndex;
+                                        const groupData = window.dashboard?.data?.groups?.[dataIndex];
+                                        return [
+                                            `Performance: ${context[0].parsed.y}%`,
+                                            `Sucursales: ${groupData?.totalSucursales || 'N/A'}`,
+                                            `Supervisiones: ${groupData?.totalEvaluaciones || 'N/A'}`
+                                        ];
+                                    },
+                                    label: function(context) {
+                                        const dataIndex = context.dataIndex;
+                                        const groupData = dashboard.data.groups[dataIndex];
+                                        
+                                        if (context.parsed.y >= 90) {
+                                            return '🟢 Excelente - Meta CAS alcanzada';
+                                        } else if (context.parsed.y >= 70) {
+                                            return '🟡 Bueno - Cerca de la meta';
+                                        } else {
+                                            return '🔴 Crítico - Requiere atención';
+                                        }
+                                    },
+                                    afterBody: function(context) {
+                                        return ['', '💡 Click para filtrar por este grupo'];
+                                    }
+                                }
+                            },
                             ...getSafeAnnotationConfig()  // SAFE: Add annotation only if plugin available
                         },
                         scales: {
@@ -569,6 +647,41 @@ class ElPolloLocoDashboard {
                                     maxWidth: 200,
                                     padding: 15,
                                     usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(33, 37, 41, 0.95)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: 'var(--critical)',
+                                borderWidth: 2,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return `⚠️  ${context[0].label}`;
+                                    },
+                                    beforeBody: function(context) {
+                                        const dataIndex = context[0].dataIndex;
+                                        const areaData = window.dashboard?.data?.areas?.[dataIndex];
+                                        return [
+                                            `Performance promedio: ${context[0].parsed}%`,
+                                            `Evaluaciones: ${areaData?.evaluaciones || 'N/A'}`,
+                                            `Sucursales afectadas: ${areaData?.sucursales_afectadas || 'N/A'}`
+                                        ];
+                                    },
+                                    label: function(context) {
+                                        if (context.parsed >= 90) {
+                                            return '🟢 Área fuerte - Mantener estándar';
+                                        } else if (context.parsed >= 70) {
+                                            return '🟡 Área de mejora - Atención moderada';
+                                        } else {
+                                            return '🔴 Área crítica - Acción inmediata requerida';
+                                        }
+                                    },
+                                    afterBody: function(context) {
+                                        return ['', '💡 Enfocarse en capacitación y procesos'];
+                                    }
                                 }
                             }
                         },
@@ -668,6 +781,50 @@ class ElPolloLocoDashboard {
                             legend: {
                                 display: true,
                                 position: 'top'
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(33, 37, 41, 0.95)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: 'var(--excellent)',
+                                borderWidth: 2,
+                                cornerRadius: 8,
+                                displayColors: false,
+                                callbacks: {
+                                    title: function(context) {
+                                        return `🏪 ${context[0].label}`;
+                                    },
+                                    beforeBody: function(context) {
+                                        const dataIndex = context[0].dataIndex;
+                                        const sucursalData = window.dashboard?.data?.sucursalesRanking?.[dataIndex];
+                                        return [
+                                            `Performance: ${context[0].parsed.y}%`,
+                                            `Grupo: ${sucursalData?.grupo_operativo || 'N/A'}`,
+                                            `Estado: ${sucursalData?.estado || 'N/A'}`,
+                                            `Última supervisión: ${sucursalData?.fecha_supervision?.substring(0, 10) || 'N/A'}`
+                                        ];
+                                    },
+                                    label: function(context) {
+                                        if (context.parsed.y >= 90) {
+                                            return '🟢 Excelente - Meta CAS alcanzada';
+                                        } else if (context.parsed.y >= 70) {
+                                            return '🟡 Bueno - Cerca de la meta';
+                                        } else {
+                                            return '🔴 Crítico - Requiere atención inmediata';
+                                        }
+                                    },
+                                    afterBody: function(context) {
+                                        const dataIndex = context[0].dataIndex;
+                                        const sucursalData = window.dashboard?.data?.sucursalesRanking?.[dataIndex];
+                                        const areasProblema = sucursalData?.areas_criticas || [];
+                                        
+                                        if (areasProblema.length > 0) {
+                                            return ['', '⚠️  Áreas de oportunidad:', ...areasProblema.slice(0, 3).map(area => `• ${area}`)];
+                                        } else {
+                                            return ['', '💡 Click para ver detalles completos'];
+                                        }
+                                    }
+                                }
                             },
                             ...getSafeAnnotationConfig()  // SAFE: Add annotation only if plugin available
                         },
@@ -1139,23 +1296,6 @@ class ElPolloLocoDashboard {
                 console.log(`✅ Filtro estados llenado con ${uniqueStates.length} opciones`);
             }
             
-            // Populate Sucursal filter
-            const sucursalFilter = document.getElementById('sucursalFilter');
-            if (sucursalFilter && this.data.locations) {
-                // Clear existing options except the first one
-                sucursalFilter.innerHTML = '<option value="">Todas las sucursales</option>';
-                
-                // Get unique sucursales from locations, sorted by name
-                const uniqueSucursales = [...new Set(this.data.locations.map(l => l.sucursal).filter(s => s))].sort();
-                uniqueSucursales.forEach(sucursal => {
-                    const option = document.createElement('option');
-                    option.value = sucursal;
-                    option.textContent = sucursal;
-                    sucursalFilter.appendChild(option);
-                });
-                console.log(`✅ Filtro sucursales llenado con ${uniqueSucursales.length} opciones`);
-            }
-            
             // Populate Período CAS filter
             const periodoCasFilter = document.getElementById('periodoCasFilter');
             if (periodoCasFilter && this.data.periodsCas) {
@@ -1185,7 +1325,6 @@ class ElPolloLocoDashboard {
         
         this.currentFilters.grupo = document.getElementById('grupoFilter').value;
         this.currentFilters.estado = document.getElementById('estadoFilter').value;
-        this.currentFilters.sucursal = document.getElementById('sucursalFilter').value;
         this.currentFilters.trimestre = document.getElementById('trimestreFilter').value;
         this.currentFilters.periodoCas = document.getElementById('periodoCasFilter').value;
         
@@ -1219,11 +1358,10 @@ class ElPolloLocoDashboard {
         
         document.getElementById('grupoFilter').value = '';
         document.getElementById('estadoFilter').value = '';
-        document.getElementById('sucursalFilter').value = '';
         document.getElementById('trimestreFilter').value = '';
         document.getElementById('periodoCasFilter').value = '';
         
-        this.currentFilters = { grupo: '', estado: '', sucursal: '', trimestre: '', periodoCas: '' };
+        this.currentFilters = { grupo: '', estado: '', trimestre: '', periodoCas: '' };
         
         // Show loading
         this.showLoading();
@@ -1771,6 +1909,7 @@ let dashboard;
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 DOM loaded, initializing dashboard...');
     dashboard = new ElPolloLocoDashboard();
+    window.dashboard = dashboard; // Make globally available for tooltips
 });
 
 // Telegram WebApp integration
@@ -1868,14 +2007,12 @@ function generateReport() {
         // Get current filter values from the dashboard
         const grupo = document.getElementById('grupoFilter')?.value || 'all';
         const estado = document.getElementById('estadoFilter')?.value || 'all';
-        const sucursal = document.getElementById('sucursalFilter')?.value || 'all';
         const trimestre = document.getElementById('trimestreFilter')?.value || 'all';
         const periodoCas = document.getElementById('periodoCasFilter')?.value || 'all';
         
         // Create download URL with all current filters
         const params = new URLSearchParams({
             estado: estado,
-            sucursal: sucursal,
             trimestre: trimestre,
             periodoCas: periodoCas,
             format: 'html'
