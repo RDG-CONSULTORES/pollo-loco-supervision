@@ -1476,8 +1476,7 @@ app.get('/api/sucursales-ranking', async (req, res) => {
         let whereConditions = [
             'porcentaje IS NOT NULL', 
             'location_name IS NOT NULL',
-            'grupo_operativo_limpio IS NOT NULL',
-            'area_evaluacion = \'\''  // Only general scores
+            'grupo_operativo_limpio IS NOT NULL'
         ];
         let params = [];
         let paramIndex = 1;
@@ -1495,6 +1494,11 @@ app.get('/api/sucursales-ranking', async (req, res) => {
             paramIndex++;
         }
         
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
+            paramIndex++;
+        }
         
         if (trimestre) {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
@@ -1524,12 +1528,12 @@ app.get('/api/sucursales-ranking', async (req, res) => {
                 grupo_operativo_limpio as grupo_operativo,
                 estado_normalizado as estado,
                 ROUND(AVG(porcentaje), 2) as promedio,
-                COUNT(DISTINCT submission_id) as evaluaciones,
-                MAX(fecha_supervision) as fecha_supervision
+                COUNT(DISTINCT submission_id) as evaluaciones
             FROM supervision_operativa_clean 
             WHERE ${whereClause}
             GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
-            ORDER BY AVG(porcentaje) DESC NULLS LAST
+            HAVING COUNT(DISTINCT area_evaluacion) >= 5
+            ORDER BY AVG(porcentaje) DESC
             LIMIT ${limitParam}
         `, params);
         

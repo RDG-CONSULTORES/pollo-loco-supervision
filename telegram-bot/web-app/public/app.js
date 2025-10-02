@@ -144,9 +144,6 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
             }
-            if (this.currentFilters.sucursal) {
-                params.append('sucursal', this.currentFilters.sucursal);
-            }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
@@ -179,9 +176,6 @@ class ElPolloLocoDashboard {
             }
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
-            }
-            if (this.currentFilters.sucursal) {
-                params.append('sucursal', this.currentFilters.sucursal);
             }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
@@ -216,9 +210,6 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
             }
-            if (this.currentFilters.sucursal) {
-                params.append('sucursal', this.currentFilters.sucursal);
-            }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
@@ -252,9 +243,6 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
             }
-            if (this.currentFilters.sucursal) {
-                params.append('sucursal', this.currentFilters.sucursal);
-            }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
@@ -287,9 +275,6 @@ class ElPolloLocoDashboard {
             }
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
-            }
-            if (this.currentFilters.sucursal) {
-                params.append('sucursal', this.currentFilters.sucursal);
             }
             if (this.currentFilters.periodoCas) {
                 params.append('periodoCas', this.currentFilters.periodoCas);
@@ -335,9 +320,6 @@ class ElPolloLocoDashboard {
             }
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
-            }
-            if (this.currentFilters.sucursal) {
-                params.append('sucursal', this.currentFilters.sucursal);
             }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
