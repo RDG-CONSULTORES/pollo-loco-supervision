@@ -2818,4 +2818,77 @@ app.listen(PORT, async () => {
     }
 });
 
+// ===================================================
+// DIAGNOSTIC ENDPOINT - Check today's data
+// ===================================================
+app.get('/api/diagnostic/today', async (req, res) => {
+    try {
+        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        console.log(`🔍 DIAGNOSTIC: Checking data for today: ${today}`);
+        
+        // Check today's submissions by group
+        const todayQuery = `
+            SELECT 
+                grupo_operativo_limpio,
+                location_name,
+                COUNT(*) as supervisiones_hoy,
+                MAX(fecha_supervision::date) as ultima_fecha,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_hoy
+            FROM ${DATA_SOURCE}
+            WHERE fecha_supervision::date = $1
+            GROUP BY grupo_operativo_limpio, location_name
+            ORDER BY grupo_operativo_limpio, location_name
+        `;
+        
+        // Check all data for Grupo Saltillo
+        const saltilloQuery = `
+            SELECT 
+                location_name,
+                fecha_supervision::date as fecha,
+                COUNT(*) as supervisiones,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            GROUP BY location_name, fecha_supervision::date
+            ORDER BY fecha_supervision::date DESC, location_name
+            LIMIT 20
+        `;
+        
+        // Check raw data count
+        const countQuery = `
+            SELECT 
+                COUNT(*) as total_registros,
+                COUNT(DISTINCT submission_id) as total_supervisiones,
+                COUNT(DISTINCT location_name) as total_sucursales,
+                MAX(fecha_supervision::date) as fecha_mas_reciente,
+                MIN(fecha_supervision::date) as fecha_mas_antigua
+            FROM ${DATA_SOURCE}
+        `;
+        
+        const [todayResult, saltilloResult, countResult] = await Promise.all([
+            pool.query(todayQuery, [today]),
+            pool.query(saltilloQuery),
+            pool.query(countQuery)
+        ]);
+        
+        res.json({
+            success: true,
+            diagnostic_date: today,
+            data_source: DATA_SOURCE,
+            today_data: todayResult.rows,
+            saltillo_recent: saltilloResult.rows,
+            database_summary: countResult.rows[0]
+        });
+        
+    } catch (error) {
+        console.error('❌ Diagnostic error:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            data_source: DATA_SOURCE
+        });
+    }
+});
+
 module.exports = app;
