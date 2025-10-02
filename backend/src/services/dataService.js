@@ -34,6 +34,11 @@ class DataService {
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
+    }
+    
     if (filters.trimestre) {
       whereClause += ` AND 'Q' || EXTRACT(QUARTER FROM fecha_supervision) || ' ' || EXTRACT(YEAR FROM fecha_supervision) = $${++paramCount}`;
       params.push(filters.trimestre);
@@ -78,6 +83,11 @@ class DataService {
     if (filters.estado) {
       params.push(filters.estado);
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
+    }
+    
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -152,6 +162,11 @@ class DataService {
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
+    }
+    
     if (filters.trimestre) {
       whereClause += ` AND 'Q' || EXTRACT(QUARTER FROM fecha_supervision) || ' ' || EXTRACT(YEAR FROM fecha_supervision) = $${++paramCount}`;
       params.push(filters.trimestre);
@@ -191,6 +206,11 @@ class DataService {
     if (filters.estado) {
       params.push(filters.estado);
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
+    }
+    
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
     }
     
     if (filters.trimestre) {
@@ -260,6 +280,11 @@ class DataService {
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
     
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
+    }
+    
     if (filters.trimestre) {
       whereClause += ` AND 'Q' || EXTRACT(QUARTER FROM fecha_supervision) || ' ' || EXTRACT(YEAR FROM fecha_supervision) = $${++paramCount}`;
       params.push(filters.trimestre);
@@ -307,6 +332,11 @@ class DataService {
       params.push(filters.estado);
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
     }
+    
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
+    }
 
     const query = `
       SELECT 
@@ -344,6 +374,11 @@ class DataService {
     if (filters.estado) {
       params.push(filters.estado);
       whereClause += ` AND estado_normalizado = $${++paramCount}`;
+    }
+    
+    if (filters.sucursal) {
+      params.push(filters.sucursal);
+      whereClause += ` AND location_name = $${++paramCount}`;
     }
     
     if (filters.trimestre) {

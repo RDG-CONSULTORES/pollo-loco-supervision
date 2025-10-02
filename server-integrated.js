@@ -761,7 +761,7 @@ app.get('/api/kpis', async (req, res) => {
     }
     
     try {
-        const { grupo, estado, trimestre, periodoCas } = req.query;
+        const { grupo, estado, sucursal, trimestre, periodoCas } = req.query;
         
         // Build dynamic WHERE clause
         let whereConditions = ['porcentaje IS NOT NULL'];
@@ -776,6 +776,17 @@ app.get('/api/kpis', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
+            paramIndex++;
+        }
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         if (trimestre) {
@@ -847,7 +858,7 @@ app.get('/api/grupos', async (req, res) => {
     }
     
     try {
-        const { grupo, estado, trimestre, periodoCas } = req.query;
+        const { grupo, estado, sucursal, trimestre, periodoCas } = req.query;
         
         // Build WHERE conditions
         let whereConditions = ['porcentaje IS NOT NULL', 'grupo_operativo_limpio IS NOT NULL'];
@@ -864,6 +875,12 @@ app.get('/api/grupos', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         
@@ -915,7 +932,7 @@ app.get('/api/locations', async (req, res) => {
     }
     
     try {
-        const { grupo, estado, trimestre, periodoCas } = req.query;
+        const { grupo, estado, sucursal, trimestre, periodoCas } = req.query;
         
         // Build dynamic WHERE clause
         let whereConditions = ['porcentaje IS NOT NULL'];
@@ -930,6 +947,12 @@ app.get('/api/locations', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         if (trimestre) {
@@ -1003,7 +1026,7 @@ app.get('/api/estados', async (req, res) => {
         return res.json(fallbackData.estados || []);
     }
     
-    const { grupo, estado, trimestre, periodoCas } = req.query;
+    const { grupo, estado, sucursal, trimestre, periodoCas } = req.query;
     
     try {
         let whereConditions = ['porcentaje IS NOT NULL', 'estado_normalizado IS NOT NULL'];
@@ -1060,7 +1083,7 @@ app.get('/api/indicadores', async (req, res) => {
         return res.json(fallbackData.indicadores || []);
     }
     
-    const { grupo, estado, trimestre, periodoCas } = req.query;
+    const { grupo, estado, sucursal, trimestre, periodoCas } = req.query;
     
     try {
         let whereConditions = [
@@ -1082,6 +1105,12 @@ app.get('/api/indicadores', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         
@@ -1158,6 +1187,12 @@ app.get('/api/trimestres', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         
@@ -1456,6 +1491,12 @@ app.get('/api/sucursales-ranking', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         
@@ -2319,6 +2360,12 @@ app.get('/api/dashboard-data', async (req, res) => {
             paramIndex++;
         }
         
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
+            paramIndex++;
+        }
+        
         if (trimestre) {
             const periodoCasCondition = buildPeriodoCasCondition(trimestre, paramIndex);
             if (periodoCasCondition.condition) {
@@ -2416,6 +2463,12 @@ app.get('/api/map/data', async (req, res) => {
         if (estado) {
             whereConditions.push(`estado_normalizado = $${paramIndex}`);
             params.push(estado);
+            paramIndex++;
+        }
+        
+        if (sucursal) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(sucursal);
             paramIndex++;
         }
         
