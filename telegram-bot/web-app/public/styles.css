@@ -144,6 +144,50 @@ body {
     box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.1);
 }
 
+/* Tooltip Styles */
+.tooltip-icon {
+    position: relative;
+    display: inline-block;
+    color: var(--light-gray);
+    margin-left: 5px;
+    cursor: help;
+}
+
+.tooltip-icon:hover {
+    color: var(--primary-orange);
+}
+
+.tooltip-icon i {
+    font-size: 0.8rem;
+}
+
+.tooltip-icon[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--dark-gray);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    z-index: 1000;
+    box-shadow: var(--shadow-medium);
+}
+
+.tooltip-icon[title]:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 90%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: var(--dark-gray);
+    z-index: 1000;
+}
+
 .btn-primary, .btn-secondary {
     padding: 10px 20px;
     border: none;

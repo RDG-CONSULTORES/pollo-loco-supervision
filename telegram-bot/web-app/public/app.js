@@ -10,6 +10,7 @@ class ElPolloLocoDashboard {
         this.currentFilters = {
             grupo: '',
             estado: '',
+            sucursal: '',
             trimestre: '',
             periodoCas: ''
         };
@@ -144,6 +145,9 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
             }
+            if (this.currentFilters.sucursal) {
+                params.append('sucursal', this.currentFilters.sucursal);
+            }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
@@ -176,6 +180,9 @@ class ElPolloLocoDashboard {
             }
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.sucursal) {
+                params.append('sucursal', this.currentFilters.sucursal);
             }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
@@ -210,6 +217,9 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
             }
+            if (this.currentFilters.sucursal) {
+                params.append('sucursal', this.currentFilters.sucursal);
+            }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
@@ -243,6 +253,9 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
             }
+            if (this.currentFilters.sucursal) {
+                params.append('sucursal', this.currentFilters.sucursal);
+            }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
             }
@@ -275,6 +288,9 @@ class ElPolloLocoDashboard {
             }
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.sucursal) {
+                params.append('sucursal', this.currentFilters.sucursal);
             }
             if (this.currentFilters.periodoCas) {
                 params.append('periodoCas', this.currentFilters.periodoCas);
@@ -320,6 +336,9 @@ class ElPolloLocoDashboard {
             }
             if (this.currentFilters.estado) {
                 params.append('estado', this.currentFilters.estado);
+            }
+            if (this.currentFilters.sucursal) {
+                params.append('sucursal', this.currentFilters.sucursal);
             }
             if (this.currentFilters.trimestre) {
                 params.append('trimestre', this.currentFilters.trimestre);
@@ -1120,6 +1139,23 @@ class ElPolloLocoDashboard {
                 console.log(`✅ Filtro estados llenado con ${uniqueStates.length} opciones`);
             }
             
+            // Populate Sucursal filter
+            const sucursalFilter = document.getElementById('sucursalFilter');
+            if (sucursalFilter && this.data.locations) {
+                // Clear existing options except the first one
+                sucursalFilter.innerHTML = '<option value="">Todas las sucursales</option>';
+                
+                // Get unique sucursales from locations, sorted by name
+                const uniqueSucursales = [...new Set(this.data.locations.map(l => l.sucursal).filter(s => s))].sort();
+                uniqueSucursales.forEach(sucursal => {
+                    const option = document.createElement('option');
+                    option.value = sucursal;
+                    option.textContent = sucursal;
+                    sucursalFilter.appendChild(option);
+                });
+                console.log(`✅ Filtro sucursales llenado con ${uniqueSucursales.length} opciones`);
+            }
+            
             // Populate Período CAS filter
             const periodoCasFilter = document.getElementById('periodoCasFilter');
             if (periodoCasFilter && this.data.periodsCas) {
@@ -1149,6 +1185,7 @@ class ElPolloLocoDashboard {
         
         this.currentFilters.grupo = document.getElementById('grupoFilter').value;
         this.currentFilters.estado = document.getElementById('estadoFilter').value;
+        this.currentFilters.sucursal = document.getElementById('sucursalFilter').value;
         this.currentFilters.trimestre = document.getElementById('trimestreFilter').value;
         this.currentFilters.periodoCas = document.getElementById('periodoCasFilter').value;
         
@@ -1182,10 +1219,11 @@ class ElPolloLocoDashboard {
         
         document.getElementById('grupoFilter').value = '';
         document.getElementById('estadoFilter').value = '';
+        document.getElementById('sucursalFilter').value = '';
         document.getElementById('trimestreFilter').value = '';
         document.getElementById('periodoCasFilter').value = '';
         
-        this.currentFilters = { grupo: '', estado: '', trimestre: '', periodoCas: '' };
+        this.currentFilters = { grupo: '', estado: '', sucursal: '', trimestre: '', periodoCas: '' };
         
         // Show loading
         this.showLoading();
@@ -1830,12 +1868,14 @@ function generateReport() {
         // Get current filter values from the dashboard
         const grupo = document.getElementById('grupoFilter')?.value || 'all';
         const estado = document.getElementById('estadoFilter')?.value || 'all';
+        const sucursal = document.getElementById('sucursalFilter')?.value || 'all';
         const trimestre = document.getElementById('trimestreFilter')?.value || 'all';
         const periodoCas = document.getElementById('periodoCasFilter')?.value || 'all';
         
         // Create download URL with all current filters
         const params = new URLSearchParams({
             estado: estado,
+            sucursal: sucursal,
             trimestre: trimestre,
             periodoCas: periodoCas,
             format: 'html'

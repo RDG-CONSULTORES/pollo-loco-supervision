@@ -57,8 +57,19 @@
                 </div>
                 
                 <div class="filter-group">
-                    <label for="trimestreFilter"><i class="fas fa-calendar"></i> Trimestre 2025</label>
-                    <select id="trimestreFilter">
+                    <label for="sucursalFilter"><i class="fas fa-store"></i> Sucursal</label>
+                    <select id="sucursalFilter">
+                        <option value="">Todas las sucursales</option>
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="trimestreFilter"><i class="fas fa-calendar"></i> Trimestre 2025
+                        <span class="tooltip-icon" title="Filtro temporalmente deshabilitado - Se usa Período CAS para mayor precisión">
+                            <i class="fas fa-info-circle"></i>
+                        </span>
+                    </label>
+                    <select id="trimestreFilter" disabled style="opacity: 0.5; cursor: not-allowed;">
                         <option value="">Todo el año</option>
                         <option value="1">Q1 2025</option>
                         <option value="2">Q2 2025</option>
