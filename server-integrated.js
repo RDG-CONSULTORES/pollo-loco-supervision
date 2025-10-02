@@ -3223,4 +3223,80 @@ app.get('/api/verificacion-completa', async (req, res) => {
     }
 });
 
+// RAW SQL VERIFICATION ENDPOINT
+app.get('/api/verificar-datos-reales', async (req, res) => {
+    try {
+        console.log('🔍 VERIFICACIÓN DE DATOS REALES - Ejecutando consultas directas');
+        
+        // 1. Ver todos los grupos operativos únicos
+        const gruposQuery = `
+            SELECT DISTINCT grupo_operativo_limpio, COUNT(*) as registros
+            FROM ${DATA_SOURCE}
+            GROUP BY grupo_operativo_limpio
+            ORDER BY grupo_operativo_limpio
+        `;
+        
+        // 2. Ver específicamente cualquier cosa relacionada con SALTILLO
+        const saltilloQuery = `
+            SELECT DISTINCT grupo_operativo_limpio, location_name
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio ILIKE '%SALTILLO%'
+            OR location_name ILIKE '%SALTILLO%'
+            ORDER BY grupo_operativo_limpio, location_name
+        `;
+        
+        // 3. Ver datos sin ningún filtro - top 20 registros más recientes
+        const rawDataQuery = `
+            SELECT 
+                grupo_operativo_limpio,
+                location_name,
+                fecha_supervision,
+                area_evaluacion,
+                porcentaje
+            FROM ${DATA_SOURCE}
+            ORDER BY fecha_supervision DESC
+            LIMIT 20
+        `;
+        
+        // 4. Verificar si hay datos demo contaminando
+        const demoQuery = `
+            SELECT DISTINCT grupo_operativo_limpio, location_name
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio ILIKE '%DEMO%'
+            OR location_name ILIKE '%DEMO%'
+            OR grupo_operativo_limpio ILIKE '%TEST%'
+            OR location_name ILIKE '%TEST%'
+        `;
+        
+        const [gruposResult, saltilloResult, rawDataResult, demoResult] = await Promise.all([
+            pool.query(gruposQuery),
+            pool.query(saltilloQuery),
+            pool.query(rawDataQuery),
+            pool.query(demoQuery)
+        ]);
+        
+        res.json({
+            success: true,
+            data_source: DATA_SOURCE,
+            todos_los_grupos: gruposResult.rows,
+            datos_saltillo: saltilloResult.rows,
+            ultimos_20_registros: rawDataResult.rows,
+            datos_demo_contaminantes: demoResult.rows,
+            resumen: {
+                total_grupos: gruposResult.rows.length,
+                registros_saltillo: saltilloResult.rows.length,
+                registros_demo: demoResult.rows.length
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en verificación de datos reales:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            data_source: DATA_SOURCE
+        });
+    }
+});
+
 module.exports = app;
