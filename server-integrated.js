@@ -2872,12 +2872,22 @@ app.get('/api/kpis', async (req, res) => {
     }
 });
 
-// Grupos endpoint
+// Grupos endpoint - GUARANTEED REAL DATA ONLY
 app.get('/api/grupos', async (req, res) => {
     try {
         const { grupo, estado, trimestre, periodoCas } = req.query;
         
-        let whereConditions = ['grupo_operativo_limpio IS NOT NULL', 'porcentaje IS NOT NULL'];
+        let whereConditions = [
+            'grupo_operativo_limpio IS NOT NULL', 
+            'porcentaje IS NOT NULL',
+            // CRITICAL: Exclude demo/test data
+            'grupo_operativo_limpio NOT ILIKE \'%DEMO%\'',
+            'grupo_operativo_limpio NOT ILIKE \'%TEST%\'',
+            'grupo_operativo_limpio NOT ILIKE \'%ERROR%\'',
+            'location_name NOT ILIKE \'%DEMO%\'',
+            'location_name NOT ILIKE \'%TEST%\'',
+            'location_name NOT ILIKE \'%ERROR%\''
+        ];
         let params = [];
         let paramIndex = 1;
 
@@ -2894,10 +2904,16 @@ app.get('/api/grupos', async (req, res) => {
         }
 
         if (periodoCas && periodoCas !== 'all') {
-            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
-            whereConditions.push(condition);
-            params.push(...casParams);
-            paramIndex += casParams.length;
+            try {
+                const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+                if (condition) {
+                    whereConditions.push(condition);
+                    params.push(...casParams);
+                    paramIndex += casParams.length;
+                }
+            } catch (casError) {
+                console.error('❌ Error in periodo CAS filtering:', casError);
+            }
         }
 
         const query = `
@@ -2909,23 +2925,46 @@ app.get('/api/grupos', async (req, res) => {
             FROM ${DATA_SOURCE}
             WHERE ${whereConditions.join(' AND ')}
             GROUP BY grupo_operativo_limpio
+            HAVING COUNT(DISTINCT submission_id) > 0
             ORDER BY promedio DESC
         `;
         
         const result = await pool.query(query, params);
-        res.json(result.rows);
+        
+        // Double-check: Filter out any remaining demo data
+        const cleanResults = result.rows.filter(row => 
+            !row.grupo_operativo.toLowerCase().includes('demo') &&
+            !row.grupo_operativo.toLowerCase().includes('test') &&
+            !row.grupo_operativo.toLowerCase().includes('error')
+        );
+        
+        res.json(cleanResults);
     } catch (error) {
         console.error('❌ API Error /grupos:', error);
         res.status(500).json({ error: error.message });
     }
 });
 
-// Sucursales ranking endpoint - FIXED
+// Sucursales ranking endpoint - GUARANTEED REAL DATA ONLY
 app.get('/api/sucursales-ranking', async (req, res) => {
     try {
         const { grupo, estado, trimestre, periodoCas, limit = 1000 } = req.query;
         
-        let whereConditions = ['porcentaje IS NOT NULL', 'area_evaluacion = \'\''];
+        console.log(`🔍 SUCURSALES-RANKING: Filters received - grupo: ${grupo}, estado: ${estado}, periodoCas: ${periodoCas}`);
+        
+        let whereConditions = [
+            'porcentaje IS NOT NULL', 
+            'area_evaluacion = \'\'',
+            'grupo_operativo_limpio IS NOT NULL',
+            'location_name IS NOT NULL',
+            // CRITICAL: Exclude any potential demo/test data
+            'grupo_operativo_limpio NOT ILIKE \'%DEMO%\'',
+            'grupo_operativo_limpio NOT ILIKE \'%TEST%\'',
+            'grupo_operativo_limpio NOT ILIKE \'%ERROR%\'',
+            'location_name NOT ILIKE \'%DEMO%\'',
+            'location_name NOT ILIKE \'%TEST%\'',
+            'location_name NOT ILIKE \'%ERROR%\''
+        ];
         let params = [];
         let paramIndex = 1;
 
@@ -2942,10 +2981,17 @@ app.get('/api/sucursales-ranking', async (req, res) => {
         }
 
         if (periodoCas && periodoCas !== 'all') {
-            const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
-            whereConditions.push(condition);
-            params.push(...casParams);
-            paramIndex += casParams.length;
+            try {
+                const { condition, params: casParams } = buildPeriodoCasCondition(periodoCas, paramIndex);
+                if (condition) {
+                    whereConditions.push(condition);
+                    params.push(...casParams);
+                    paramIndex += casParams.length;
+                }
+            } catch (casError) {
+                console.error('❌ Error in periodo CAS filtering:', casError);
+                // Continue without periodo filter if it fails
+            }
         }
 
         const query = `
@@ -2954,20 +3000,45 @@ app.get('/api/sucursales-ranking', async (req, res) => {
                 grupo_operativo_limpio as grupo_operativo,
                 estado_normalizado as estado,
                 ROUND(AVG(porcentaje)::numeric, 2) as promedio,
-                MAX(fecha_supervision) as fecha_supervision
+                MAX(fecha_supervision) as fecha_supervision,
+                COUNT(DISTINCT submission_id) as evaluaciones
             FROM ${DATA_SOURCE}
             WHERE ${whereConditions.join(' AND ')}
             GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
+            HAVING COUNT(DISTINCT submission_id) > 0
             ORDER BY promedio DESC
             LIMIT $${paramIndex}
         `;
         
         params.push(parseInt(limit));
+        
+        console.log(`🔍 SUCURSALES-RANKING: Executing query with ${params.length} parameters`);
         const result = await pool.query(query, params);
-        res.json(result.rows);
+        
+        console.log(`✅ SUCURSALES-RANKING: Found ${result.rows.length} real sucursales`);
+        
+        // CRITICAL: Validate results don't contain demo data
+        const cleanResults = result.rows.filter(row => 
+            !row.sucursal.toLowerCase().includes('demo') &&
+            !row.sucursal.toLowerCase().includes('test') &&
+            !row.sucursal.toLowerCase().includes('error') &&
+            !row.grupo_operativo.toLowerCase().includes('demo') &&
+            !row.grupo_operativo.toLowerCase().includes('test') &&
+            !row.grupo_operativo.toLowerCase().includes('error')
+        );
+        
+        if (cleanResults.length !== result.rows.length) {
+            console.warn(`⚠️ FILTERED OUT ${result.rows.length - cleanResults.length} demo records`);
+        }
+        
+        res.json(cleanResults);
     } catch (error) {
         console.error('❌ API Error /sucursales-ranking:', error);
-        res.status(500).json({ error: error.message });
+        // NEVER return demo data on error
+        res.status(500).json({ 
+            error: 'Database error - no demo data returned',
+            message: error.message 
+        });
     }
 });
 
