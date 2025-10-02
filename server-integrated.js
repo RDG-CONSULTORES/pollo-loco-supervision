@@ -3664,4 +3664,115 @@ app.get('/api/verificacion-total-sistema', async (req, res) => {
     }
 });
 
+// IMMEDIATE DATABASE INSPECTION - CHECK FOR DEMO DATA
+app.get('/api/inspect-database-now', async (req, res) => {
+    try {
+        console.log('🚨 INSPECCIÓN INMEDIATA DE BASE DE DATOS');
+        
+        // 1. Check for demo data contamination
+        const demoCheckQuery = `
+            SELECT DISTINCT 
+                grupo_operativo_limpio, 
+                location_name,
+                COUNT(*) as registros
+            FROM ${DATA_SOURCE} 
+            WHERE grupo_operativo_limpio ILIKE '%DEMO%' 
+               OR location_name ILIKE '%DEMO%'
+               OR grupo_operativo_limpio ILIKE '%ERROR%'
+               OR location_name ILIKE '%ERROR%'
+               OR grupo_operativo_limpio ILIKE '%TEST%'
+               OR location_name ILIKE '%TEST%'
+            GROUP BY grupo_operativo_limpio, location_name
+            ORDER BY grupo_operativo_limpio, location_name
+        `;
+        
+        // 2. Get real GRUPO SALTILLO data
+        const saltilloRealQuery = `
+            SELECT 
+                location_name,
+                grupo_operativo_limpio,
+                estado_normalizado,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio,
+                MAX(fecha_supervision) as ultima_supervision
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            AND area_evaluacion = ''
+            GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
+            ORDER BY location_name
+        `;
+        
+        // 3. Check what sucursales-ranking query actually returns
+        const problematicQuery = `
+            SELECT 
+                location_name as sucursal,
+                grupo_operativo_limpio as grupo_operativo,
+                estado_normalizado as estado,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+                COUNT(DISTINCT submission_id) as evaluaciones
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            AND porcentaje IS NOT NULL 
+            AND area_evaluacion = ''
+            GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
+            ORDER BY promedio DESC
+            LIMIT 10
+        `;
+        
+        // 4. Raw count of all data
+        const totalCountQuery = `
+            SELECT 
+                COUNT(*) as total_registros,
+                COUNT(DISTINCT grupo_operativo_limpio) as grupos_unicos,
+                COUNT(DISTINCT location_name) as sucursales_unicas,
+                MIN(fecha_supervision) as fecha_min,
+                MAX(fecha_supervision) as fecha_max
+            FROM ${DATA_SOURCE}
+        `;
+        
+        console.log('Ejecutando consultas...');
+        
+        const [demoResult, saltilloResult, problematicResult, countResult] = await Promise.all([
+            pool.query(demoCheckQuery),
+            pool.query(saltilloRealQuery),
+            pool.query(problematicQuery),
+            pool.query(totalCountQuery)
+        ]);
+        
+        const inspection = {
+            timestamp: new Date().toISOString(),
+            data_source: DATA_SOURCE,
+            demo_contamination: {
+                found: demoResult.rows.length > 0,
+                count: demoResult.rows.length,
+                records: demoResult.rows
+            },
+            grupo_saltillo_real: {
+                found: saltilloResult.rows.length > 0,
+                count: saltilloResult.rows.length,
+                sucursales: saltilloResult.rows
+            },
+            problematic_query_result: {
+                count: problematicResult.rows.length,
+                data: problematicResult.rows
+            },
+            database_summary: countResult.rows[0],
+            recommendation: demoResult.rows.length > 0 ? 
+                'ELIMINAR DATOS DEMO INMEDIATAMENTE' : 
+                'BASE DE DATOS LIMPIA - INVESTIGAR ENDPOINT'
+        };
+        
+        console.log('✅ Inspección completada');
+        res.json(inspection);
+        
+    } catch (error) {
+        console.error('❌ Error en inspección:', error);
+        res.status(500).json({
+            error: 'Error conectando a base de datos',
+            message: error.message,
+            stack: error.stack
+        });
+    }
+});
+
 module.exports = app;
