@@ -3101,40 +3101,124 @@ app.get('/api/trimestres', async (req, res) => {
     }
 });
 
-// Diagnostic endpoint for today's data
-app.get('/api/diagnostic-today', async (req, res) => {
+// COMPLETE DATABASE VERIFICATION ENDPOINT
+app.get('/api/verificacion-completa', async (req, res) => {
     try {
-        const today = new Date().toISOString().split('T')[0];
+        console.log('🔍 VERIFICACIÓN COMPLETA - Iniciando análisis de base de datos');
         
-        const query = `
+        // 1. Verificar conexión y tabla
+        const connectionQuery = `SELECT NOW() as server_time, '${DATA_SOURCE}' as tabla_usada`;
+        const connectionResult = await pool.query(connectionQuery);
+        
+        // 2. Conteo general de registros
+        const countQuery = `
+            SELECT 
+                COUNT(*) as total_registros,
+                COUNT(DISTINCT submission_id) as total_supervisiones,
+                COUNT(DISTINCT location_name) as total_sucursales,
+                COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
+                MIN(fecha_supervision::date) as fecha_minima,
+                MAX(fecha_supervision::date) as fecha_maxima
+            FROM ${DATA_SOURCE}
+        `;
+        const countResult = await pool.query(countQuery);
+        
+        // 3. GRUPO SALTILLO - Todas las sucursales sin filtros
+        const saltilloAllQuery = `
+            SELECT 
+                location_name,
+                COUNT(DISTINCT submission_id) as supervisiones_totales,
+                COUNT(DISTINCT fecha_supervision::date) as dias_con_supervisiones,
+                MIN(fecha_supervision::date) as primera_supervision,
+                MAX(fecha_supervision::date) as ultima_supervision,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_general
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            GROUP BY location_name
+            ORDER BY location_name
+        `;
+        const saltilloAllResult = await pool.query(saltilloAllQuery);
+        
+        // 4. GRUPO SALTILLO - Solo en período NL T3
+        const saltilloNLT3Query = `
+            SELECT 
+                location_name,
+                COUNT(DISTINCT submission_id) as supervisiones_nl_t3,
+                MIN(fecha_supervision::date) as primera_nl_t3,
+                MAX(fecha_supervision::date) as ultima_nl_t3,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_nl_t3
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            AND (
+                CASE 
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                    THEN 'nl_t3'
+                    ELSE 'otros'
+                END = 'nl_t3'
+            )
+            GROUP BY location_name
+            ORDER BY location_name
+        `;
+        const saltilloNLT3Result = await pool.query(saltilloNLT3Query);
+        
+        // 5. Verificar supervisiones de hoy
+        const today = new Date().toISOString().split('T')[0];
+        const todayQuery = `
             SELECT 
                 grupo_operativo_limpio,
                 location_name,
-                fecha_supervision::date as fecha,
-                COUNT(*) as registros,
+                COUNT(*) as registros_hoy,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_hoy,
+                MAX(fecha_supervision) as ultima_hora
+            FROM ${DATA_SOURCE}
+            WHERE fecha_supervision::date = $1
+            GROUP BY grupo_operativo_limpio, location_name
+            ORDER BY grupo_operativo_limpio, location_name
+        `;
+        const todayResult = await pool.query(todayQuery, [today]);
+        
+        // 6. Últimas 10 supervisiones por grupo
+        const recentQuery = `
+            SELECT 
+                grupo_operativo_limpio,
+                location_name,
+                fecha_supervision,
                 ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio
             FROM ${DATA_SOURCE}
-            WHERE fecha_supervision::date = $1 
-            AND grupo_operativo_limpio = 'GRUPO SALTILLO'
-            GROUP BY grupo_operativo_limpio, location_name, fecha_supervision::date
-            ORDER BY location_name
+            WHERE area_evaluacion = ''
+            GROUP BY grupo_operativo_limpio, location_name, fecha_supervision
+            ORDER BY fecha_supervision DESC
+            LIMIT 20
         `;
-        
-        const result = await pool.query(query, [today]);
+        const recentResult = await pool.query(recentQuery);
         
         res.json({
             success: true,
-            diagnostic_date: today,
-            data_source: DATA_SOURCE,
-            saltillo_today: result.rows,
-            message: result.rows.length > 0 ? `Found ${result.rows.length} records for today` : 'No data found for today'
+            timestamp: connectionResult.rows[0].server_time,
+            data_source: connectionResult.rows[0].tabla_usada,
+            resumen_general: countResult.rows[0],
+            grupo_saltillo: {
+                todas_sucursales: saltilloAllResult.rows,
+                total_sucursales_saltillo: saltilloAllResult.rows.length,
+                solo_nl_t3: saltilloNLT3Result.rows,
+                total_sucursales_nl_t3: saltilloNLT3Result.rows.length
+            },
+            supervisiones_hoy: {
+                fecha: today,
+                datos: todayResult.rows,
+                total_hoy: todayResult.rows.length
+            },
+            ultimas_supervisiones: recentResult.rows
         });
         
     } catch (error) {
-        console.error('❌ Diagnostic error:', error);
+        console.error('❌ Error en verificación completa:', error);
         res.status(500).json({ 
             success: false, 
-            error: error.message 
+            error: error.message,
+            stack: error.stack
         });
     }
 });
