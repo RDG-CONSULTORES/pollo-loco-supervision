@@ -821,13 +821,13 @@ app.get('/api/kpis', async (req, res) => {
         
         const query = `
             SELECT 
-                ROUND(AVG(porcentaje), 2) as promedio_general,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio_general,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
                 COUNT(DISTINCT location_name) as total_sucursales,
                 COUNT(DISTINCT estado_normalizado) as total_estados,
                 COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
-                ROUND(MAX(porcentaje), 2) as max_calificacion,
-                ROUND(MIN(porcentaje), 2) as min_calificacion
+                ROUND(MAX(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as max_calificacion,
+                ROUND(MIN(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as min_calificacion
             FROM supervision_operativa_clean 
             WHERE ${whereClause}
         `;
@@ -888,13 +888,13 @@ app.get('/api/grupos', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 grupo_operativo_limpio as grupo_operativo,
-                ROUND(AVG(porcentaje), 2) as promedio,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio,
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
             FROM supervision_operativa_clean 
             WHERE ${whereClause}
             GROUP BY grupo_operativo_limpio
-            ORDER BY AVG(porcentaje) DESC
+            ORDER BY AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) DESC
         `, params);
         
         console.log(`👥 API /grupos: Found ${result.rows.length} groups with filters:`, { grupo, estado, trimestre, periodoCas });
@@ -961,7 +961,7 @@ app.get('/api/locations', async (req, res) => {
                     MIN(municipio) as municipio,
                     AVG(CAST(latitud AS FLOAT)) as lat,
                     AVG(CAST(longitud AS FLOAT)) as lng,
-                    ROUND(AVG(porcentaje), 2) as performance,
+                    ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as performance,
                     MAX(fecha_supervision) as last_evaluation,
                     COUNT(DISTINCT submission_id) as total_evaluations
                 FROM supervision_operativa_clean
@@ -1038,13 +1038,13 @@ app.get('/api/estados', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 estado_normalizado as estado,
-                ROUND(AVG(porcentaje), 2) as promedio,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio,
                 COUNT(DISTINCT submission_id) as supervisiones,
                 COUNT(DISTINCT location_name) as sucursales
             FROM supervision_operativa_clean 
             ${whereClause}
             GROUP BY estado_normalizado
-            ORDER BY AVG(porcentaje) DESC
+            ORDER BY AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) DESC
         `, params);
         
         console.log(`📊 API /estados: Found ${result.rows.length} states with filters:`, { grupo, estado, trimestre, periodoCas });
@@ -2047,37 +2047,38 @@ async function generateReportData(groupId, estado, trimestre, periodoCas) {
 
         const whereClause = whereConditions.length > 0 ? 'WHERE ' + whereConditions.join(' AND ') : '';
 
-        // Get KPIs (matching dashboard)
+        // Get KPIs (matching dashboard) - FIXED: Use only general scores
         const kpiQuery = `
             SELECT 
-                ROUND(AVG(porcentaje)::numeric, 2) as promedio_general,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_general,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
                 COUNT(DISTINCT location_name) as total_sucursales,
                 COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
                 COUNT(*) as total_evaluaciones,
-                ROUND((COUNT(CASE WHEN porcentaje >= 70 THEN 1 END) * 100.0 / COUNT(*))::numeric, 2) as tasa_cumplimiento,
-                ROUND((COUNT(CASE WHEN porcentaje >= 90 THEN 1 END) * 100.0 / COUNT(*))::numeric, 2) as tasa_excelencia
+                ROUND((COUNT(CASE WHEN area_evaluacion = '' AND porcentaje >= 70 THEN 1 END) * 100.0 / COUNT(CASE WHEN area_evaluacion = '' THEN 1 END))::numeric, 2) as tasa_cumplimiento,
+                ROUND((COUNT(CASE WHEN area_evaluacion = '' AND porcentaje >= 90 THEN 1 END) * 100.0 / COUNT(CASE WHEN area_evaluacion = '' THEN 1 END))::numeric, 2) as tasa_excelencia
             FROM ${DATA_SOURCE}
             ${whereClause}
         `;
 
-        // Get top locations
+        // Get top locations - FIXED: Use only general scores
         const topLocationsQuery = `
             SELECT 
                 location_name as sucursal,
                 estado_normalizado as estado,
-                ROUND(AVG(porcentaje), 2) as promedio,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio,
                 COUNT(DISTINCT submission_id) as evaluaciones,
                 CASE 
-                    WHEN AVG(porcentaje) >= 90 THEN 'Excelente'
-                    WHEN AVG(porcentaje) >= 80 THEN 'Bueno'
-                    WHEN AVG(porcentaje) >= 70 THEN 'Regular'
+                    WHEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) >= 90 THEN 'Excelente'
+                    WHEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) >= 80 THEN 'Bueno'
+                    WHEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) >= 70 THEN 'Regular'
                     ELSE 'Requiere Atención'
                 END as status
             FROM ${DATA_SOURCE}
             ${whereClause}
+            AND area_evaluacion = ''
             GROUP BY location_name, estado_normalizado
-            ORDER BY AVG(porcentaje) DESC
+            ORDER BY AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) DESC
             LIMIT 10
         `;
 
