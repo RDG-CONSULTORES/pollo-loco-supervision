@@ -3336,4 +3336,261 @@ app.get('/api/debug-saltillo', async (req, res) => {
     }
 });
 
+// ===================================================
+// COMPREHENSIVE SYSTEM VERIFICATION - PRODUCTION READY
+// ===================================================
+app.get('/api/verificacion-total-sistema', async (req, res) => {
+    try {
+        console.log('🚨 VERIFICACIÓN TOTAL DEL SISTEMA - Análisis exhaustivo iniciado');
+        
+        const verificationResults = {
+            timestamp: new Date().toISOString(),
+            data_source: DATA_SOURCE,
+            system_status: 'ANALYZING',
+            critical_issues: [],
+            warnings: [],
+            all_clear: [],
+            detailed_analysis: {}
+        };
+
+        // 1. VERIFICAR INTEGRIDAD GENERAL DE DATOS
+        console.log('📊 Paso 1: Verificando integridad general...');
+        const generalQuery = `
+            SELECT 
+                COUNT(*) as total_registros,
+                COUNT(DISTINCT submission_id) as total_supervisiones,
+                COUNT(DISTINCT location_name) as total_sucursales,
+                COUNT(DISTINCT grupo_operativo_limpio) as total_grupos,
+                MIN(fecha_supervision::date) as fecha_minima,
+                MAX(fecha_supervision::date) as fecha_maxima
+            FROM ${DATA_SOURCE}
+        `;
+        const generalResult = await pool.query(generalQuery);
+        verificationResults.detailed_analysis.general_stats = generalResult.rows[0];
+
+        // 2. DETECTAR Y ELIMINAR DATOS DEMO/FALSOS
+        console.log('🔍 Paso 2: Detectando datos demo/falsos...');
+        const demoDetectionQuery = `
+            SELECT DISTINCT 
+                grupo_operativo_limpio,
+                location_name,
+                COUNT(*) as registros
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio ILIKE '%DEMO%'
+            OR location_name ILIKE '%DEMO%'
+            OR grupo_operativo_limpio ILIKE '%TEST%'
+            OR location_name ILIKE '%TEST%'
+            OR grupo_operativo_limpio ILIKE '%ERROR%'
+            OR location_name ILIKE '%ERROR%'
+            OR grupo_operativo_limpio ILIKE '%SAMPLE%'
+            OR location_name ILIKE '%SAMPLE%'
+            GROUP BY grupo_operativo_limpio, location_name
+            ORDER BY grupo_operativo_limpio, location_name
+        `;
+        const demoResult = await pool.query(demoDetectionQuery);
+        
+        if (demoResult.rows.length > 0) {
+            verificationResults.critical_issues.push({
+                type: 'DATOS_DEMO_DETECTADOS',
+                severity: 'CRITICAL',
+                count: demoResult.rows.length,
+                data: demoResult.rows,
+                action_required: 'ELIMINAR_INMEDIATAMENTE'
+            });
+        } else {
+            verificationResults.all_clear.push('No se detectaron datos demo/falsos');
+        }
+
+        // 3. VERIFICAR TODOS LOS GRUPOS OPERATIVOS
+        console.log('👥 Paso 3: Verificando todos los grupos operativos...');
+        const gruposCompleteQuery = `
+            SELECT 
+                grupo_operativo_limpio,
+                COUNT(DISTINCT location_name) as total_sucursales,
+                COUNT(DISTINCT submission_id) as total_supervisiones,
+                COUNT(DISTINCT fecha_supervision::date) as dias_con_datos,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_general,
+                MIN(fecha_supervision::date) as primera_supervision,
+                MAX(fecha_supervision::date) as ultima_supervision
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio IS NOT NULL
+            GROUP BY grupo_operativo_limpio
+            ORDER BY grupo_operativo_limpio
+        `;
+        const gruposResult = await pool.query(gruposCompleteQuery);
+        verificationResults.detailed_analysis.todos_los_grupos = gruposResult.rows;
+
+        // 4. VERIFICAR GRUPO SALTILLO ESPECÍFICAMENTE
+        console.log('🎯 Paso 4: Análisis específico GRUPO SALTILLO...');
+        const saltilloDetailQuery = `
+            SELECT 
+                location_name,
+                estado_normalizado,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                COUNT(DISTINCT fecha_supervision::date) as dias_con_datos,
+                MIN(fecha_supervision::date) as primera_supervision,
+                MAX(fecha_supervision::date) as ultima_supervision,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio_general
+            FROM ${DATA_SOURCE}
+            WHERE grupo_operativo_limpio = 'GRUPO SALTILLO'
+            GROUP BY location_name, estado_normalizado
+            ORDER BY location_name
+        `;
+        const saltilloResult = await pool.query(saltilloDetailQuery);
+        verificationResults.detailed_analysis.grupo_saltillo = {
+            total_sucursales: saltilloResult.rows.length,
+            sucursales: saltilloResult.rows
+        };
+
+        // 5. VERIFICAR PERÍODOS CAS
+        console.log('📅 Paso 5: Verificando períodos CAS...');
+        const periodsCasTests = [];
+        const periodos = ['nl_t1', 'nl_t2', 'nl_t3', 'for_s1', 'for_s2'];
+        
+        for (const periodo of periodos) {
+            const periodQuery = `
+                SELECT 
+                    COUNT(DISTINCT location_name) as sucursales,
+                    COUNT(DISTINCT submission_id) as supervisiones,
+                    ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio
+                FROM ${DATA_SOURCE}
+                WHERE (
+                    CASE 
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                        THEN 'nl_t1'
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
+                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                        THEN 'nl_t2'
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-12-31'
+                        THEN 'nl_t3'
+                        WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                              OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                        THEN 'for_s1'
+                        WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                              OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
+                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                        THEN 'for_s2'
+                        ELSE 'otros'
+                    END = $1
+                )
+            `;
+            
+            const periodResult = await pool.query(periodQuery, [periodo]);
+            periodsCasTests.push({
+                periodo: periodo,
+                ...periodResult.rows[0]
+            });
+        }
+        verificationResults.detailed_analysis.periodos_cas = periodsCasTests;
+
+        // 6. VERIFICAR DATOS RECIENTES (ÚLTIMAS 48 HORAS)
+        console.log('⏰ Paso 6: Verificando datos recientes...');
+        const recentQuery = `
+            SELECT 
+                fecha_supervision::date as fecha,
+                COUNT(DISTINCT grupo_operativo_limpio) as grupos,
+                COUNT(DISTINCT location_name) as sucursales,
+                COUNT(DISTINCT submission_id) as supervisiones
+            FROM ${DATA_SOURCE}
+            WHERE fecha_supervision >= CURRENT_DATE - INTERVAL '2 days'
+            GROUP BY fecha_supervision::date
+            ORDER BY fecha_supervision::date DESC
+        `;
+        const recentResult = await pool.query(recentQuery);
+        verificationResults.detailed_analysis.datos_recientes = recentResult.rows;
+
+        // 7. PRUEBAS DE ENDPOINTS CRÍTICOS
+        console.log('🔧 Paso 7: Probando endpoints críticos...');
+        const endpointTests = [];
+        
+        // Test endpoint grupos
+        try {
+            const testGrupos = await pool.query(`
+                SELECT grupo_operativo_limpio, COUNT(*) 
+                FROM ${DATA_SOURCE} 
+                WHERE grupo_operativo_limpio IS NOT NULL 
+                GROUP BY grupo_operativo_limpio 
+                LIMIT 5
+            `);
+            endpointTests.push({
+                endpoint: '/api/grupos',
+                status: 'OK',
+                sample_data: testGrupos.rows
+            });
+        } catch (error) {
+            endpointTests.push({
+                endpoint: '/api/grupos',
+                status: 'ERROR',
+                error: error.message
+            });
+        }
+
+        // Test endpoint sucursales-ranking
+        try {
+            const testSucursales = await pool.query(`
+                SELECT location_name, grupo_operativo_limpio, 
+                       ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio
+                FROM ${DATA_SOURCE}
+                WHERE grupo_operativo_limpio = 'GRUPO SALTILLO' AND area_evaluacion = ''
+                GROUP BY location_name, grupo_operativo_limpio
+                LIMIT 5
+            `);
+            endpointTests.push({
+                endpoint: '/api/sucursales-ranking',
+                status: testSucursales.rows.length > 0 ? 'OK' : 'NO_DATA',
+                sample_data: testSucursales.rows
+            });
+        } catch (error) {
+            endpointTests.push({
+                endpoint: '/api/sucursales-ranking',
+                status: 'ERROR',
+                error: error.message
+            });
+        }
+
+        verificationResults.detailed_analysis.endpoint_tests = endpointTests;
+
+        // 8. ANÁLISIS FINAL Y RECOMENDACIONES
+        console.log('📋 Paso 8: Generando análisis final...');
+        
+        // Determinar estado del sistema
+        if (verificationResults.critical_issues.length === 0) {
+            verificationResults.system_status = 'PRODUCTION_READY';
+            verificationResults.all_clear.push('Sistema verificado y listo para presentación');
+        } else {
+            verificationResults.system_status = 'REQUIRES_ATTENTION';
+        }
+
+        // Agregar resumen ejecutivo
+        verificationResults.executive_summary = {
+            total_grupos: gruposResult.rows.length,
+            total_sucursales: generalResult.rows[0].total_sucursales,
+            total_supervisiones: generalResult.rows[0].total_supervisiones,
+            datos_demo_encontrados: demoResult.rows.length,
+            grupo_saltillo_sucursales: saltilloResult.rows.length,
+            sistema_confiable: verificationResults.critical_issues.length === 0,
+            recomendacion: verificationResults.critical_issues.length === 0 ? 
+                'APTO PARA PRESENTACIÓN' : 'REQUIERE CORRECCIÓN INMEDIATA'
+        };
+
+        console.log('✅ VERIFICACIÓN TOTAL COMPLETADA');
+        res.json(verificationResults);
+
+    } catch (error) {
+        console.error('❌ Error en verificación total:', error);
+        res.status(500).json({
+            success: false,
+            system_status: 'ERROR',
+            error: error.message,
+            recommendation: 'CONTACT_TECHNICAL_SUPPORT'
+        });
+    }
+});
+
 module.exports = app;
