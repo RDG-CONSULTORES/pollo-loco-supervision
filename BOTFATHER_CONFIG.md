@@ -44,8 +44,8 @@ Subir una imagen relacionada con El Pollo Loco CAS (logo, imagen corporativa).
 
 Usar `/setmenubutton`:
 
-**Text**: `🎨 Dashboard`
-**URL**: `https://pollo-loco-supervision.onrender.com`
+**Text**: `📊 Dashboard`
+**URL**: `https://pollo-loco-supervision.onrender.com/dashboard-ios-complete`
 
 ## 6. Configurar Domain
 

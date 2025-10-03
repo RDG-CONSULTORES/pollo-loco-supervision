@@ -102,6 +102,21 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(mobileOptimizedPath);
 });
 
+// Dashboard iOS Complete route - direct mobile access
+app.get('/dashboard-ios-complete', (req, res) => {
+    const mobileOptimizedPath = path.join(__dirname, '../public/dashboard-ios-complete.html');
+    console.log('📱 Dashboard iOS Complete requested:', mobileOptimizedPath);
+    
+    // Check if file exists
+    const fs = require('fs');
+    if (!fs.existsSync(mobileOptimizedPath)) {
+        console.error('❌ Mobile dashboard not found:', mobileOptimizedPath);
+        return res.status(404).send('Dashboard móvil no encontrado');
+    }
+    
+    res.sendFile(mobileOptimizedPath);
+});
+
 // Solo Dashboard - sin rutas adicionales
 
 // Default route - serve mobile dashboard directly
@@ -393,7 +408,7 @@ bot.onText(/\/dashboard/, async (msg) => {
                 inline_keyboard: [[
                     {
                         text: "📊 Ver Dashboard Interactivo",
-                        web_app: { url: `${dashboardUrl}` }
+                        web_app: { url: `${dashboardUrl}/dashboard-ios-complete` }
                     }
                 ]]
             }
