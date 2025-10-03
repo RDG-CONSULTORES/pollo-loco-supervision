@@ -338,7 +338,7 @@
             align-items: center;
             justify-content: center;
             cursor: grab;
-            z-index: 2;
+            z-index: 400; /* Higher than Leaflet controls */
             touch-action: none;
         }
         
@@ -1734,6 +1734,13 @@
 
             // Update sucursales list
             updateSucursalesList();
+            
+            // Initialize collapsible only after map is ready
+            if (currentTab === 'mapa') {
+                setTimeout(() => {
+                    initMapCollapsible();
+                }, 100);
+            }
         }
 
         function updateSucursalesList() {
@@ -1950,6 +1957,10 @@
             // Load specific data for each tab
             if (tab === 'mapa') {
                 loadMapData();
+                // Initialize collapsible after a short delay to ensure DOM is ready
+                setTimeout(() => {
+                    initMapCollapsible();
+                }, 200);
             } else if (tab === 'tendencias') {
                 loadTrendData();
             } else if (tab === 'alertas') {
@@ -2124,9 +2135,6 @@
                     }
                 });
             });
-            
-            // Map collapsible functionality
-            initMapCollapsible();
         }
         
         function initMapCollapsible() {
@@ -2136,6 +2144,10 @@
             const mapHint = document.getElementById('map-hint');
             
             if (!dragHandle || !mapContainer || !mapListContainer) return;
+            
+            // Prevent multiple initializations
+            if (dragHandle.dataset.initialized === 'true') return;
+            dragHandle.dataset.initialized = 'true';
             
             let startY = 0;
             let currentY = 0;
@@ -2164,6 +2176,7 @@
             dragHandle.addEventListener('mouseleave', handleEnd);
             
             function handleStart(e) {
+                e.stopPropagation(); // Prevent conflicts with map
                 isDragging = true;
                 startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                 dragHandle.style.cursor = 'grabbing';
