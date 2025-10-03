@@ -1833,7 +1833,7 @@
                                            avgPerformance >= 80 ? 'var(--ios-blue)' : 
                                            avgPerformance >= 70 ? 'var(--ios-yellow)' : 'var(--ios-red)';
                     return `
-                        <div class="list-item clickable-estado" onclick="zoomToEstado('${estado}')" data-estado="${estado}">
+                        <div class="list-item clickable-estado" onclick="zoomToEstado(&quot;${estado}&quot;)" data-estado="${estado}">
                             <div class="list-item-content">
                                 <div class="list-item-title">📍 ${estado}</div>
                                 <div class="list-item-subtitle">${sucursales.length} sucursales • ${avgPerformance.toFixed(2)}% promedio</div>
