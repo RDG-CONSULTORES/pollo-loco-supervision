@@ -344,9 +344,9 @@
 
         /* Map Container */
         .map-container {
-            height: 65vh; /* 65% of viewport height for mobile optimization */
-            max-height: 600px; /* Maximum height for larger screens */
-            min-height: 300px; /* Minimum usable height */
+            height: 75vh; /* Increased from 65vh - maximized for mobile */
+            max-height: 700px; /* Increased from 600px for larger screens */
+            min-height: 350px; /* Increased minimum for better usability */
             border-radius: 10px;
             overflow: hidden;
             position: relative;
@@ -418,7 +418,7 @@
         }
         
         .map-list-container.expanded {
-            max-height: 50vh; /* 50% of viewport height for mobile optimization */
+            max-height: 35vh; /* Reduced from 50vh - more compact for states list only */
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
@@ -941,16 +941,16 @@
 
             /* Map mobile optimization */
             .map-container {
-                height: 70vh !important; /* 70% for mobile portrait */
-                min-height: 350px !important;
+                height: 80vh !important; /* Increased from 70vh - maximized for mobile */
+                min-height: 400px !important; /* Increased minimum height */
             }
             
             .map-container.fullscreen {
-                height: calc(100vh - 120px) !important; /* Account for smaller mobile headers */
+                height: calc(100vh - 100px) !important; /* Reduced header space */
             }
             
             .map-list-container.expanded {
-                max-height: 60vh !important; /* More space for content on mobile */
+                max-height: 25vh !important; /* Reduced from 60vh - compact states list */
             }
             
             .large-title-container {
@@ -967,11 +967,11 @@
 
         @media (max-width: 768px) and (orientation: landscape) {
             .map-container {
-                height: 80vh !important; /* More space in landscape */
+                height: 85vh !important; /* Maximized for landscape mode */
             }
             
             .map-list-container.expanded {
-                max-height: 40vh !important; /* Less space for list in landscape */
+                max-height: 20vh !important; /* Very compact for landscape */
             }
         }
 
@@ -1398,35 +1398,12 @@
 
             <div class="map-section-wrapper">
                 <div class="map-container" id="map"></div>
-                <div class="map-hint" id="map-hint">Desliza hacia arriba para ver lista</div>
+                <div class="map-hint" id="map-hint">Desliza para ver estados</div>
                 <div class="map-drag-handle" id="map-drag-handle">
                     <div class="drag-indicator"></div>
                 </div>
                 <div class="map-list-container" id="map-list-container">
-                    <!-- Map Stats -->
-                    <div class="section">
-                        <div class="section-header">RESUMEN NACIONAL</div>
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-value" id="map-total-sucursales">--</div>
-                                <div class="stat-label">Sucursales</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="map-performance-promedio">--%</div>
-                                <div class="stat-label">Performance Nacional</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="map-estados-cobertura">--</div>
-                                <div class="stat-label">Estados Cubiertos</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="map-grupos-activos">--</div>
-                                <div class="stat-label">Grupos Operativos</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- States List -->
+                    <!-- States List Only -->
                     <div class="section">
                         <div class="section-header">SUCURSALES POR ESTADO</div>
                         <div class="list-container" id="sucursales-por-estado">
@@ -1927,35 +1904,11 @@
             }
         }
 
-        // Update map statistics
+        // Update map statistics (removed - no longer needed)
         function updateMapStats() {
-            if (!mapData || mapData.length === 0) {
-                console.log('⚠️ No map data available for stats');
-                return;
-            }
-
-            try {
-                // Calculate stats from mapData
-                const totalSucursales = mapData.length;
-                const avgPerformance = mapData.reduce((sum, point) => sum + parseFloat(point.promedio || 0), 0) / totalSucursales;
-                const estados = [...new Set(mapData.map(point => point.estado).filter(e => e))];
-                const grupos = [...new Set(mapData.map(point => point.grupo_operativo).filter(g => g))];
-
-                // Update DOM elements
-                document.getElementById('map-total-sucursales').textContent = totalSucursales.toLocaleString();
-                document.getElementById('map-performance-promedio').textContent = `${avgPerformance.toFixed(1)}%`;
-                document.getElementById('map-estados-cobertura').textContent = estados.length;
-                document.getElementById('map-grupos-activos').textContent = grupos.length;
-
-                console.log('📊 Map stats updated:', { totalSucursales, avgPerformance: avgPerformance.toFixed(1), estados: estados.length, grupos: grupos.length });
-            } catch (error) {
-                console.error('❌ Error updating map stats:', error);
-                // Set fallback values
-                document.getElementById('map-total-sucursales').textContent = '--';
-                document.getElementById('map-performance-promedio').textContent = '--%';
-                document.getElementById('map-estados-cobertura').textContent = '--';
-                document.getElementById('map-grupos-activos').textContent = '--';
-            }
+            // Stats section removed to maximize map space
+            // Only "SUCURSALES POR ESTADO" list remains
+            console.log('📊 Map stats section removed for better space utilization');
         }
 
         // Setup heatmap filters - EXACT from historico-v2
