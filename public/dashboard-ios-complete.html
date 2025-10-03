@@ -1175,6 +1175,7 @@
     <script>
         // Global data
         let allGroups = [];
+        let allGroupsComplete = []; // Complete list of groups without filters
         let allSucursales = [];
         let mapData = [];
         let currentView = 'general';
@@ -1203,10 +1204,32 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            loadAllGroupsOnce(); // Load complete groups list first
             loadData();
             loadEstados();
             initEventListeners();
         });
+
+        // Load all groups once without filters
+        async function loadAllGroupsOnce() {
+            try {
+                const response = await fetch(`${API_BASE}/grupos`);
+                const groupsData = await response.json();
+                
+                if (groupsData && groupsData.length > 0) {
+                    allGroupsComplete = groupsData.map((group, index) => ({
+                        rank: index + 1,
+                        name: group.grupo_operativo,
+                        performance: parseFloat(group.promedio),
+                        sucursales: parseInt(group.sucursales),
+                        supervisiones: parseInt(group.supervisiones)
+                    }));
+                }
+            } catch (error) {
+                console.error('Error loading all groups:', error);
+                allGroupsComplete = [];
+            }
+        }
 
         // Load data from API
         async function loadData() {
@@ -1332,14 +1355,22 @@
 
         function populateGroupSelect() {
             const select = document.getElementById('grupo-select');
+            const currentValue = select.value; // Save current selection
+            
             select.innerHTML = '<option value="">Todos los grupos</option>';
             
-            allGroups.forEach(group => {
+            // Use complete list instead of filtered list
+            allGroupsComplete.forEach(group => {
                 const option = document.createElement('option');
                 option.value = group.name;
                 option.textContent = `${group.name} (${group.performance.toFixed(2)}%)`;
                 select.appendChild(option);
             });
+            
+            // Restore selection if it still exists
+            if (currentValue) {
+                select.value = currentValue;
+            }
         }
 
         function updateUI() {
