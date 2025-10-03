@@ -603,6 +603,11 @@ app.get('/dashboard-ios', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard-ios.html'));
 });
 
+// iOS Complete Dashboard
+app.get('/dashboard-ios-complete', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard-ios-complete.html'));
+});
+
 app.get('/design/:variant', (req, res) => {
     const { variant } = req.params;
     const designFiles = {
