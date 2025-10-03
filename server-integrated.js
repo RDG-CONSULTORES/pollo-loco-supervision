@@ -779,53 +779,22 @@ app.get('/api/kpis', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
+        // Removed undefined sucursal filter - was causing errors
         if (trimestre) {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
             params.push(parseInt(trimestre));
             paramIndex++;
         }
         
-        // Filtro Período CAS (tiene prioridad sobre trimestre estándar)
+        // Filtro Período CAS (tiene prioridad sobre trimestre estándar) - FIXED
         if (periodoCas && periodoCas !== 'all') {
-            whereConditions.push(`
-                CASE 
-                    -- Locales: períodos trimestrales NL
-                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
-                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-30'
-                        THEN 'nl_t1'
-                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
-                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                         AND fecha_supervision >= '2025-05-01' AND fecha_supervision <= '2025-12-31'
-                        THEN 'nl_t2'
-                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO')
-                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                         AND fecha_supervision >= '2025-07-01'
-                        THEN 'nl_t3'
-                    -- Foráneas: períodos semestrales
-                    WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') 
-                          OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-06-30'
-                        THEN 'for_s1'
-                    WHEN (location_name IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                          OR (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO'))
-                         AND fecha_supervision >= '2025-07-01' AND fecha_supervision <= '2025-12-31'
-                        THEN 'for_s2'
-                    ELSE 'otros'
-                END = $${paramIndex}
-            `);
-            params.push(periodoCas);
-            paramIndex++;
+            const periodoCasCondition = buildPeriodoCasCondition(periodoCas, paramIndex);
+            if (periodoCasCondition.condition) {
+                whereConditions.push(periodoCasCondition.condition);
+                params.push(...periodoCasCondition.params);
+                paramIndex += periodoCasCondition.params.length;
+            }
         }
         
         const whereClause = whereConditions.join(' AND ');
@@ -878,11 +847,7 @@ app.get('/api/grupos', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         
         if (trimestre) {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
@@ -950,11 +915,7 @@ app.get('/api/locations', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         if (trimestre) {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
             params.push(parseInt(trimestre));
@@ -1108,11 +1069,7 @@ app.get('/api/indicadores', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         
         if (trimestre) {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
@@ -1135,7 +1092,7 @@ app.get('/api/indicadores', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 area_evaluacion as indicador,
-                ROUND(AVG(porcentaje), 2) as promedio,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio,
                 COUNT(*) as evaluaciones,
                 -- NEW: Add color classification for heat map
                 CASE 
@@ -1190,11 +1147,7 @@ app.get('/api/trimestres', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         
         // Add Período CAS filter
         if (periodoCas && periodoCas !== 'all') {
@@ -1476,7 +1429,8 @@ app.get('/api/sucursales-ranking', async (req, res) => {
         let whereConditions = [
             'porcentaje IS NOT NULL', 
             'location_name IS NOT NULL',
-            'grupo_operativo_limpio IS NOT NULL'
+            'grupo_operativo_limpio IS NOT NULL',
+            'area_evaluacion = \'\''  // CRITICAL: Only use general evaluation scores
         ];
         let params = [];
         let paramIndex = 1;
@@ -1494,11 +1448,7 @@ app.get('/api/sucursales-ranking', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         
         if (trimestre) {
             whereConditions.push(`EXTRACT(QUARTER FROM fecha_supervision) = $${paramIndex}`);
@@ -1527,12 +1477,12 @@ app.get('/api/sucursales-ranking', async (req, res) => {
                 location_name as sucursal,
                 grupo_operativo_limpio as grupo_operativo,
                 estado_normalizado as estado,
-                ROUND(AVG(porcentaje), 2) as promedio,
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio,
                 COUNT(DISTINCT submission_id) as evaluaciones
             FROM supervision_operativa_clean 
             WHERE ${whereClause}
             GROUP BY location_name, grupo_operativo_limpio, estado_normalizado
-            HAVING COUNT(DISTINCT area_evaluacion) >= 5
+            HAVING AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END) IS NOT NULL
             ORDER BY AVG(porcentaje) DESC
             LIMIT ${limitParam}
         `, params);
@@ -2360,11 +2310,7 @@ app.get('/api/dashboard-data', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         
         if (trimestre) {
             const periodoCasCondition = buildPeriodoCasCondition(trimestre, paramIndex);
@@ -2466,11 +2412,7 @@ app.get('/api/map/data', async (req, res) => {
             paramIndex++;
         }
         
-        if (sucursal) {
-            whereConditions.push(`location_name = $${paramIndex}`);
-            params.push(sucursal);
-            paramIndex++;
-        }
+        // Removed undefined sucursal filter - was causing errors
         
         if (trimestre) {
             const periodoCasCondition = buildPeriodoCasCondition(trimestre, paramIndex);

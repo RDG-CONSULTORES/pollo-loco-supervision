@@ -150,6 +150,9 @@ class ElPolloLocoDashboard {
             if (this.currentFilters.periodoCas) {
                 params.append('periodoCas', this.currentFilters.periodoCas);
             }
+            if (this.currentFilters.periodoCas) {
+                params.append('periodoCas', this.currentFilters.periodoCas);
+            }
             
             const queryString = params.toString();
             const url = queryString ? `/api/kpis?${queryString}` : '/api/kpis';
