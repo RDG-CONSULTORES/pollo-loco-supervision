@@ -2277,9 +2277,14 @@
                     if (tendenciaElement && data.performance_general.anterior > 0) {
                         const cambio = data.performance_general.cambio;
                         const anterior = data.performance_general.anterior;
+                        const actual = data.performance_general.actual;
                         const fallbackText = data.periodos.es_fallback ? ' (último disponible)' : '';
+                        
+                        // Debug: Log valores para investigar discrepancia
+                        console.log(`🔍 DEBUG Tendencia - Actual: ${actual}%, Anterior: ${anterior}%, Cambio: ${cambio}`);
+                        
                         tendenciaElement.innerHTML = `
-                            ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio}% vs ${data.periodos.anterior} (${anterior}%)${fallbackText}
+                            ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio} pts vs ${data.periodos.anterior} (${anterior}%)${fallbackText}
                         `;
                     } else if (tendenciaElement) {
                         const fallbackText = data.periodos.es_fallback ? ' (último disponible)' : '';
