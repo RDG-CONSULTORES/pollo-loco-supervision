@@ -3110,7 +3110,7 @@ app.get('/api/analisis-critico', async (req, res) => {
             return condition;
         }
         
-        // 1. Performance General Actual vs Anterior
+        // 1. Performance General Actual vs Anterior (con fallback)
         const performanceQuery = `
             WITH performance_actual AS (
                 SELECT ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as performance_actual
@@ -3124,24 +3124,70 @@ app.get('/api/analisis-critico', async (req, res) => {
                 WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
                       ${getPeriodoCasCondition(periodoAnterior, paramIndex + 1)}
             ),
-            ultima_supervision AS (
+            ultima_supervision_actual AS (
                 SELECT MAX(fecha_supervision) as ultima_fecha
                 FROM supervision_operativa_clean
                 WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
                       ${getPeriodoCasCondition(periodoActual, paramIndex + 2)}
+            ),
+            -- FALLBACK: Última información disponible de cualquier período
+            ultima_info_disponible AS (
+                SELECT 
+                    ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as performance_fallback,
+                    MAX(fecha_supervision) as fecha_fallback,
+                    CASE 
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2025-08-19'
+                            THEN 'NL-T3'
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                            THEN 'NL-T2'
+                        WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                             AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                            THEN 'NL-T1'
+                        WHEN (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO')
+                             AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                            THEN 'FOR-S2'
+                        WHEN (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO')
+                             AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                            THEN 'FOR-S1'
+                        ELSE 'OTROS'
+                    END as periodo_fallback
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      area_evaluacion = ''
+                      AND fecha_supervision = (
+                          SELECT MAX(fecha_supervision) 
+                          FROM supervision_operativa_clean 
+                          WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') : '1=1'}
+                      )
+                GROUP BY periodo_fallback
+                ORDER BY fecha_fallback DESC
+                LIMIT 1
             )
             SELECT 
-                pa.performance_actual,
+                COALESCE(pa.performance_actual, uid.performance_fallback) as performance_actual,
                 pan.performance_anterior,
-                ROUND((pa.performance_actual - pan.performance_anterior)::numeric, 2) as cambio,
-                us.ultima_fecha
-            FROM performance_actual pa, performance_anterior pan, ultima_supervision us
+                ROUND((COALESCE(pa.performance_actual, uid.performance_fallback) - COALESCE(pan.performance_anterior, 0))::numeric, 2) as cambio,
+                COALESCE(usa.ultima_fecha, uid.fecha_fallback) as ultima_fecha,
+                CASE 
+                    WHEN pa.performance_actual IS NULL THEN uid.periodo_fallback
+                    ELSE '${periodoActual}'
+                END as periodo_usado,
+                CASE 
+                    WHEN pa.performance_actual IS NULL THEN true
+                    ELSE false
+                END as es_fallback
+            FROM performance_actual pa, performance_anterior pan, ultima_supervision_actual usa, ultima_info_disponible uid
         `;
         
         const performanceParams = [...params, periodoActual, periodoAnterior, periodoActual];
         const performanceResult = await pool.query(performanceQuery, performanceParams);
         
-        // 2. Bottom 5 Áreas Críticas (< 80%)
+        // 2. Bottom 5 Áreas Críticas (< 80%) con fallback
         const areasQuery = `
             WITH areas_actual AS (
                 SELECT 
@@ -3156,6 +3202,26 @@ app.get('/api/analisis-critico', async (req, res) => {
                 GROUP BY area_evaluacion
                 HAVING AVG(porcentaje) < 80
             ),
+            -- FALLBACK: Áreas críticas del último período disponible
+            areas_fallback AS (
+                SELECT 
+                    area_evaluacion,
+                    ROUND(AVG(porcentaje)::numeric, 2) as score_fallback,
+                    COUNT(*) as evaluaciones_fallback,
+                    MAX(fecha_supervision) as fecha_max
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      area_evaluacion != '' 
+                      AND area_evaluacion NOT LIKE '%PUNTOS%'
+                      AND fecha_supervision >= (
+                          SELECT MAX(fecha_supervision) - INTERVAL '90 days'
+                          FROM supervision_operativa_clean 
+                          WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') : '1=1'}
+                      )
+                GROUP BY area_evaluacion
+                HAVING AVG(porcentaje) < 80
+                ORDER BY MAX(fecha_supervision) DESC
+            ),
             areas_anterior AS (
                 SELECT 
                     area_evaluacion,
@@ -3166,21 +3232,33 @@ app.get('/api/analisis-critico', async (req, res) => {
                       AND area_evaluacion NOT LIKE '%PUNTOS%'
                       AND ${getPeriodoCasCondition(periodoAnterior, paramIndex + 1)}
                 GROUP BY area_evaluacion
+            ),
+            areas_combinadas AS (
+                -- Usar datos actuales si existen, sino usar fallback
+                SELECT 
+                    COALESCE(aa.area_evaluacion, af.area_evaluacion) as area_evaluacion,
+                    COALESCE(aa.score_actual, af.score_fallback) as score_actual,
+                    COALESCE(aa.evaluaciones_actual, af.evaluaciones_fallback) as evaluaciones_actual,
+                    CASE WHEN aa.area_evaluacion IS NULL THEN true ELSE false END as es_fallback
+                FROM areas_actual aa
+                FULL OUTER JOIN areas_fallback af ON aa.area_evaluacion = af.area_evaluacion
+                WHERE COALESCE(aa.score_actual, af.score_fallback) IS NOT NULL
             )
             SELECT 
-                aa.area_evaluacion,
-                aa.score_actual,
+                ac.area_evaluacion,
+                ac.score_actual,
                 COALESCE(aan.score_anterior, 0) as score_anterior,
-                ROUND((aa.score_actual - COALESCE(aan.score_anterior, 0))::numeric, 2) as cambio,
-                aa.evaluaciones_actual,
+                ROUND((ac.score_actual - COALESCE(aan.score_anterior, 0))::numeric, 2) as cambio,
+                ac.evaluaciones_actual,
+                ac.es_fallback,
                 CASE 
-                    WHEN aa.score_actual > COALESCE(aan.score_anterior, 0) THEN '↗️'
-                    WHEN aa.score_actual < COALESCE(aan.score_anterior, 0) THEN '↘️'
+                    WHEN ac.score_actual > COALESCE(aan.score_anterior, 0) THEN '↗️'
+                    WHEN ac.score_actual < COALESCE(aan.score_anterior, 0) THEN '↘️'
                     ELSE '➡️'
                 END as tendencia
-            FROM areas_actual aa
-            LEFT JOIN areas_anterior aan ON aa.area_evaluacion = aan.area_evaluacion
-            ORDER BY aa.score_actual ASC
+            FROM areas_combinadas ac
+            LEFT JOIN areas_anterior aan ON ac.area_evaluacion = aan.area_evaluacion
+            ORDER BY ac.score_actual ASC
             LIMIT 5
         `;
         
@@ -3193,8 +3271,9 @@ app.get('/api/analisis-critico', async (req, res) => {
             success: true,
             tipo,
             periodos: {
-                actual: periodoActual,
-                anterior: periodoAnterior
+                actual: performance.periodo_usado || periodoActual,
+                anterior: periodoAnterior,
+                es_fallback: performance.es_fallback || false
             },
             performance_general: {
                 actual: performance.performance_actual || 0,
@@ -3203,11 +3282,17 @@ app.get('/api/analisis-critico', async (req, res) => {
                 tendencia: performance.cambio > 0 ? '↗️' : performance.cambio < 0 ? '↘️' : '➡️'
             },
             ultima_supervision: performance.ultima_fecha || null,
-            areas_criticas: areasResult.rows,
+            areas_criticas: areasResult.rows.map(area => ({
+                ...area,
+                // Agregar indicador si es dato de fallback
+                nota: area.es_fallback ? 'Último período disponible' : null
+            })),
             metadata: {
                 total_areas_criticas: areasResult.rows.length,
+                areas_con_fallback: areasResult.rows.filter(a => a.es_fallback).length,
                 threshold_critico: 80,
-                data_source: 'supervision_operativa_clean'
+                data_source: 'supervision_operativa_clean',
+                usa_fallback: performance.es_fallback || areasResult.rows.some(a => a.es_fallback)
             }
         };
         

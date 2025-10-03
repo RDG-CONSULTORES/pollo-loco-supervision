@@ -2277,11 +2277,13 @@
                     if (tendenciaElement && data.performance_general.anterior > 0) {
                         const cambio = data.performance_general.cambio;
                         const anterior = data.performance_general.anterior;
+                        const fallbackText = data.periodos.es_fallback ? ' (último disponible)' : '';
                         tendenciaElement.innerHTML = `
-                            ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio}% vs ${data.periodos.anterior} (${anterior}%)
+                            ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio}% vs ${data.periodos.anterior} (${anterior}%)${fallbackText}
                         `;
                     } else if (tendenciaElement) {
-                        tendenciaElement.innerHTML = `📊 Período actual: ${data.periodos.actual}`;
+                        const fallbackText = data.periodos.es_fallback ? ' (último disponible)' : '';
+                        tendenciaElement.innerHTML = `📊 Período: ${data.periodos.actual}${fallbackText}`;
                     }
                     
                     // Actualizar áreas críticas
@@ -2289,15 +2291,21 @@
                     if (areasElement) {
                         if (data.areas_criticas.length > 0) {
                             const areasHTML = data.areas_criticas.slice(0, 3).map((area, index) => {
+                                const fallbackIndicator = area.nota ? ' *' : '';
                                 return `<div style="margin: 2px 0; font-size: 12px;">
                                     ${index + 1}. ${area.area_evaluacion.substring(0, 20)}${area.area_evaluacion.length > 20 ? '...' : ''}: 
                                     <span style="color: #e74c3c; font-weight: 600;">${area.score_actual}%</span>
-                                    <span style="color: #666;">${area.tendencia}</span>
+                                    <span style="color: #666;">${area.tendencia}${fallbackIndicator}</span>
                                 </div>`;
                             }).join('');
+                            
+                            const fallbackNote = data.metadata.areas_con_fallback > 0 ? 
+                                '<div style="font-size: 10px; color: #86868b; margin-top: 4px;">* Último período disponible</div>' : '';
+                            
                             areasElement.innerHTML = `
                                 <div style="font-weight: 600; color: #1d1d1f; margin-bottom: 4px;">🎯 Áreas de Oportunidad (<80%):</div>
                                 ${areasHTML}
+                                ${fallbackNote}
                             `;
                         } else {
                             areasElement.innerHTML = `
