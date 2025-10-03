@@ -1074,7 +1074,6 @@
                 <button class="segment active" onclick="switchView('general')">General</button>
                 <button class="segment" onclick="switchView('grupos')">Grupos</button>
                 <button class="segment" onclick="switchView('criticos')">Críticos</button>
-                <button class="segment" onclick="switchView('historico')">Histórico</button>
             </div>
 
             <!-- Summary Cards -->
@@ -1215,91 +1214,6 @@
                 </div>
             </div>
 
-            <!-- Histórico View -->
-            <div id="historico-view" style="display: none;">
-                <!-- Header -->
-                <div class="section">
-                    <div class="section-header">EVOLUCIÓN HISTÓRICA POR PERÍODOS CAS</div>
-                    <div class="section-subtitle">Datos actualizados automáticamente con cada supervisión</div>
-                </div>
-
-                <!-- Color Legend -->
-                <div class="section">
-                    <div class="heatmap-legend">
-                        <div class="legend-item">
-                            <div class="legend-color heat-excelente"></div>
-                            <span>95-100% Excelente</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color heat-muy-bueno"></div>
-                            <span>91-94.9% Muy Bueno</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color heat-bueno"></div>
-                            <span>87-90.9% Bueno</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color heat-regular"></div>
-                            <span>82-86.9% Regular</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color heat-critico"></div>
-                            <span>0-81.9% Crítico</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Filters -->
-                <div class="section">
-                    <div class="heatmap-filters">
-                        <button class="heatmap-filter-btn active" data-filter="all">
-                            <i class="fas fa-th"></i>
-                            <span>Todos</span>
-                        </button>
-                        <button class="heatmap-filter-btn" data-filter="critical">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <span>Críticos</span>
-                        </button>
-                        <button class="heatmap-filter-btn" data-filter="improving">
-                            <i class="fas fa-arrow-up"></i>
-                            <span>Mejorando</span>
-                        </button>
-                        <button class="heatmap-filter-btn" data-filter="declining">
-                            <i class="fas fa-arrow-down"></i>
-                            <span>Bajando</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Heatmap Table -->
-                <div class="section">
-                    <div class="heatmap-container">
-                        <table class="heatmap-table" id="heatmapTable">
-                            <thead>
-                                <tr>
-                                    <th>Grupo</th>
-                                    <th>NL-T1</th>
-                                    <th>FOR-S1</th>
-                                    <th>NL-T2</th>
-                                    <th>FOR-S2</th>
-                                    <th>NL-T3</th>
-                                    <th>Prom</th>
-                                </tr>
-                            </thead>
-                            <tbody id="heatmapBody">
-                                <tr>
-                                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--ios-gray);">
-                                        <div class="loading">
-                                            <div class="spinner"></div>
-                                            Cargando datos históricos...
-                                        </div>
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
         </div>
 
         <!-- Mapa Tab -->
@@ -1366,6 +1280,56 @@
                     <div class="loading">
                         <div class="spinner"></div>
                         Analizando tendencias...
+                    </div>
+                </div>
+            </div>
+
+            <!-- Histórico Heatmap Section -->
+            <div class="section">
+                <div class="section-header">HISTÓRICO</div>
+                <div class="heatmap-container">
+                    <!-- Heatmap Legend -->
+                    <div class="heatmap-legend">
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #FF3030;"></div>
+                            <span>Crítico (< 70%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #FF9500;"></div>
+                            <span>Bajo (70-79%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #FFCC00;"></div>
+                            <span>Regular (80-89%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #34C759;"></div>
+                            <span>Bueno (90-94%)</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color" style="background: #007AFF;"></div>
+                            <span>Excelente (≥95%)</span>
+                        </div>
+                    </div>
+
+                    <!-- Heatmap Grid -->
+                    <div class="heatmap-grid" id="heatmap-grid">
+                        <table class="heatmap-table">
+                            <thead>
+                                <tr id="heatmapHeader">
+                                    <th>Grupo Operativo</th>
+                                    <!-- Periods will be dynamically added -->
+                                </tr>
+                            </thead>
+                            <tbody id="heatmapBody">
+                                <tr>
+                                    <td colspan="100%" class="loading">
+                                        <div class="spinner"></div>
+                                        Cargando datos históricos...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -2338,6 +2302,9 @@
 
                 // Initialize trend chart
                 initTrendChart();
+
+                // Load heatmap data
+                loadHeatmapData();
             } catch (error) {
                 console.error('Error loading trend data:', error);
             }
@@ -2448,15 +2415,12 @@
             document.getElementById('general-view').style.display = 'none';
             document.getElementById('grupos-view').style.display = 'none';
             document.getElementById('criticos-view').style.display = 'none';
-            document.getElementById('historico-view').style.display = 'none';
 
             // Show selected view
             document.getElementById(`${view}-view`).style.display = 'block';
 
             if (view === 'criticos') {
                 updateCharts(allGroups);
-            } else if (view === 'historico') {
-                loadHeatmapData();
             }
         }
 
