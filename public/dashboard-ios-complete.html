@@ -1325,15 +1325,14 @@
 
             <!-- Horizontal Charts View -->
             <div id="charts-view" style="display: none;">
-                <!-- Chart Section -->
-                <div class="chart-section">
-                    <h3 class="chart-title">Distribución de Performance</h3>
-                    <div class="chart-container">
-                        <canvas id="performanceChart2"></canvas>
+                <!-- Charts view eliminates duplication - general-view already has Performance chart -->
+                <div class="section">
+                    <div class="section-header">VISTA DE GRÁFICAS</div>
+                    <div style="padding: 40px; text-align: center; color: var(--ios-gray); font-size: 0.9rem;">
+                        Las gráficas principales se muestran en la vista General.
+                        <br>Esta vista se mantiene para futura expansión.
                     </div>
                 </div>
-
-                <!-- Solo Distribución de Performance para evitar repetición -->
             </div>
 
             <!-- Groups View -->
@@ -1642,7 +1641,6 @@
         
         // Charts
         let performanceChart = null;
-        let performanceChart2 = null;
         let criticalChart = null;
 
         // API Base URL
@@ -2422,40 +2420,6 @@
                 });
             }
 
-            // Performance distribution chart for charts view
-            const ctx2 = document.getElementById('performanceChart2');
-            if (ctx2 && !performanceChart2) {
-                const excellent = allGroups.filter(g => g.performance >= 90).length;
-                const good = allGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
-                const regular = allGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
-                const critical = allGroups.filter(g => g.performance < 70).length;
-
-                performanceChart2 = new Chart(ctx2, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'],
-                        datasets: [{
-                            data: [excellent, good, regular, critical],
-                            backgroundColor: ['#34C759', '#007AFF', '#FFCC00', '#FF3B30'],
-                            borderWidth: 0
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 15,
-                                    font: { family: '-apple-system', size: 13 },
-                                    color: '#3C3C43'
-                                }
-                            }
-                        }
-                    }
-                });
-            }
         }
 
         function updateCharts(filteredGroups) {
@@ -2469,12 +2433,6 @@
             if (performanceChart) {
                 performanceChart.data.datasets[0].data = [excellent, good, regular, critical];
                 performanceChart.update();
-            }
-
-            // Update performance chart 2 for charts view
-            if (performanceChart2) {
-                performanceChart2.data.datasets[0].data = [excellent, good, regular, critical];
-                performanceChart2.update();
             }
 
             // SEGURIDAD: Destruir critical chart SIEMPRE antes de recrear
