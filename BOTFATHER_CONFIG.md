@@ -5,12 +5,8 @@
 Usar `/setcommands` con @BotFather y copiar este texto:
 
 ```
-kpis - Ver indicadores principales del sistema
-grupos - Análisis detallado por grupo operativo
-estados - Análisis por estado de la República
-criticas - Mostrar indicadores críticos (<70%)
-top10 - Ranking de las mejores 10 sucursales
-help - Guía completa del AI Agent y comandos
+start - Iniciar el bot
+dashboard - Ver dashboard interactivo
 ```
 
 ## 2. Descripción del Bot
@@ -18,17 +14,18 @@ help - Guía completa del AI Agent y comandos
 Usar `/setdescription`:
 
 ```
-🍗 EPL Estandarización Operativa
+🍗 Dashboard El Pollo Loco CAS
 
-Sistema inteligente de supervisión operativa para El Pollo Loco CAS.
+Sistema de supervisión operativa con dashboard móvil optimizado.
 
 ✨ Características:
-• AI Agent para consultas en lenguaje natural
-• Dashboard con 5 diseños únicos
-• Análisis de 135 supervisiones y 79 sucursales
-• Datos en tiempo real desde Neon PostgreSQL
+• 79 sucursales monitoreadas
+• 135 supervisiones analizadas
+• Mapas interactivos en tiempo real
+• KPIs y métricas operativas
+• Optimizado para móvil
 
-🤖 Solo pregúntame lo que necesites saber sobre las supervisiones.
+📊 Usa el botón Dashboard para acceder.
 ```
 
 ## 3. Descripción Corta
@@ -36,11 +33,7 @@ Sistema inteligente de supervisión operativa para El Pollo Loco CAS.
 Usar `/setabouttext`:
 
 ```
-🍗 Sistema de Supervisión Operativa El Pollo Loco CAS con AI Agent integrado.
-
-🎯 Análisis inteligente de 135 supervisiones en 79 sucursales.
-📊 Dashboard interactivo con 5 diseños únicos.
-🤖 Pregúntame cualquier cosa sobre los datos.
+🍗 Dashboard El Pollo Loco CAS - Supervisión operativa de 79 sucursales con mapas interactivos y métricas en tiempo real.
 ```
 
 ## 4. Foto de Perfil

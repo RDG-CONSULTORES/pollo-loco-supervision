@@ -102,20 +102,7 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(mobileOptimizedPath);
 });
 
-// Análisis Histórico route
-app.get('/historico', (req, res) => {
-    const historicoPath = path.join(__dirname, '../historico-demo-completo.html');
-    console.log('📈 Análisis Histórico requested, serving:', historicoPath);
-    
-    // Check if file exists
-    const fs = require('fs');
-    if (!fs.existsSync(historicoPath)) {
-        console.error('❌ File not found:', historicoPath);
-        return res.status(404).send('Análisis Histórico no disponible');
-    }
-    
-    res.sendFile(historicoPath);
-});
+// Solo Dashboard - sin rutas adicionales
 
 // Default route - serve mobile dashboard directly
 app.get('/', (req, res) => {
@@ -446,10 +433,8 @@ bot.on('message', async (msg) => {
     
     try {
         // Check for dashboard triggers
-        const dashboardTriggers = ['dashboard', 'mapa', 'gráfico', 'visual', 'interactivo', 'ubicación'];
-        if (dashboardTriggers.some(trigger => messageText.toLowerCase().includes(trigger))) {
-            return bot.emit('text', msg, [null, '/dashboard']);
-        }
+        // Auto-respuesta simple - redirigir a dashboard
+        return bot.emit('text', msg, [null, '/dashboard']);
         
         // Simple response for any message
         await bot.sendMessage(chatId, '🍗 ¡Hola! Usa el botón Dashboard para acceder al sistema completo de supervisión El Pollo Loco CAS.');
