@@ -298,6 +298,17 @@
             height: 400px;
             border-radius: 10px;
             overflow: hidden;
+            position: relative;
+            z-index: 1; /* Keep map below modals */
+        }
+        
+        /* Ensure Leaflet controls stay within reasonable z-index */
+        .leaflet-control {
+            z-index: 10 !important;
+        }
+        
+        .leaflet-pane {
+            z-index: 1 !important;
         }
 
         /* Tab Views */
@@ -371,7 +382,7 @@
             background: rgba(0, 0, 0, 0.4);
             display: none;
             align-items: flex-end;
-            z-index: 200;
+            z-index: 9999; /* Higher than any Leaflet element */
         }
 
         .modal-overlay.active {
@@ -1120,6 +1131,10 @@
             try {
                 showLoading();
                 
+                // Clear previous data to avoid showing stale information
+                allGroups = [];
+                updateUI(); // Show empty state while loading
+                
                 // Load KPIs
                 const kpiResponse = await fetch(`${API_BASE}/kpis${buildQueryString()}`);
                 kpiData = await kpiResponse.json();
@@ -1129,15 +1144,22 @@
                 const groupsResponse = await fetch(`${API_BASE}/grupos${buildQueryString()}`);
                 const groupsData = await groupsResponse.json();
                 
-                // Process groups data
-                allGroups = groupsData.map((group, index) => ({
-                    rank: index + 1,
-                    name: group.grupo_operativo,
-                    performance: parseFloat(group.promedio),
-                    sucursales: parseInt(group.sucursales),
-                    supervisiones: parseInt(group.supervisiones),
-                    trend: parseFloat(group.promedio) - (kpiData.promedio_general || 87.92)
-                }));
+                // Check if we have data
+                if (groupsData && groupsData.length > 0) {
+                    // Process groups data
+                    allGroups = groupsData.map((group, index) => ({
+                        rank: index + 1,
+                        name: group.grupo_operativo,
+                        performance: parseFloat(group.promedio),
+                        sucursales: parseInt(group.sucursales),
+                        supervisiones: parseInt(group.supervisiones),
+                        trend: parseFloat(group.promedio) - (kpiData.promedio_general || 87.92)
+                    }));
+                } else {
+                    // No data found with current filters
+                    allGroups = [];
+                    showNoDataMessage();
+                }
 
                 // Populate grupo select
                 populateGroupSelect();
@@ -1173,11 +1195,26 @@
 
         async function loadMapData() {
             try {
+                // Clear previous map data
+                mapData = [];
+                
                 const response = await fetch(`${API_BASE}/map/data${buildQueryString()}`);
-                mapData = await response.json();
+                const data = await response.json();
+                
+                // Validate response
+                if (data && Array.isArray(data)) {
+                    mapData = data;
+                } else {
+                    mapData = [];
+                }
+                
                 initMap();
             } catch (error) {
                 console.error('Error loading map data:', error);
+                mapData = [];
+                updateContainer('sucursales-por-estado', 
+                    '<div style="padding: 40px; text-align: center; color: var(--ios-red);">Error al cargar datos del mapa</div>'
+                );
             }
         }
 
@@ -1466,26 +1503,28 @@
         }
 
         function updateCharts(filteredGroups) {
+            // Calculate data
+            const excellent = filteredGroups.filter(g => g.performance >= 90).length;
+            const good = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+            const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+            const critical = filteredGroups.filter(g => g.performance < 70).length;
+
             // Update performance chart
             if (performanceChart) {
-                const excellent = filteredGroups.filter(g => g.performance >= 90).length;
-                const good = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
-                const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
-                const critical = filteredGroups.filter(g => g.performance < 70).length;
-
                 performanceChart.data.datasets[0].data = [excellent, good, regular, critical];
                 performanceChart.update();
             }
 
             // Update performance chart 2 for charts view
             if (performanceChart2) {
-                const excellent = filteredGroups.filter(g => g.performance >= 90).length;
-                const good = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
-                const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
-                const critical = filteredGroups.filter(g => g.performance < 70).length;
-
                 performanceChart2.data.datasets[0].data = [excellent, good, regular, critical];
                 performanceChart2.update();
+            }
+
+            // Destroy and recreate critical chart if view changed
+            if (currentView === 'criticos' && criticalChart) {
+                criticalChart.destroy();
+                criticalChart = null;
             }
 
             // Critical chart for criticos view
@@ -1531,14 +1570,35 @@
         }
 
         function initMap() {
-            if (!map && mapData.length > 0) {
+            // Clear existing markers if map exists
+            if (map) {
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.CircleMarker) {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
+
+            // Check if we have map data
+            if (mapData.length === 0) {
+                updateContainer('sucursales-por-estado', 
+                    '<div style="padding: 40px; text-align: center; color: var(--ios-gray);">No hay datos de ubicación con los filtros seleccionados</div>'
+                );
+                return;
+            }
+
+            // Initialize map if not exists
+            if (!map) {
                 map = L.map('map').setView([25.6866, -100.3161], 6);
                 
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: 'Map data © OpenStreetMap contributors'
                 }).addTo(map);
+            }
 
-                mapData.forEach(point => {
+            // Add markers
+            mapData.forEach(point => {
+                if (point.latitud && point.longitud) {
                     const color = point.promedio >= 90 ? 'green' : 
                                   point.promedio >= 80 ? 'blue' : 
                                   point.promedio >= 70 ? 'orange' : 'red';
@@ -1556,8 +1616,47 @@
                         ${point.grupo_operativo}<br>
                         Performance: ${point.promedio}%
                     `);
-                });
+                }
+            });
+
+            // Update sucursales list
+            updateSucursalesList();
+        }
+
+        function updateSucursalesList() {
+            if (mapData.length === 0) {
+                return;
             }
+
+            // Group by estado
+            const byEstado = mapData.reduce((acc, point) => {
+                const estado = point.estado || 'Sin Estado';
+                if (!acc[estado]) {
+                    acc[estado] = [];
+                }
+                acc[estado].push(point);
+                return acc;
+            }, {});
+
+            // Create HTML for sucursales by estado
+            const html = Object.entries(byEstado)
+                .map(([estado, sucursales]) => {
+                    const avgPerformance = sucursales.reduce((sum, s) => sum + parseFloat(s.promedio), 0) / sucursales.length;
+                    return `
+                        <div class="list-item">
+                            <div class="list-item-content">
+                                <div class="list-item-title">${estado}</div>
+                                <div class="list-item-subtitle">${sucursales.length} sucursales • ${avgPerformance.toFixed(2)}% promedio</div>
+                            </div>
+                            <div class="list-item-end">
+                                <div class="list-item-value">${sucursales.length}</div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+
+            updateContainer('sucursales-por-estado', html);
         }
 
         async function loadTrendData() {
@@ -1736,7 +1835,7 @@
             document.getElementById('nav-title').textContent = titles[tab];
 
             // Load specific data for each tab
-            if (tab === 'mapa' && !map) {
+            if (tab === 'mapa') {
                 loadMapData();
             } else if (tab === 'tendencias') {
                 loadTrendData();
@@ -1752,6 +1851,32 @@
 
         function closeFilters() {
             document.getElementById('filterModal').classList.remove('active');
+        }
+
+        function resetFilters() {
+            // Reset all filters to default
+            currentFilters = {
+                periodo: 'all',
+                performance: 'all',
+                estado: 'all',
+                grupo: ''
+            };
+
+            // Reset UI
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.remove('active');
+                if (pill.dataset.value === 'all') {
+                    pill.classList.add('active');
+                }
+            });
+
+            // Reset grupo select
+            const grupoSelect = document.getElementById('grupo-select');
+            if (grupoSelect) grupoSelect.value = '';
+
+            // Reload data
+            loadData();
+            if (currentTab === 'mapa') loadMapData();
         }
 
         async function showGroupDetail(groupName) {
@@ -1824,13 +1949,27 @@
             alert(message);
         }
 
+        function showNoDataMessage() {
+            const noDataHTML = '<div style="padding: 40px; text-align: center; color: var(--ios-gray);">No se encontraron datos con los filtros seleccionados</div>';
+            
+            // Update all containers with no data message
+            updateContainer('top-performers', noDataHTML);
+            updateContainer('critical-performers', noDataHTML);
+            updateContainer('all-groups', noDataHTML);
+            updateContainer('critical-detail', noDataHTML);
+            updateContainer('top-performers-chart', noDataHTML);
+            updateContainer('critical-performers-chart', noDataHTML);
+            updateContainer('all-groups-chart', noDataHTML);
+        }
+
         // Event Listeners
         function initEventListeners() {
-            // Filter pills
-            document.querySelectorAll('.filter-pills').forEach(container => {
-                container.addEventListener('click', function(e) {
-                    if (e.target.classList.contains('filter-pill')) {
-                        const filterType = container.id.replace('-filters', '').replace('periodo', 'periodo');
+            // Filter pills - Using event delegation for dynamic content
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('filter-pill')) {
+                    const container = e.target.closest('.filter-pills');
+                    if (container) {
+                        const filterType = container.id.replace('-filters', '');
                         const value = e.target.dataset.value;
                         
                         // Update active state
@@ -1840,10 +1979,22 @@
                         // Update filter
                         currentFilters[filterType] = value;
                         
+                        // If changing estado, reset grupo
+                        if (filterType === 'estado' && currentFilters.grupo) {
+                            currentFilters.grupo = '';
+                            const grupoSelect = document.getElementById('grupo-select');
+                            if (grupoSelect) grupoSelect.value = '';
+                        }
+                        
                         // Reload data with new filters
                         loadData();
+                        
+                        // If on map tab, reload map data
+                        if (currentTab === 'mapa') {
+                            loadMapData();
+                        }
                     }
-                });
+                }
             });
 
             // Grupo select
