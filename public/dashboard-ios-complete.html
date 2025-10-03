@@ -2335,7 +2335,7 @@
             }
         }
 
-        // PASO 2: Zoom to Estados Function - Global scope
+        // PASO 2: Zoom Inteligente por Estado - Basado en Sucursales Reales
         window.zoomToEstado = function(estado) {
             console.log('🎯 zoomToEstado called with:', estado);
             console.log('🗺️ Map instance:', map);
@@ -2345,7 +2345,67 @@
                 return;
             }
             
-            // Mexican states boundaries (approximate center coordinates and zoom levels)
+            // Calcular centro basado en sucursales reales del estado
+            const sucursalesEstado = mapData.filter(point => point.estado === estado);
+            console.log(`📍 Sucursales encontradas en ${estado}:`, sucursalesEstado.length);
+            
+            if (sucursalesEstado.length > 0) {
+                // Calcular centro geográfico real de las sucursales
+                const lats = sucursalesEstado.map(s => parseFloat(s.latitud)).filter(lat => !isNaN(lat));
+                const lngs = sucursalesEstado.map(s => parseFloat(s.longitud)).filter(lng => !isNaN(lng));
+                
+                if (lats.length > 0 && lngs.length > 0) {
+                    const centerLat = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
+                    const centerLng = lngs.reduce((sum, lng) => sum + lng, 0) / lngs.length;
+                    
+                    // Calcular zoom inteligente basado en dispersión
+                    const latRange = Math.max(...lats) - Math.min(...lats);
+                    const lngRange = Math.max(...lngs) - Math.min(...lngs);
+                    const maxRange = Math.max(latRange, lngRange);
+                    
+                    let smartZoom;
+                    if (maxRange > 3) smartZoom = 7;      // Estado muy disperso
+                    else if (maxRange > 1.5) smartZoom = 8;  // Disperso
+                    else if (maxRange > 0.8) smartZoom = 9;  // Moderado  
+                    else if (maxRange > 0.3) smartZoom = 10; // Concentrado
+                    else smartZoom = 11;                     // Muy concentrado
+                    
+                    console.log(`📊 Centro calculado: [${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}]`);
+                    console.log(`📊 Rango: ${maxRange.toFixed(3)}, Zoom: ${smartZoom}`);
+                    
+                    // Smooth zoom al centro real
+                    map.flyTo([centerLat, centerLng], smartZoom, {
+                        animate: true,
+                        duration: 1.5
+                    });
+                    
+                    // Popup con información real del estado
+                    setTimeout(() => {
+                        const avgPerformance = sucursalesEstado.reduce((sum, s) => sum + parseFloat(s.promedio), 0) / sucursalesEstado.length;
+                        
+                        L.popup()
+                            .setLatLng([centerLat, centerLng])
+                            .setContent(`
+                                <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                                    <strong>${estado}</strong><br>
+                                    <span style="color: #666;">${sucursalesEstado.length} sucursales</span><br>
+                                    <span style="font-weight: 600; color: ${avgPerformance >= 90 ? '#34C759' : avgPerformance >= 80 ? '#007AFF' : avgPerformance >= 70 ? '#FFCC00' : '#FF3B30'};">
+                                        ${avgPerformance.toFixed(1)}% promedio
+                                    </span><br>
+                                    <span style="font-size: 12px; color: #666;">Centro calculado: ${sucursalesEstado.length} puntos</span>
+                                </div>
+                            `)
+                            .openOn(map);
+                            
+                        setTimeout(() => map.closePopup(), 3000);
+                    }, 1600);
+                    
+                    return; // Salir temprano con zoom inteligente
+                }
+            }
+            
+            // Fallback: coordenadas fijas si no hay sucursales o fallan coordenadas
+            console.log(`⚠️ Fallback a coordenadas fijas para ${estado}`);
             const estadoBounds = {
                 'Aguascalientes': { lat: 21.8853, lng: -102.2916, zoom: 10 },
                 'Baja California': { lat: 30.8406, lng: -115.2838, zoom: 7 },

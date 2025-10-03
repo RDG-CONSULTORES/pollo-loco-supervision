@@ -3212,6 +3212,17 @@ app.get('/api/analisis-critico', async (req, res) => {
         };
         
         console.log(`✅ Análisis crítico completado - ${areasResult.rows.length} áreas críticas encontradas`);
+        
+        // DEBUG: Log para entender por qué algunas sucursales no tienen datos
+        if (!performance.ultima_fecha || areasResult.rows.length === 0) {
+            console.log(`🔍 DEBUG - Sucursal sin datos: ${id || 'N/A'}`);
+            console.log(`   Estado: ${estado}, Grupo: ${grupo}`);
+            console.log(`   Período detectado: ${periodoActual} vs ${periodoAnterior}`);
+            console.log(`   Performance actual: ${performance.performance_actual || 0}`);
+            console.log(`   Última supervisión: ${performance.ultima_fecha || 'NULL'}`);
+            console.log(`   Áreas críticas encontradas: ${areasResult.rows.length}`);
+        }
+        
         res.json(response);
         
     } catch (error) {
@@ -3221,6 +3232,119 @@ app.get('/api/analisis-critico', async (req, res) => {
             error: error.message,
             data_source: 'supervision_operativa_clean'
         });
+    }
+});
+
+// DIAGNÓSTICO: Endpoint para debuggear sucursales sin datos
+app.get('/api/diagnostico-sucursal', async (req, res) => {
+    if (!dbConnected) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { sucursal } = req.query;
+        
+        if (!sucursal) {
+            return res.json({ error: 'Parámetro sucursal requerido' });
+        }
+        
+        // 1. Verificar si existe en la tabla
+        const existeQuery = `
+            SELECT DISTINCT 
+                location_name,
+                estado_normalizado,
+                grupo_operativo_limpio,
+                COUNT(*) as total_registros,
+                MIN(fecha_supervision) as primera_fecha,
+                MAX(fecha_supervision) as ultima_fecha
+            FROM supervision_operativa_clean
+            WHERE location_name = $1
+            GROUP BY location_name, estado_normalizado, grupo_operativo_limpio
+        `;
+        
+        const existeResult = await pool.query(existeQuery, [sucursal]);
+        
+        if (existeResult.rows.length === 0) {
+            return res.json({
+                sucursal,
+                encontrada: false,
+                mensaje: 'Sucursal no encontrada en supervision_operativa_clean'
+            });
+        }
+        
+        const info = existeResult.rows[0];
+        
+        // 2. Verificar supervisiones por período CAS
+        const periodosQuery = `
+            SELECT 
+                CASE 
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                        THEN 'NL-T1'
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                        THEN 'NL-T2'
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-08-19'
+                        THEN 'NL-T3'
+                    WHEN (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO')
+                         AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                        THEN 'FOR-S1'
+                    WHEN (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO')
+                         AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                        THEN 'FOR-S2'
+                    ELSE 'OTROS'
+                END as periodo_cas,
+                COUNT(*) as supervisiones,
+                COUNT(DISTINCT fecha_supervision::date) as dias_supervision,
+                MIN(fecha_supervision) as primera,
+                MAX(fecha_supervision) as ultima
+            FROM supervision_operativa_clean
+            WHERE location_name = $1
+            GROUP BY periodo_cas
+            ORDER BY periodo_cas
+        `;
+        
+        const periodosResult = await pool.query(periodosQuery, [sucursal]);
+        
+        // 3. Verificar áreas evaluadas
+        const areasQuery = `
+            SELECT 
+                area_evaluacion,
+                COUNT(*) as evaluaciones,
+                ROUND(AVG(porcentaje)::numeric, 2) as promedio,
+                MIN(porcentaje) as minimo,
+                MAX(porcentaje) as maximo
+            FROM supervision_operativa_clean
+            WHERE location_name = $1
+              AND area_evaluacion != ''
+              AND area_evaluacion NOT LIKE '%PUNTOS%'
+            GROUP BY area_evaluacion
+            ORDER BY promedio ASC
+        `;
+        
+        const areasResult = await pool.query(areasQuery, [sucursal]);
+        
+        res.json({
+            sucursal,
+            encontrada: true,
+            info_general: info,
+            supervisiones_por_periodo: periodosResult.rows,
+            areas_evaluadas: areasResult.rows,
+            resumen: {
+                total_registros: parseInt(info.total_registros),
+                total_areas: areasResult.rows.length,
+                areas_criticas: areasResult.rows.filter(a => a.promedio < 80).length,
+                periodos_con_datos: periodosResult.rows.filter(p => p.periodo_cas !== 'OTROS').length
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Error en diagnóstico:', error);
+        res.status(500).json({ error: error.message });
     }
 });
 
