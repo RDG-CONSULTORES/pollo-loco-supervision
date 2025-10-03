@@ -539,6 +539,183 @@
             margin-top: 4px;
         }
 
+        /* Horizontal Chart Styles */
+        .chart-toggle {
+            display: flex;
+            justify-content: center;
+            margin: 16px;
+        }
+
+        .toggle-button {
+            background: var(--ios-gray-5);
+            border: none;
+            border-radius: 16px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ios-label);
+            cursor: pointer;
+            margin: 0 4px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-button.active {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        .horizontal-chart-container {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px 16px;
+            padding: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        .horizontal-chart-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 16px;
+        }
+
+        .horizontal-bar-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.1s ease;
+        }
+
+        .horizontal-bar-item:active {
+            background-color: var(--ios-gray-5);
+        }
+
+        .horizontal-bar-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .bar-rank {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+
+        .bar-rank.rank-1 { background: var(--ios-green); }
+        .bar-rank.rank-2 { background: var(--ios-blue); }
+        .bar-rank.rank-3 { background: var(--ios-orange); }
+        .bar-rank.rank-good { background: var(--ios-gray); }
+        .bar-rank.rank-warning { background: var(--ios-yellow); color: var(--ios-label); }
+        .bar-rank.rank-critical { background: var(--ios-red); }
+
+        .bar-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bar-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-label);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .bar-container {
+            position: relative;
+            height: 8px;
+            background: var(--ios-gray-5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .bar-fill.excellent { 
+            background: linear-gradient(90deg, var(--ios-green), #28a745);
+            box-shadow: 0 2px 4px rgba(52, 199, 89, 0.3);
+        }
+        .bar-fill.good { 
+            background: linear-gradient(90deg, var(--ios-blue), #0056b3);
+            box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);
+        }
+        .bar-fill.regular { 
+            background: linear-gradient(90deg, var(--ios-yellow), #e6b800);
+            box-shadow: 0 2px 4px rgba(255, 204, 0, 0.3);
+        }
+        .bar-fill.critical { 
+            background: linear-gradient(90deg, var(--ios-red), #d32f2f);
+            box-shadow: 0 2px 4px rgba(255, 59, 48, 0.3);
+        }
+
+        .bar-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bar-subtitle {
+            font-size: 12px;
+            color: var(--ios-secondary-label);
+        }
+
+        .bar-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-left: 8px;
+        }
+
+        .view-mode-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 0 16px 8px;
+        }
+
+        .view-mode-toggle {
+            display: flex;
+            background: rgba(118, 118, 128, 0.12);
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .view-mode-button {
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ios-label);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-mode-button.active {
+            background: var(--ios-secondary-background);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
         /* Responsive adjustments */
         @media (max-width: 375px) {
             .large-title {
@@ -609,6 +786,15 @@
                 </div>
             </div>
 
+            <!-- View Mode Toggle -->
+            <div class="view-mode-container">
+                <div class="section-header" style="margin: 0;">VISTA DE DATOS</div>
+                <div class="view-mode-toggle">
+                    <button class="view-mode-button active" onclick="switchViewMode('list')">Lista</button>
+                    <button class="view-mode-button" onclick="switchViewMode('chart')">Gráficas</button>
+                </div>
+            </div>
+
             <!-- General View -->
             <div id="general-view">
                 <!-- Chart Section -->
@@ -636,6 +822,50 @@
                         <div class="loading">
                             <div class="spinner"></div>
                             Cargando datos...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horizontal Charts View -->
+            <div id="charts-view" style="display: none;">
+                <!-- Chart Section -->
+                <div class="chart-section">
+                    <h3 class="chart-title">Distribución de Performance</h3>
+                    <div class="chart-container">
+                        <canvas id="performanceChart2"></canvas>
+                    </div>
+                </div>
+
+                <!-- Top Performers Horizontal Chart -->
+                <div class="horizontal-chart-container">
+                    <h3 class="horizontal-chart-title">Top Performers</h3>
+                    <div id="top-performers-chart">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando gráficas...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Critical Performers Horizontal Chart -->
+                <div class="horizontal-chart-container">
+                    <h3 class="horizontal-chart-title">Necesitan Atención</h3>
+                    <div id="critical-performers-chart">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando gráficas...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All Groups Horizontal Chart -->
+                <div class="horizontal-chart-container">
+                    <h3 class="horizontal-chart-title">Todos los Grupos</h3>
+                    <div id="all-groups-chart">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando gráficas...
                         </div>
                     </div>
                 </div>
@@ -857,6 +1087,7 @@
         let mapData = [];
         let currentView = 'general';
         let currentTab = 'dashboard';
+        let currentViewMode = 'list'; // 'list' or 'chart'
         let currentFilters = {
             periodo: 'all',
             performance: 'all',
@@ -868,6 +1099,7 @@
         
         // Charts
         let performanceChart = null;
+        let performanceChart2 = null;
         let criticalChart = null;
         let trendChart = null;
 
@@ -1019,6 +1251,11 @@
 
             // Update charts
             updateCharts(filteredGroups);
+            
+            // Update horizontal charts if in chart view
+            if (currentViewMode === 'chart') {
+                updateHorizontalCharts(filteredGroups);
+            }
         }
 
         function filterGroups() {
@@ -1070,6 +1307,92 @@
             `;
         }
 
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            
+            // Update toggle buttons
+            document.querySelectorAll('.view-mode-button').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            if (mode === 'list') {
+                document.getElementById('general-view').style.display = 'block';
+                document.getElementById('charts-view').style.display = 'none';
+            } else {
+                document.getElementById('general-view').style.display = 'none';
+                document.getElementById('charts-view').style.display = 'block';
+                updateHorizontalCharts(filterGroups());
+                initCharts(); // Initialize Chart.js chart in charts view
+            }
+        }
+
+        function updateHorizontalCharts(filteredGroups) {
+            // Top performers (first 5)
+            const topPerformers = filteredGroups.slice(0, 5);
+            updateContainer('top-performers-chart', 
+                topPerformers.length > 0 
+                    ? topPerformers.map(group => createHorizontalBar(group)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
+            );
+
+            // Critical performers
+            const criticalPerformers = filteredGroups.filter(g => g.performance < 80);
+            updateContainer('critical-performers-chart', 
+                criticalPerformers.length > 0 
+                    ? criticalPerformers.map(group => createHorizontalBar(group)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay grupos críticos</div>'
+            );
+
+            // All groups (first 10 for mobile optimization)
+            const allGroupsLimited = filteredGroups.slice(0, 10);
+            updateContainer('all-groups-chart', 
+                allGroupsLimited.length > 0 
+                    ? allGroupsLimited.map(group => createHorizontalBar(group)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
+            );
+
+            // Animate bars after a small delay
+            setTimeout(() => {
+                document.querySelectorAll('.bar-fill').forEach(bar => {
+                    const width = bar.dataset.width;
+                    bar.style.width = width + '%';
+                });
+            }, 100);
+        }
+
+        function createHorizontalBar(group) {
+            const rankClass = group.rank <= 3 ? `rank-${group.rank}` : 
+                             group.performance >= 90 ? 'rank-good' : 
+                             group.performance >= 70 ? 'rank-warning' : 'rank-critical';
+            
+            const barClass = group.performance >= 90 ? 'excellent' : 
+                            group.performance >= 80 ? 'good' : 
+                            group.performance >= 70 ? 'regular' : 'critical';
+            
+            const trendClass = group.trend >= 0 ? 'trend-up' : 'trend-down';
+            const trendSymbol = group.trend >= 0 ? '↑' : '↓';
+
+            return `
+                <div class="horizontal-bar-item" onclick="showGroupDetail('${group.name}')">
+                    <div class="bar-rank ${rankClass}">${group.rank}</div>
+                    <div class="bar-content">
+                        <div class="bar-label">${group.name}</div>
+                        <div class="bar-container">
+                            <div class="bar-fill ${barClass}" data-width="${group.performance}" style="width: 0%;"></div>
+                        </div>
+                        <div class="bar-details">
+                            <div class="bar-subtitle">${group.sucursales} sucursales • ${group.supervisiones} supervisiones</div>
+                            <div style="display: flex; align-items: center;">
+                                <span class="bar-value">${group.performance.toFixed(2)}%</span>
+                                <span class="list-item-trend ${trendClass}" style="font-size: 12px; margin-left: 8px;">
+                                    ${trendSymbol} ${Math.abs(group.trend).toFixed(2)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function initCharts() {
             // Performance distribution chart
             const ctx1 = document.getElementById('performanceChart');
@@ -1080,6 +1403,41 @@
                 const critical = allGroups.filter(g => g.performance < 70).length;
 
                 performanceChart = new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'],
+                        datasets: [{
+                            data: [excellent, good, regular, critical],
+                            backgroundColor: ['#34C759', '#007AFF', '#FFCC00', '#FF3B30'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: { family: '-apple-system', size: 13 },
+                                    color: '#3C3C43'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Performance distribution chart for charts view
+            const ctx2 = document.getElementById('performanceChart2');
+            if (ctx2 && !performanceChart2) {
+                const excellent = allGroups.filter(g => g.performance >= 90).length;
+                const good = allGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+                const regular = allGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+                const critical = allGroups.filter(g => g.performance < 70).length;
+
+                performanceChart2 = new Chart(ctx2, {
                     type: 'doughnut',
                     data: {
                         labels: ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'],
@@ -1117,6 +1475,17 @@
 
                 performanceChart.data.datasets[0].data = [excellent, good, regular, critical];
                 performanceChart.update();
+            }
+
+            // Update performance chart 2 for charts view
+            if (performanceChart2) {
+                const excellent = filteredGroups.filter(g => g.performance >= 90).length;
+                const good = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+                const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+                const critical = filteredGroups.filter(g => g.performance < 70).length;
+
+                performanceChart2.data.datasets[0].data = [excellent, good, regular, critical];
+                performanceChart2.update();
             }
 
             // Critical chart for criticos view
