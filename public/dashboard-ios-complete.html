@@ -1808,7 +1808,10 @@
         }
 
         function updateSucursalesList() {
+            console.log('🔄 updateSucursalesList called, mapData length:', mapData.length);
+            
             if (mapData.length === 0) {
+                console.log('⚠️ No mapData available');
                 return;
             }
 
@@ -1844,6 +1847,9 @@
                 })
                 .join('');
 
+            console.log('🎯 Generated estados:', Object.keys(byEstado));
+            console.log('📝 Generated HTML length:', html.length);
+            
             updateContainer('sucursales-por-estado', html);
         }
 
@@ -2205,9 +2211,15 @@
             });
         }
         
-        // PASO 2: Zoom to Estados Function
-        function zoomToEstado(estado) {
-            if (!map) return;
+        // PASO 2: Zoom to Estados Function - Global scope
+        window.zoomToEstado = function(estado) {
+            console.log('🎯 zoomToEstado called with:', estado);
+            console.log('🗺️ Map instance:', map);
+            
+            if (!map) {
+                console.error('❌ Map not initialized');
+                return;
+            }
             
             // Mexican states boundaries (approximate center coordinates and zoom levels)
             const estadoBounds = {
@@ -2250,9 +2262,13 @@
             // Get estado bounds
             const bounds = estadoBounds[estado];
             if (!bounds) {
-                console.warn(`No bounds found for estado: ${estado}`);
+                console.warn(`❌ No bounds found for estado: "${estado}"`);
+                console.log('📋 Available estados:', Object.keys(estadoBounds));
+                console.log('📊 Estados in mapData:', [...new Set(mapData.map(p => p.estado))]);
                 return;
             }
+            
+            console.log('✅ Found bounds for:', estado, bounds);
             
             // Smooth zoom and pan to estado
             map.flyTo([bounds.lat, bounds.lng], bounds.zoom, {
@@ -2285,6 +2301,11 @@
                     }, 3000);
                 }
             }, 1600); // Show popup after zoom animation completes
+        };
+        
+        // Also create function declaration for compatibility
+        function zoomToEstado(estado) {
+            return window.zoomToEstado(estado);
         }
 
         function initMapCollapsible() {
