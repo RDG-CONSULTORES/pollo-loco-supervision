@@ -629,6 +629,207 @@
             to { transform: rotate(360deg); }
         }
 
+        /* HEATMAP STYLES - Exact from historico-v2.html with iOS adaptations */
+        .heatmap-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            white-space: nowrap;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        .heatmap-filters {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .heatmap-filter-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--ios-gray-4);
+            border-radius: 8px;
+            background: var(--ios-secondary-background);
+            color: var(--ios-label);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: fit-content;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .heatmap-filter-btn i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .heatmap-filter-btn:active {
+            transform: scale(0.95);
+        }
+
+        .heatmap-filter-btn.active {
+            background: var(--ios-blue);
+            color: white;
+            border-color: var(--ios-blue);
+        }
+
+        .heatmap-container {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            background: var(--ios-secondary-background);
+        }
+
+        .heatmap-table th {
+            background: var(--ios-gray-6);
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 0.5px solid var(--ios-separator);
+            color: var(--ios-label);
+        }
+
+        .heatmap-table th:first-child {
+            position: sticky;
+            left: 0;
+            background: var(--ios-gray-6);
+            z-index: 11;
+            text-align: left;
+            min-width: 120px;
+        }
+
+        .heatmap-table td {
+            padding: 0.5rem;
+            text-align: center;
+            border-bottom: 0.5px solid var(--ios-separator);
+            position: relative;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .heatmap-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: var(--ios-secondary-background);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-align: left;
+            border-right: 0.5px solid var(--ios-separator);
+            z-index: 9;
+            color: var(--ios-label);
+        }
+
+        .heatmap-table tbody tr:hover {
+            background: var(--ios-gray-6);
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .heatmap-table tbody tr:active {
+            background: var(--ios-gray-5);
+            transform: translateX(0) scale(0.995);
+        }
+
+        .heatmap-table td:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Heat colors - EXACT from historico-v2.html */
+        .heat-excelente { 
+            background: linear-gradient(135deg, #00b894, #55efc4); 
+            color: white;
+        }
+
+        .heat-muy-bueno { 
+            background: linear-gradient(135deg, #00cec9, #74b9ff); 
+            color: white;
+        }
+
+        .heat-bueno { 
+            background: linear-gradient(135deg, #74b9ff, #a29bfe); 
+            color: white;
+        }
+
+        .heat-regular { 
+            background: linear-gradient(135deg, #fdcb6e, #f39c12); 
+            color: white;
+        }
+
+        .heat-critico { 
+            background: linear-gradient(135deg, #d63031, #e17055); 
+            color: white;
+        }
+
+        .heat-none {
+            background: var(--ios-gray-5);
+            color: var(--ios-gray);
+        }
+
+        /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .heatmap-table {
+                font-size: 0.75rem;
+            }
+            
+            .heatmap-table th,
+            .heatmap-table td {
+                padding: 0.4rem 0.25rem;
+            }
+            
+            .heatmap-table td:first-child,
+            .heatmap-table th:first-child {
+                min-width: 80px;
+                font-size: 0.7rem;
+            }
+
+            .heatmap-filters {
+                gap: 0.25rem;
+            }
+
+            .heatmap-filter-btn {
+                padding: 0.4rem 0.75rem;
+                font-size: 0.7rem;
+            }
+
+            .legend-item {
+                font-size: 0.7rem;
+            }
+        }
+
         /* Trend Chart */
         .trend-chart {
             height: 200px;
@@ -873,6 +1074,7 @@
                 <button class="segment active" onclick="switchView('general')">General</button>
                 <button class="segment" onclick="switchView('grupos')">Grupos</button>
                 <button class="segment" onclick="switchView('criticos')">Críticos</button>
+                <button class="segment" onclick="switchView('historico')">Histórico</button>
             </div>
 
             <!-- Summary Cards -->
@@ -1009,6 +1211,92 @@
                             <div class="spinner"></div>
                             Cargando datos...
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Histórico View -->
+            <div id="historico-view" style="display: none;">
+                <!-- Header -->
+                <div class="section">
+                    <div class="section-header">EVOLUCIÓN HISTÓRICA POR PERÍODOS CAS</div>
+                    <div class="section-subtitle">Datos actualizados automáticamente con cada supervisión</div>
+                </div>
+
+                <!-- Color Legend -->
+                <div class="section">
+                    <div class="heatmap-legend">
+                        <div class="legend-item">
+                            <div class="legend-color heat-excelente"></div>
+                            <span>95-100% Excelente</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color heat-muy-bueno"></div>
+                            <span>91-94.9% Muy Bueno</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color heat-bueno"></div>
+                            <span>87-90.9% Bueno</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color heat-regular"></div>
+                            <span>82-86.9% Regular</span>
+                        </div>
+                        <div class="legend-item">
+                            <div class="legend-color heat-critico"></div>
+                            <span>0-81.9% Crítico</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="section">
+                    <div class="heatmap-filters">
+                        <button class="heatmap-filter-btn active" data-filter="all">
+                            <i class="fas fa-th"></i>
+                            <span>Todos</span>
+                        </button>
+                        <button class="heatmap-filter-btn" data-filter="critical">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span>Críticos</span>
+                        </button>
+                        <button class="heatmap-filter-btn" data-filter="improving">
+                            <i class="fas fa-arrow-up"></i>
+                            <span>Mejorando</span>
+                        </button>
+                        <button class="heatmap-filter-btn" data-filter="declining">
+                            <i class="fas fa-arrow-down"></i>
+                            <span>Bajando</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Heatmap Table -->
+                <div class="section">
+                    <div class="heatmap-container">
+                        <table class="heatmap-table" id="heatmapTable">
+                            <thead>
+                                <tr>
+                                    <th>Grupo</th>
+                                    <th>NL-T1</th>
+                                    <th>FOR-S1</th>
+                                    <th>NL-T2</th>
+                                    <th>FOR-S2</th>
+                                    <th>NL-T3</th>
+                                    <th>Prom</th>
+                                </tr>
+                            </thead>
+                            <tbody id="heatmapBody">
+                                <tr>
+                                    <td colspan="7" style="text-align: center; padding: 2rem; color: var(--ios-gray);">
+                                        <div class="loading">
+                                            <div class="spinner"></div>
+                                            Cargando datos históricos...
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -1222,6 +1510,163 @@
         const API_BASE = window.location.hostname === 'localhost' 
             ? 'http://localhost:3000/api' 
             : '/api';
+
+        // HEATMAP FUNCTIONS - Exact from historico-v2.html
+        let heatmapPeriodsData = null;
+        let heatmapCurrentFilter = 'all';
+
+        // Load heatmap data - SAME endpoint as historico-v2
+        async function loadHeatmapData() {
+            try {
+                console.log('🔥 Loading heatmap data...');
+                
+                // Apply current filters from dashboard
+                let endpoint = '/api/heatmap-periods/all';
+                if (currentEstado && currentEstado !== 'all') {
+                    endpoint += `?estado=${encodeURIComponent(currentEstado)}`;
+                }
+                
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`Heatmap API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    heatmapPeriodsData = data.data;
+                    console.log('✅ Heatmap data loaded:', heatmapPeriodsData.groups.length, 'groups');
+                    renderHeatmap();
+                    setupHeatmapFilters();
+                } else {
+                    throw new Error(data.error || 'Failed to load heatmap data');
+                }
+            } catch (error) {
+                console.error('❌ Error loading heatmap:', error);
+                showHeatmapError(error.message);
+            }
+        }
+
+        // Render heatmap table - EXACT logic from historico-v2
+        function renderHeatmap(filter = 'all') {
+            if (!heatmapPeriodsData || !heatmapPeriodsData.groups) {
+                showHeatmapError('No hay datos disponibles');
+                return;
+            }
+
+            const heatmapBody = document.getElementById('heatmapBody');
+            if (!heatmapBody) return;
+
+            // Apply filters - EXACT from historico-v2
+            let filteredGroups = heatmapPeriodsData.groups.slice();
+            
+            switch(filter) {
+                case 'critical':
+                    filteredGroups = filteredGroups.filter(group => group.promedio_general < 80);
+                    break;
+                case 'improving':
+                    filteredGroups = filteredGroups.filter(group => {
+                        const periods = heatmapPeriodsData.periods;
+                        if (periods.length < 2) return false;
+                        const lastPeriod = group.periodos[periods[periods.length - 1]];
+                        const prevPeriod = group.periodos[periods[periods.length - 2]];
+                        return lastPeriod && prevPeriod && lastPeriod.promedio > prevPeriod.promedio;
+                    });
+                    break;
+                case 'declining':
+                    filteredGroups = filteredGroups.filter(group => {
+                        const periods = heatmapPeriodsData.periods;
+                        if (periods.length < 2) return false;
+                        const lastPeriod = group.periodos[periods[periods.length - 1]];
+                        const prevPeriod = group.periodos[periods[periods.length - 2]];
+                        return lastPeriod && prevPeriod && lastPeriod.promedio < prevPeriod.promedio;
+                    });
+                    break;
+                default: // 'all'
+                    break;
+            }
+
+            // Clear table
+            heatmapBody.innerHTML = '';
+
+            // Populate table - EXACT logic from historico-v2
+            filteredGroups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const nameCell = document.createElement('td');
+                nameCell.textContent = group.grupo;
+                row.appendChild(nameCell);
+
+                // Period cells
+                heatmapPeriodsData.periods.forEach(period => {
+                    const cell = document.createElement('td');
+                    const periodData = group.periodos[period];
+                    
+                    if (periodData && periodData.promedio !== null && periodData.promedio > 0) {
+                        cell.textContent = periodData.promedio.toFixed(1) + '%';
+                        cell.className = getHeatClass(periodData.promedio);
+                    } else {
+                        cell.textContent = '-';
+                        cell.className = 'heat-none';
+                    }
+                    
+                    row.appendChild(cell);
+                });
+
+                // Average cell
+                const avgCell = document.createElement('td');
+                if (group.promedio_general && group.promedio_general > 0) {
+                    avgCell.textContent = group.promedio_general.toFixed(1) + '%';
+                    avgCell.className = getHeatClass(group.promedio_general);
+                } else {
+                    avgCell.textContent = '-';
+                    avgCell.className = 'heat-none';
+                }
+                row.appendChild(avgCell);
+
+                heatmapBody.appendChild(row);
+            });
+
+            // Update filter buttons
+            document.querySelectorAll('.heatmap-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+        }
+
+        // Get heat class - EXACT from historico-v2
+        function getHeatClass(performance) {
+            if (performance >= 95) return 'heat-excelente';
+            if (performance >= 91) return 'heat-muy-bueno';
+            if (performance >= 87) return 'heat-bueno';
+            if (performance >= 82) return 'heat-regular';
+            return 'heat-critico';
+        }
+
+        // Setup heatmap filters - EXACT from historico-v2
+        function setupHeatmapFilters() {
+            document.querySelectorAll('.heatmap-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const filter = btn.dataset.filter;
+                    heatmapCurrentFilter = filter;
+                    renderHeatmap(filter);
+                });
+            });
+        }
+
+        // Show heatmap error
+        function showHeatmapError(message) {
+            const heatmapBody = document.getElementById('heatmapBody');
+            if (heatmapBody) {
+                heatmapBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--ios-red);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 1rem;"></i>
+                            <br>${message}
+                        </td>
+                    </tr>
+                `;
+            }
+        }
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
@@ -2003,12 +2448,15 @@
             document.getElementById('general-view').style.display = 'none';
             document.getElementById('grupos-view').style.display = 'none';
             document.getElementById('criticos-view').style.display = 'none';
+            document.getElementById('historico-view').style.display = 'none';
 
             // Show selected view
             document.getElementById(`${view}-view`).style.display = 'block';
 
             if (view === 'criticos') {
                 updateCharts(allGroups);
+            } else if (view === 'historico') {
+                loadHeatmapData();
             }
         }
 
