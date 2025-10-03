@@ -293,6 +293,26 @@
             position: relative;
         }
 
+        /* FASE 3: Tooltip personalizado */
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid var(--ios-separator);
+        }
+        
+        .custom-popup .leaflet-popup-content {
+            margin: 12px 16px;
+            line-height: 1.4;
+        }
+        
+        .custom-popup .leaflet-popup-tip {
+            background: rgba(255, 255, 255, 0.95);
+            border: 0.5px solid var(--ios-separator);
+        }
+
         /* Map Container */
         .map-container {
             height: 400px;
@@ -1778,21 +1798,10 @@
                         opacity: 1,
                         fillOpacity: 0.8
                     }).addTo(map)
-                    .bindPopup(`
-                        <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-width: 200px;">
-                            <strong style="color: #1d1d1f; font-size: 16px;">${point.sucursal || point.location_name || 'Sucursal'}</strong><br>
-                            <span style="color: #86868b; font-size: 14px;">📍 ${point.estado || 'Estado'}</span><br>
-                            <span style="color: #86868b; font-size: 14px;">🏢 ${point.grupo_operativo || 'Grupo no disponible'}</span><br>
-                            <div style="margin-top: 8px; padding: 6px; background: ${point.promedio >= 90 ? '#d1f2eb' : point.promedio >= 80 ? '#d6eaf8' : point.promedio >= 70 ? '#fef9e7' : '#fadbd8'}; border-radius: 6px;">
-                                <span style="font-weight: 600; font-size: 15px; color: ${point.promedio >= 90 ? '#27ae60' : point.promedio >= 80 ? '#3498db' : point.promedio >= 70 ? '#f39c12' : '#e74c3c'};">
-                                    📊 Performance: ${point.promedio}%
-                                </span>
-                            </div>
-                            <div style="margin-top: 6px; font-size: 13px; color: #86868b;">
-                                📋 ${point.evaluaciones || point.supervisiones || 0} evaluaciones
-                            </div>
-                        </div>
-                    `);
+                    .bindPopup(() => createEnrichedTooltip(point), { 
+                        maxWidth: 300,
+                        className: 'custom-popup'
+                    });
                 }
             });
 
@@ -2211,6 +2220,107 @@
             });
         }
         
+        // FASE 3: Tooltip Enriquecido con Datos Reales
+        async function createEnrichedTooltip(point) {
+            const sucursalName = point.sucursal || point.location_name || 'Sucursal';
+            const estado = point.estado || 'Estado';
+            const grupoOperativo = point.grupo_operativo || 'Grupo no disponible';
+            const performance = point.promedio || 0;
+            
+            // Tooltip básico mientras carga datos
+            let tooltipHTML = `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-width: 280px; max-width: 320px;">
+                    <strong style="color: #1d1d1f; font-size: 16px;">📍 ${sucursalName}</strong><br>
+                    <span style="color: #86868b; font-size: 14px;">${estado} • ${grupoOperativo}</span><br>
+                    <div style="margin: 8px 0; padding: 8px; background: ${performance >= 90 ? '#d1f2eb' : performance >= 80 ? '#d6eaf8' : performance >= 70 ? '#fef9e7' : '#fadbd8'}; border-radius: 6px;">
+                        <span style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
+                            🎯 Performance: ${performance}%
+                        </span>
+                        <div id="tendencia-${sucursalName.replace(/\s+/g, '-')}" style="font-size: 13px; color: #666; margin-top: 4px;">
+                            📊 Cargando tendencia...
+                        </div>
+                    </div>
+                    <div id="areas-criticas-${sucursalName.replace(/\s+/g, '-')}" style="margin-top: 8px; font-size: 13px;">
+                        🔍 Cargando áreas críticas...
+                    </div>
+                    <div id="fecha-supervision-${sucursalName.replace(/\s+/g, '-')}" style="margin-top: 6px; font-size: 12px; color: #86868b;">
+                        📅 Cargando fecha...
+                    </div>
+                </div>
+            `;
+            
+            // Cargar datos reales en background
+            try {
+                const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const tendenciaId = `tendencia-${sucursalName.replace(/\s+/g, '-')}`;
+                    const areasId = `areas-criticas-${sucursalName.replace(/\s+/g, '-')}`;
+                    const fechaId = `fecha-supervision-${sucursalName.replace(/\s+/g, '-')}`;
+                    
+                    // Actualizar tendencia
+                    setTimeout(() => {
+                        const tendenciaElement = document.getElementById(tendenciaId);
+                        if (tendenciaElement && data.performance_general.anterior > 0) {
+                            const cambio = data.performance_general.cambio;
+                            const anterior = data.performance_general.anterior;
+                            tendenciaElement.innerHTML = `
+                                ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio}% vs ${data.periodos.anterior} (${anterior}%)
+                            `;
+                        } else if (tendenciaElement) {
+                            tendenciaElement.innerHTML = `📊 Período actual: ${data.periodos.actual}`;
+                        }
+                    }, 100);
+                    
+                    // Actualizar áreas críticas
+                    setTimeout(() => {
+                        const areasElement = document.getElementById(areasId);
+                        if (areasElement) {
+                            if (data.areas_criticas.length > 0) {
+                                const areasHTML = data.areas_criticas.slice(0, 3).map((area, index) => {
+                                    return `<div style="margin: 2px 0; font-size: 12px;">
+                                        ${index + 1}. ${area.area_evaluacion.substring(0, 20)}${area.area_evaluacion.length > 20 ? '...' : ''}: 
+                                        <span style="color: #e74c3c; font-weight: 600;">${area.score_actual}%</span>
+                                        <span style="color: #666;">${area.tendencia}</span>
+                                    </div>`;
+                                }).join('');
+                                areasElement.innerHTML = `
+                                    <div style="font-weight: 600; color: #1d1d1f; margin-bottom: 4px;">🎯 Áreas de Oportunidad (<80%):</div>
+                                    ${areasHTML}
+                                `;
+                            } else {
+                                areasElement.innerHTML = `
+                                    <div style="color: #27ae60; font-weight: 600;">✅ Sin áreas críticas detectadas</div>
+                                `;
+                            }
+                        }
+                    }, 150);
+                    
+                    // Actualizar fecha
+                    setTimeout(() => {
+                        const fechaElement = document.getElementById(fechaId);
+                        if (fechaElement && data.ultima_supervision) {
+                            const fecha = new Date(data.ultima_supervision);
+                            const fechaFormateada = fecha.toLocaleDateString('es-MX', {
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                            });
+                            fechaElement.innerHTML = `📅 Última supervisión: ${fechaFormateada}`;
+                        } else if (fechaElement) {
+                            fechaElement.innerHTML = `📅 Sin fecha de supervisión disponible`;
+                        }
+                    }, 200);
+                }
+            } catch (error) {
+                console.error('Error cargando análisis crítico:', error);
+                // Si falla, mantener tooltip básico
+            }
+            
+            return tooltipHTML;
+        }
+
         // PASO 2: Zoom to Estados Function - Global scope
         window.zoomToEstado = function(estado) {
             console.log('🎯 zoomToEstado called with:', estado);

@@ -3046,6 +3046,184 @@ app.get('/api/locations', async (req, res) => {
     }
 });
 
+// FASE 3: Análisis Crítico para Tooltips - Solo datos reales
+app.get('/api/analisis-critico', async (req, res) => {
+    if (!dbConnected) {
+        return res.status(503).json({ error: 'Database not available' });
+    }
+    
+    try {
+        const { tipo = 'sucursal', id, grupo, estado } = req.query;
+        
+        // Determinar períodos CAS según contexto
+        let periodoActual, periodoAnterior;
+        if (estado === 'Nuevo León' || grupo === 'GRUPO SALTILLO') {
+            periodoActual = 'NL-T3';
+            periodoAnterior = 'NL-T2';
+        } else {
+            periodoActual = 'FOR-S2';
+            periodoAnterior = 'FOR-S1';
+        }
+        
+        console.log(`🎯 Análisis crítico - Tipo: ${tipo}, Períodos: ${periodoActual} vs ${periodoAnterior}`);
+        
+        let whereConditions = [];
+        let params = [];
+        let paramIndex = 1;
+        
+        // Filtros según tipo de análisis
+        if (tipo === 'sucursal' && id) {
+            whereConditions.push(`location_name = $${paramIndex}`);
+            params.push(id);
+            paramIndex++;
+        } else if (grupo) {
+            whereConditions.push(`grupo_operativo_limpio = $${paramIndex}`);
+            params.push(grupo);
+            paramIndex++;
+        }
+        
+        // Función helper para generar condición de período CAS
+        function getPeriodoCasCondition(periodo, paramIdx) {
+            const condition = `
+                CASE 
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16'
+                        THEN 'NL-T1'
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18'
+                        THEN 'NL-T2'
+                    WHEN (estado_normalizado = 'Nuevo León' OR grupo_operativo_limpio = 'GRUPO SALTILLO') 
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                         AND fecha_supervision >= '2025-08-19'
+                        THEN 'NL-T3'
+                    WHEN (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO')
+                         AND fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09'
+                        THEN 'FOR-S1'
+                    WHEN (estado_normalizado != 'Nuevo León' AND grupo_operativo_limpio != 'GRUPO SALTILLO')
+                         AND fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-08-15'
+                        THEN 'FOR-S2'
+                    ELSE 'OTROS'
+                END = $${paramIdx}
+            `;
+            return condition;
+        }
+        
+        // 1. Performance General Actual vs Anterior
+        const performanceQuery = `
+            WITH performance_actual AS (
+                SELECT ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as performance_actual
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      ${getPeriodoCasCondition(periodoActual, paramIndex)}
+            ),
+            performance_anterior AS (
+                SELECT ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as performance_anterior
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      ${getPeriodoCasCondition(periodoAnterior, paramIndex + 1)}
+            ),
+            ultima_supervision AS (
+                SELECT MAX(fecha_supervision) as ultima_fecha
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      ${getPeriodoCasCondition(periodoActual, paramIndex + 2)}
+            )
+            SELECT 
+                pa.performance_actual,
+                pan.performance_anterior,
+                ROUND((pa.performance_actual - pan.performance_anterior)::numeric, 2) as cambio,
+                us.ultima_fecha
+            FROM performance_actual pa, performance_anterior pan, ultima_supervision us
+        `;
+        
+        const performanceParams = [...params, periodoActual, periodoAnterior, periodoActual];
+        const performanceResult = await pool.query(performanceQuery, performanceParams);
+        
+        // 2. Bottom 5 Áreas Críticas (< 80%)
+        const areasQuery = `
+            WITH areas_actual AS (
+                SELECT 
+                    area_evaluacion,
+                    ROUND(AVG(porcentaje)::numeric, 2) as score_actual,
+                    COUNT(*) as evaluaciones_actual
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      area_evaluacion != '' 
+                      AND area_evaluacion NOT LIKE '%PUNTOS%'
+                      AND ${getPeriodoCasCondition(periodoActual, paramIndex)}
+                GROUP BY area_evaluacion
+                HAVING AVG(porcentaje) < 80
+            ),
+            areas_anterior AS (
+                SELECT 
+                    area_evaluacion,
+                    ROUND(AVG(porcentaje)::numeric, 2) as score_anterior
+                FROM supervision_operativa_clean
+                WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') + ' AND ' : ''}
+                      area_evaluacion != '' 
+                      AND area_evaluacion NOT LIKE '%PUNTOS%'
+                      AND ${getPeriodoCasCondition(periodoAnterior, paramIndex + 1)}
+                GROUP BY area_evaluacion
+            )
+            SELECT 
+                aa.area_evaluacion,
+                aa.score_actual,
+                COALESCE(aan.score_anterior, 0) as score_anterior,
+                ROUND((aa.score_actual - COALESCE(aan.score_anterior, 0))::numeric, 2) as cambio,
+                aa.evaluaciones_actual,
+                CASE 
+                    WHEN aa.score_actual > COALESCE(aan.score_anterior, 0) THEN '↗️'
+                    WHEN aa.score_actual < COALESCE(aan.score_anterior, 0) THEN '↘️'
+                    ELSE '➡️'
+                END as tendencia
+            FROM areas_actual aa
+            LEFT JOIN areas_anterior aan ON aa.area_evaluacion = aan.area_evaluacion
+            ORDER BY aa.score_actual ASC
+            LIMIT 5
+        `;
+        
+        const areasParams = [...params, periodoActual, periodoAnterior];
+        const areasResult = await pool.query(areasQuery, areasParams);
+        
+        // Construir respuesta
+        const performance = performanceResult.rows[0] || {};
+        const response = {
+            success: true,
+            tipo,
+            periodos: {
+                actual: periodoActual,
+                anterior: periodoAnterior
+            },
+            performance_general: {
+                actual: performance.performance_actual || 0,
+                anterior: performance.performance_anterior || 0,
+                cambio: performance.cambio || 0,
+                tendencia: performance.cambio > 0 ? '↗️' : performance.cambio < 0 ? '↘️' : '➡️'
+            },
+            ultima_supervision: performance.ultima_fecha || null,
+            areas_criticas: areasResult.rows,
+            metadata: {
+                total_areas_criticas: areasResult.rows.length,
+                threshold_critico: 80,
+                data_source: 'supervision_operativa_clean'
+            }
+        };
+        
+        console.log(`✅ Análisis crítico completado - ${areasResult.rows.length} áreas críticas encontradas`);
+        res.json(response);
+        
+    } catch (error) {
+        console.error('❌ Error en análisis crítico:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            data_source: 'supervision_operativa_clean'
+        });
+    }
+});
+
 // Areas/Indicadores endpoint
 app.get('/api/indicadores', async (req, res) => {
     try {
