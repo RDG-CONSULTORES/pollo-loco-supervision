@@ -1486,8 +1486,8 @@
                 
                 // Apply current filters from dashboard
                 let endpoint = '/api/heatmap-periods/all';
-                if (currentEstado && currentEstado !== 'all') {
-                    endpoint += `?estado=${encodeURIComponent(currentEstado)}`;
+                if (currentFilters.estado && currentFilters.estado !== 'all') {
+                    endpoint += `?estado=${encodeURIComponent(currentFilters.estado)}`;
                 }
                 
                 const response = await fetch(endpoint);
