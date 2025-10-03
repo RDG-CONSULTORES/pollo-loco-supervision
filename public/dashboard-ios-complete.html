@@ -1411,8 +1411,8 @@
                                 <div class="list-item-main">
                                     <div class="list-item-number rank-good">${index + 1}</div>
                                     <div class="list-item-content">
-                                        <div class="list-item-title">${suc.location_name}</div>
-                                        <div class="list-item-subtitle">${suc.estado} • ${suc.supervisiones} supervisiones</div>
+                                        <div class="list-item-title">${suc.sucursal || suc.location_name || 'Sucursal'}</div>
+                                        <div class="list-item-subtitle">${suc.estado} • ${suc.evaluaciones || suc.supervisiones} evaluaciones</div>
                                     </div>
                                 </div>
                                 <div class="list-item-end">
