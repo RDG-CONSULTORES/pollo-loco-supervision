@@ -2337,13 +2337,8 @@ app.get('/api/dashboard-data', async (req, res) => {
         const gruposQuery = `
             SELECT 
                 grupo_operativo_limpio as grupo,
-                ROUND(
-                    CASE 
-                        WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-                        THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-                        ELSE AVG(porcentaje) 
-                    END::numeric, 2
-                ) as promedio,
+                -- CONSISTENCIA: Usar solo area_evaluacion = '' para performance general
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio,
                 COUNT(DISTINCT submission_id) as evaluaciones
             FROM ${DATA_SOURCE}
             ${whereClause}
@@ -2440,13 +2435,8 @@ app.get('/api/map/data', async (req, res) => {
                 location_name as sucursal,
                 estado_normalizado as estado,
                 grupo_operativo_limpio as grupo,
-                ROUND(
-                    CASE 
-                        WHEN SUM(CASE WHEN area_evaluacion = '' THEN 1 ELSE 0 END) > 0 
-                        THEN AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)
-                        ELSE AVG(porcentaje) 
-                    END::numeric, 2
-                ) as promedio,
+                -- CONSISTENCIA: Usar solo area_evaluacion = '' para performance general
+                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END)::numeric, 2) as promedio,
                 COUNT(DISTINCT submission_id) as evaluaciones,
                 AVG(latitud) as latitud,
                 AVG(longitud) as longitud
