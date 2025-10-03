@@ -311,4 +311,4 @@ MIT License - El Pollo Loco CAS © 2025
 
 **Dashboard desarrollado para El Pollo Loco CAS**  
 Supervisión Operativa en Tiempo Real  
-🍗 Calidad | Eficiencia | Excelencia
+🍗 Calidad | Eficiencia | ExcelenciaDeploy trigger: Thu Oct  2 21:40:00 CST 2025
