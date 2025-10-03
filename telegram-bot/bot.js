@@ -459,27 +459,38 @@ bot.on('message', async (msg) => {
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     
-    const welcomeMessage = `🍗 **¡Bienvenido al Sistema El Pollo Loco CAS!**\n\n` +
-                          `📊 **Accede al Dashboard para ver:**\n` +
-                          `• Mapas interactivos con 79 sucursales\n` +
-                          `• Gráficos de performance en tiempo real\n` +
-                          `• Análisis de 135 supervisiones\n` +
-                          `• KPIs y métricas operativas\n\n` +
-                          `🎯 **Dashboard optimizado para móvil**\n` +
-                          `Todo en una sola interfaz intuitiva\n\n` +
-                          `👆 Usa el botón azul del menú para acceder`;
-    
-    // Sin teclado - solo botón azul del menú
-    const keyboard = {
-        reply_markup: {
-            remove_keyboard: true
-        }
-    };
-    
-    await bot.sendMessage(chatId, welcomeMessage, { 
-        parse_mode: 'Markdown',
-        ...keyboard 
-    });
+    try {
+        // FORZAR eliminación de cualquier teclado persistente
+        await bot.sendMessage(chatId, "🧹 Limpiando interfaz...", {
+            reply_markup: {
+                remove_keyboard: true
+            }
+        });
+        
+        // Pausa breve para asegurar eliminación
+        setTimeout(async () => {
+            const welcomeMessage = `🍗 **¡Bienvenido al Sistema El Pollo Loco CAS!**\n\n` +
+                                  `📊 **Accede al Dashboard para ver:**\n` +
+                                  `• Mapas interactivos con 79 sucursales\n` +
+                                  `• Gráficos de performance en tiempo real\n` +
+                                  `• Análisis de 135 supervisiones\n` +
+                                  `• KPIs y métricas operativas\n\n` +
+                                  `🎯 **Dashboard optimizado para móvil**\n` +
+                                  `Todo en una sola interfaz intuitiva\n\n` +
+                                  `👆 Usa el botón azul "📊 Dashboard" del menú para acceder`;
+            
+            await bot.sendMessage(chatId, welcomeMessage, { 
+                parse_mode: 'Markdown',
+                reply_markup: {
+                    remove_keyboard: true
+                }
+            });
+        }, 500);
+        
+    } catch (error) {
+        console.error('Error in start command:', error);
+        await bot.sendMessage(chatId, '🍗 ¡Bienvenido! Usa el botón azul del menú para acceder al Dashboard.');
+    }
 });
 
 // =====================================================
