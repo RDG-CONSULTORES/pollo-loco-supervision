@@ -48,15 +48,7 @@ if (!token) {
 
 const bot = new TelegramBot(token, { polling: false });
 
-// Import Ana (simplified)
-let ana = null;
-try {
-    const AnaV2Structured = require('./ana-intelligent');
-    ana = new AnaV2Structured(pool);
-    console.log('✅ Ana V2 loaded successfully');
-} catch (error) {
-    console.log('⚠️ Ana V2 not available, using fallback');
-}
+// Simplified bot - no Ana integration
 
 // =====================================================
 // WEBHOOK CONFIGURATION
@@ -93,11 +85,21 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Dashboard route
+// Dashboard route - serve mobile-optimized version
 app.get('/dashboard', (req, res) => {
-    const indexPath = path.join(__dirname, 'web-app/public/index.html');
-    console.log('📊 Dashboard requested, serving:', indexPath);
-    res.sendFile(indexPath);
+    const mobileOptimizedPath = path.join(__dirname, '../public/dashboard-ios-complete.html');
+    console.log('📊 Dashboard requested, serving mobile-optimized:', mobileOptimizedPath);
+    
+    // Check if file exists
+    const fs = require('fs');
+    if (!fs.existsSync(mobileOptimizedPath)) {
+        console.error('❌ Mobile dashboard not found:', mobileOptimizedPath);
+        // Fallback to original
+        const indexPath = path.join(__dirname, 'web-app/public/index.html');
+        return res.sendFile(indexPath);
+    }
+    
+    res.sendFile(mobileOptimizedPath);
 });
 
 // Análisis Histórico route
@@ -115,21 +117,25 @@ app.get('/historico', (req, res) => {
     res.sendFile(historicoPath);
 });
 
-// Default route
+// Default route - serve mobile dashboard directly
 app.get('/', (req, res) => {
-    res.json({
-        message: 'El Pollo Loco Supervision System',
-        version: '2.0',
-        status: 'running',
-        timestamp: new Date().toISOString(),
-        endpoints: {
-            webhook: '/webhook',
-            dashboard: '/dashboard',
-            historico: '/historico',
-            health: '/health',
-            api: '/api/*'
-        }
-    });
+    const mobileOptimizedPath = path.join(__dirname, '../public/dashboard-ios-complete.html');
+    console.log('🏠 Root requested, serving mobile-optimized dashboard:', mobileOptimizedPath);
+    
+    // Check if file exists
+    const fs = require('fs');
+    if (!fs.existsSync(mobileOptimizedPath)) {
+        console.error('❌ Mobile dashboard not found:', mobileOptimizedPath);
+        return res.json({
+            message: 'El Pollo Loco Supervision System',
+            version: '2.0',
+            status: 'running',
+            timestamp: new Date().toISOString(),
+            note: 'Mobile dashboard not found - use /dashboard'
+        });
+    }
+    
+    res.sendFile(mobileOptimizedPath);
 });
 
 // Webhook endpoint
@@ -400,13 +406,13 @@ bot.onText(/\/dashboard/, async (msg) => {
                 inline_keyboard: [[
                     {
                         text: "📊 Ver Dashboard Interactivo",
-                        web_app: { url: `${dashboardUrl}/dashboard` }
+                        web_app: { url: `${dashboardUrl}` }
                     }
                 ]]
             }
         };
         
-        const message = `📊 **Dashboard Interactivo Disponible**\n\n¡Explora todos los datos de supervisión con gráficos interactivos, mapas y filtros dinámicos!\n\n• 🗺️ Mapa con 82 sucursales\n• 📈 Gráficos de performance\n• 🔍 Filtros dinámicos\n• 📊 KPIs en tiempo real\n\n👆 Toca el botón para abrir`;
+        const message = `📊 **Dashboard El Pollo Loco CAS**\n\n¡Sistema completo de supervisión operativa!\n\n• 🗺️ Mapa interactivo (79 sucursales)\n• 📈 Análisis de 135 supervisiones\n• 🎯 Histórico con tendencias\n• 📊 KPIs y métricas en tiempo real\n• 📱 Optimizado para móvil\n\n👆 Toca el botón para abrir`;
         
         await bot.sendMessage(chatId, message, {
             parse_mode: 'Markdown',
@@ -419,36 +425,6 @@ bot.onText(/\/dashboard/, async (msg) => {
     }
 });
 
-// Análisis Histórico command
-bot.onText(/\/historico/, async (msg) => {
-    const chatId = msg.chat.id;
-    
-    try {
-        const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
-        
-        const keyboard = {
-            reply_markup: {
-                inline_keyboard: [[
-                    {
-                        text: "📈 Ver Análisis Histórico",
-                        web_app: { url: `${dashboardUrl}/historico` }
-                    }
-                ]]
-            }
-        };
-        
-        const message = `📈 **Análisis Histórico Disponible**\n\n¡Explora la evolución histórica con 6 perspectivas diferentes!\n\n• 🧠 Vista Inteligente\n• ⚖️ Análisis Comparativo\n• 🗺️ Mapa de Calor\n• ⏰ Evolución Temporal\n• 💡 Insights & Tendencias\n• 📱 Vista Móvil\n\n👆 Toca el botón para abrir`;
-        
-        await bot.sendMessage(chatId, message, {
-            parse_mode: 'Markdown',
-            ...keyboard
-        });
-        
-    } catch (error) {
-        console.error('Error showing histórico:', error);
-        bot.sendMessage(chatId, '❌ Error al cargar el análisis histórico. Intenta más tarde.');
-    }
-});
 
 // Keyboard button handlers
 bot.onText(/📊 Dashboard/, async (msg) => {
@@ -456,32 +432,6 @@ bot.onText(/📊 Dashboard/, async (msg) => {
     return bot.emit('text', msg, [null, '/dashboard']);
 });
 
-bot.onText(/📈 Análisis Histórico/, async (msg) => {
-    console.log('📈 Análisis Histórico button pressed');
-    return bot.emit('text', msg, [null, '/historico']);
-});
-
-bot.onText(/❓ Ayuda/, async (msg) => {
-    const chatId = msg.chat.id;
-    const helpMessage = `📚 **Ayuda - El Pollo Loco Bot**\n\n` +
-                       `🔹 **Botones disponibles:**\n` +
-                       `📊 Dashboard - Mapas interactivos y gráficos\n` +
-                       `📈 Análisis Histórico - 6 perspectivas de evolución\n` +
-                       `❓ Ayuda - Esta información\n` +
-                       `💬 Chat con Ana - Conversación libre\n\n` +
-                       `🔹 **Comandos de texto:**\n` +
-                       `/start - Mostrar menú principal\n` +
-                       `/dashboard - Abrir dashboard\n` +
-                       `/historico - Abrir análisis histórico\n\n` +
-                       `💡 **También puedes preguntarme directamente sobre cualquier tema de supervisión.**`;
-    
-    await bot.sendMessage(chatId, helpMessage, { parse_mode: 'Markdown' });
-});
-
-bot.onText(/💬 Chat con Ana/, async (msg) => {
-    const chatId = msg.chat.id;
-    await bot.sendMessage(chatId, '💬 **Modo Chat Activado**\n\n¡Hola! Ahora puedes preguntarme cualquier cosa sobre:\n\n• Performance de grupos\n• Análisis de sucursales\n• Comparaciones y tendencias\n• Datos específicos\n\n¿En qué te puedo ayudar? 🤖');
-});
 
 // Basic message handler
 bot.on('message', async (msg) => {
@@ -490,10 +440,7 @@ bot.on('message', async (msg) => {
     
     // Skip commands and keyboard buttons
     if (messageText.startsWith('/') || 
-        messageText.includes('📊') || 
-        messageText.includes('📈') || 
-        messageText.includes('❓') || 
-        messageText.includes('💬')) {
+        messageText.includes('📊')) {
         return;
     }
     
@@ -504,13 +451,8 @@ bot.on('message', async (msg) => {
             return bot.emit('text', msg, [null, '/dashboard']);
         }
         
-        // Use Ana if available
-        if (ana) {
-            const response = await ana.processMessage(messageText, chatId);
-            await bot.sendMessage(chatId, response, { parse_mode: 'Markdown' });
-        } else {
-            await bot.sendMessage(chatId, '🤖 Hola! Usa los botones de abajo para navegar o pregúntame directamente.');
-        }
+        // Simple response for any message
+        await bot.sendMessage(chatId, '🍗 ¡Hola! Usa el botón Dashboard para acceder al sistema completo de supervisión El Pollo Loco CAS.');
         
     } catch (error) {
         console.error('Error processing message:', error);
@@ -522,22 +464,20 @@ bot.on('message', async (msg) => {
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
     
-    const welcomeMessage = `🤖 **¡Hola! Soy Ana, tu analista de El Pollo Loco**\n\n` +
-                          `📊 **Usa los botones de abajo para navegar:**\n` +
-                          `• Dashboard - Mapas y gráficos interactivos\n` +
-                          `• Análisis Histórico - 6 visualizaciones diferentes\n` +
-                          `• Ayuda - Lista de comandos\n\n` +
-                          `💡 **También puedes preguntarme sobre:**\n` +
-                          `• Performance de grupos operativos\n` +
-                          `• Análisis de sucursales\n` +
-                          `• Tendencias y comparaciones\n\n` +
-                          `¡Pregúntame lo que necesites! 🚀`;
+    const welcomeMessage = `🍗 **¡Bienvenido al Sistema El Pollo Loco CAS!**\n\n` +
+                          `📊 **Accede al Dashboard para ver:**\n` +
+                          `• Mapas interactivos con 79 sucursales\n` +
+                          `• Gráficos de performance en tiempo real\n` +
+                          `• Análisis de 135 supervisiones\n` +
+                          `• KPIs y métricas operativas\n\n` +
+                          `🎯 **Dashboard optimizado para móvil**\n` +
+                          `Todo en una sola interfaz intuitiva\n\n` +
+                          `👆 Toca el botón de abajo para comenzar`;
     
     const keyboard = {
         reply_markup: {
             keyboard: [
-                ['📊 Dashboard', '📈 Análisis Histórico'],
-                ['❓ Ayuda', '💬 Chat con Ana']
+                ['📊 Dashboard']
             ],
             resize_keyboard: true,
             one_time_keyboard: false,
