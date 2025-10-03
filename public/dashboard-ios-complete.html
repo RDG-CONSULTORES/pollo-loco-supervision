@@ -1798,9 +1798,13 @@
                         opacity: 1,
                         fillOpacity: 0.8
                     }).addTo(map)
-                    .bindPopup(() => createEnrichedTooltip(point), { 
+                    .bindPopup(createBasicTooltip(point), { 
                         maxWidth: 300,
                         className: 'custom-popup'
+                    })
+                    .on('popupopen', (e) => {
+                        // Cargar datos enriquecidos cuando se abre el popup
+                        enrichTooltipContent(point, e.popup);
                     });
                 }
             });
@@ -2220,15 +2224,16 @@
             });
         }
         
-        // FASE 3: Tooltip Enriquecido con Datos Reales
-        async function createEnrichedTooltip(point) {
+        // FASE 3: Tooltip Básico
+        function createBasicTooltip(point) {
             const sucursalName = point.sucursal || point.location_name || 'Sucursal';
             const estado = point.estado || 'Estado';
             const grupoOperativo = point.grupo_operativo || 'Grupo no disponible';
             const performance = point.promedio || 0;
             
-            // Tooltip básico mientras carga datos
-            let tooltipHTML = `
+            const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+            
+            return `
                 <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-width: 280px; max-width: 320px;">
                     <strong style="color: #1d1d1f; font-size: 16px;">📍 ${sucursalName}</strong><br>
                     <span style="color: #86868b; font-size: 14px;">${estado} • ${grupoOperativo}</span><br>
@@ -2236,89 +2241,98 @@
                         <span style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
                             🎯 Performance: ${performance}%
                         </span>
-                        <div id="tendencia-${sucursalName.replace(/\s+/g, '-')}" style="font-size: 13px; color: #666; margin-top: 4px;">
+                        <div id="tendencia-${uniqueId}" style="font-size: 13px; color: #666; margin-top: 4px;">
                             📊 Cargando tendencia...
                         </div>
                     </div>
-                    <div id="areas-criticas-${sucursalName.replace(/\s+/g, '-')}" style="margin-top: 8px; font-size: 13px;">
+                    <div id="areas-criticas-${uniqueId}" style="margin-top: 8px; font-size: 13px;">
                         🔍 Cargando áreas críticas...
                     </div>
-                    <div id="fecha-supervision-${sucursalName.replace(/\s+/g, '-')}" style="margin-top: 6px; font-size: 12px; color: #86868b;">
+                    <div id="fecha-supervision-${uniqueId}" style="margin-top: 6px; font-size: 12px; color: #86868b;">
                         📅 Cargando fecha...
                     </div>
                 </div>
             `;
+        }
+
+        // FASE 3: Enriquecer Tooltip con Datos Reales
+        async function enrichTooltipContent(point, popup) {
+            const sucursalName = point.sucursal || point.location_name || 'Sucursal';
+            const estado = point.estado || 'Estado';
+            const grupoOperativo = point.grupo_operativo || 'Grupo no disponible';
             
-            // Cargar datos reales en background
+            const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+            
             try {
+                console.log('🎯 Enriqueciendo tooltip para:', sucursalName);
+                
                 const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`);
                 const data = await response.json();
                 
+                console.log('📊 Datos recibidos:', data);
+                
                 if (data.success) {
-                    const tendenciaId = `tendencia-${sucursalName.replace(/\s+/g, '-')}`;
-                    const areasId = `areas-criticas-${sucursalName.replace(/\s+/g, '-')}`;
-                    const fechaId = `fecha-supervision-${sucursalName.replace(/\s+/g, '-')}`;
-                    
                     // Actualizar tendencia
-                    setTimeout(() => {
-                        const tendenciaElement = document.getElementById(tendenciaId);
-                        if (tendenciaElement && data.performance_general.anterior > 0) {
-                            const cambio = data.performance_general.cambio;
-                            const anterior = data.performance_general.anterior;
-                            tendenciaElement.innerHTML = `
-                                ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio}% vs ${data.periodos.anterior} (${anterior}%)
-                            `;
-                        } else if (tendenciaElement) {
-                            tendenciaElement.innerHTML = `📊 Período actual: ${data.periodos.actual}`;
-                        }
-                    }, 100);
+                    const tendenciaElement = document.getElementById(`tendencia-${uniqueId}`);
+                    if (tendenciaElement && data.performance_general.anterior > 0) {
+                        const cambio = data.performance_general.cambio;
+                        const anterior = data.performance_general.anterior;
+                        tendenciaElement.innerHTML = `
+                            ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio}% vs ${data.periodos.anterior} (${anterior}%)
+                        `;
+                    } else if (tendenciaElement) {
+                        tendenciaElement.innerHTML = `📊 Período actual: ${data.periodos.actual}`;
+                    }
                     
                     // Actualizar áreas críticas
-                    setTimeout(() => {
-                        const areasElement = document.getElementById(areasId);
-                        if (areasElement) {
-                            if (data.areas_criticas.length > 0) {
-                                const areasHTML = data.areas_criticas.slice(0, 3).map((area, index) => {
-                                    return `<div style="margin: 2px 0; font-size: 12px;">
-                                        ${index + 1}. ${area.area_evaluacion.substring(0, 20)}${area.area_evaluacion.length > 20 ? '...' : ''}: 
-                                        <span style="color: #e74c3c; font-weight: 600;">${area.score_actual}%</span>
-                                        <span style="color: #666;">${area.tendencia}</span>
-                                    </div>`;
-                                }).join('');
-                                areasElement.innerHTML = `
-                                    <div style="font-weight: 600; color: #1d1d1f; margin-bottom: 4px;">🎯 Áreas de Oportunidad (<80%):</div>
-                                    ${areasHTML}
-                                `;
-                            } else {
-                                areasElement.innerHTML = `
-                                    <div style="color: #27ae60; font-weight: 600;">✅ Sin áreas críticas detectadas</div>
-                                `;
-                            }
+                    const areasElement = document.getElementById(`areas-criticas-${uniqueId}`);
+                    if (areasElement) {
+                        if (data.areas_criticas.length > 0) {
+                            const areasHTML = data.areas_criticas.slice(0, 3).map((area, index) => {
+                                return `<div style="margin: 2px 0; font-size: 12px;">
+                                    ${index + 1}. ${area.area_evaluacion.substring(0, 20)}${area.area_evaluacion.length > 20 ? '...' : ''}: 
+                                    <span style="color: #e74c3c; font-weight: 600;">${area.score_actual}%</span>
+                                    <span style="color: #666;">${area.tendencia}</span>
+                                </div>`;
+                            }).join('');
+                            areasElement.innerHTML = `
+                                <div style="font-weight: 600; color: #1d1d1f; margin-bottom: 4px;">🎯 Áreas de Oportunidad (<80%):</div>
+                                ${areasHTML}
+                            `;
+                        } else {
+                            areasElement.innerHTML = `
+                                <div style="color: #27ae60; font-weight: 600;">✅ Sin áreas críticas detectadas</div>
+                            `;
                         }
-                    }, 150);
+                    }
                     
                     // Actualizar fecha
-                    setTimeout(() => {
-                        const fechaElement = document.getElementById(fechaId);
-                        if (fechaElement && data.ultima_supervision) {
-                            const fecha = new Date(data.ultima_supervision);
-                            const fechaFormateada = fecha.toLocaleDateString('es-MX', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric'
-                            });
-                            fechaElement.innerHTML = `📅 Última supervisión: ${fechaFormateada}`;
-                        } else if (fechaElement) {
-                            fechaElement.innerHTML = `📅 Sin fecha de supervisión disponible`;
-                        }
-                    }, 200);
+                    const fechaElement = document.getElementById(`fecha-supervision-${uniqueId}`);
+                    if (fechaElement && data.ultima_supervision) {
+                        const fecha = new Date(data.ultima_supervision);
+                        const fechaFormateada = fecha.toLocaleDateString('es-MX', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                        });
+                        fechaElement.innerHTML = `📅 Última supervisión: ${fechaFormateada}`;
+                    } else if (fechaElement) {
+                        fechaElement.innerHTML = `📅 Sin fecha de supervisión disponible`;
+                    }
+                    
+                    console.log('✅ Tooltip enriquecido completado');
+                } else {
+                    console.log('⚠️ API response no exitosa:', data);
                 }
             } catch (error) {
-                console.error('Error cargando análisis crítico:', error);
-                // Si falla, mantener tooltip básico
+                console.error('❌ Error enriqueciendo tooltip:', error);
+                
+                // Mostrar mensaje de error en tooltip
+                const tendenciaElement = document.getElementById(`tendencia-${uniqueId}`);
+                if (tendenciaElement) {
+                    tendenciaElement.innerHTML = '⚠️ Error cargando datos adicionales';
+                }
             }
-            
-            return tooltipHTML;
         }
 
         // PASO 2: Zoom to Estados Function - Global scope
