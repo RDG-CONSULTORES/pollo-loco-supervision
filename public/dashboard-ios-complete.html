@@ -960,48 +960,33 @@
                     </div>
                 </div>
 
-                <!-- Top Performers Horizontal Chart -->
-                <div class="horizontal-chart-container">
-                    <h3 class="horizontal-chart-title">Top Performers</h3>
-                    <div id="top-performers-chart">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Cargando gráficas...
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Critical Performers Horizontal Chart -->
-                <div class="horizontal-chart-container">
-                    <h3 class="horizontal-chart-title">Necesitan Atención</h3>
-                    <div id="critical-performers-chart">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Cargando gráficas...
-                        </div>
-                    </div>
-                </div>
-
-                <!-- All Groups Horizontal Chart -->
-                <div class="horizontal-chart-container">
-                    <h3 class="horizontal-chart-title">Todos los Grupos</h3>
-                    <div id="all-groups-chart">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Cargando gráficas...
-                        </div>
-                    </div>
-                </div>
+                <!-- Solo Distribución de Performance para evitar repetición -->
             </div>
 
             <!-- Groups View -->
             <div id="grupos-view" style="display: none;">
-                <div class="section">
-                    <div class="section-header">TODOS LOS GRUPOS</div>
-                    <div class="list-container" id="all-groups">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            Cargando datos...
+                <!-- Lista de Grupos -->
+                <div class="view-content list-view">
+                    <div class="section">
+                        <div class="section-header">TODOS LOS GRUPOS</div>
+                        <div class="list-container" id="all-groups">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando datos...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Gráficas de Grupos -->
+                <div class="view-content chart-view" style="display: none;">
+                    <div class="horizontal-chart-container">
+                        <h3 class="horizontal-chart-title">Todos los Grupos (20)</h3>
+                        <div id="grupos-chart-completa">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando gráfica completa...
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1540,42 +1525,51 @@
             event.target.classList.add('active');
             
             if (mode === 'list') {
+                // Vista Lista
                 document.getElementById('general-view').style.display = 'block';
                 document.getElementById('charts-view').style.display = 'none';
+                
+                // En vista Grupos: mostrar lista
+                const gruposList = document.querySelector('#grupos-view .list-view');
+                const gruposChart = document.querySelector('#grupos-view .chart-view');
+                if (gruposList) gruposList.style.display = 'block';
+                if (gruposChart) gruposChart.style.display = 'none';
             } else {
+                // Vista Gráficas
                 document.getElementById('general-view').style.display = 'none';
                 document.getElementById('charts-view').style.display = 'block';
-                updateHorizontalCharts(filterGroups());
                 initCharts(); // Initialize Chart.js chart in charts view
+                
+                // En vista Grupos: mostrar gráficas
+                const gruposList = document.querySelector('#grupos-view .list-view');
+                const gruposChart = document.querySelector('#grupos-view .chart-view');
+                if (gruposList) gruposList.style.display = 'none';
+                if (gruposChart) {
+                    gruposChart.style.display = 'block';
+                    updateGruposChart(filterGroups());
+                }
             }
         }
 
+        function updateGruposChart(filteredGroups) {
+            // Gráfica de TODOS los grupos para vista Grupos
+            updateContainer('grupos-chart-completa', 
+                filteredGroups.length > 0 
+                    ? filteredGroups.map(group => createHorizontalBar(group)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
+            );
+            
+            // Animar barras
+            setTimeout(() => {
+                document.querySelectorAll('#grupos-chart-completa .bar-fill').forEach(bar => {
+                    const width = bar.dataset.width;
+                    bar.style.width = width + '%';
+                });
+            }, 100);
+        }
+
         function updateHorizontalCharts(filteredGroups) {
-            // Top performers (first 5)
-            const topPerformers = filteredGroups.slice(0, 5);
-            updateContainer('top-performers-chart', 
-                topPerformers.length > 0 
-                    ? topPerformers.map(group => createHorizontalBar(group)).join('')
-                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
-            );
-
-            // Critical performers
-            const criticalPerformers = filteredGroups.filter(g => g.performance < 80);
-            updateContainer('critical-performers-chart', 
-                criticalPerformers.length > 0 
-                    ? criticalPerformers.map(group => createHorizontalBar(group)).join('')
-                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay grupos críticos</div>'
-            );
-
-            // All groups (first 10 for mobile optimization)
-            const allGroupsLimited = filteredGroups.slice(0, 10);
-            updateContainer('all-groups-chart', 
-                allGroupsLimited.length > 0 
-                    ? allGroupsLimited.map(group => createHorizontalBar(group)).join('')
-                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
-            );
-
-            // Animate bars after a small delay
+            // FUNCIÓN MANTENIDA PERO SIMPLIFICADA - Solo anima barras existentes
             setTimeout(() => {
                 document.querySelectorAll('.bar-fill').forEach(bar => {
                     const width = bar.dataset.width;
@@ -2170,9 +2164,7 @@
             updateContainer('critical-performers', noDataHTML);
             updateContainer('all-groups', noDataHTML);
             updateContainer('critical-detail', noDataHTML);
-            updateContainer('top-performers-chart', noDataHTML);
-            updateContainer('critical-performers-chart', noDataHTML);
-            updateContainer('all-groups-chart', noDataHTML);
+            // Referencias a gráficas eliminadas para evitar repetición
         }
 
         // Event Listeners
