@@ -1492,9 +1492,10 @@ app.get('/api/sucursales-ranking', async (req, res) => {
         
     } catch (error) {
         console.error('❌ API /sucursales-ranking error:', error);
-        res.json([
-            { sucursal: "Error - Sucursal Demo", grupo_operativo: "GRUPO DEMO", estado: "Nuevo León", promedio: 85.0, evaluaciones: 10 }
-        ]);
+        console.error('❌ Query was:', query);
+        console.error('❌ Params were:', params);
+        // Return empty array instead of demo data
+        res.json([]);
     }
 });
 
