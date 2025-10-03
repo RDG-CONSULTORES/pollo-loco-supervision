@@ -300,6 +300,11 @@
             overflow: hidden;
             position: relative;
             z-index: 1; /* Keep map below modals */
+            transition: height 0.3s ease;
+        }
+        
+        .map-container.collapsed {
+            height: 150px;
         }
         
         /* Ensure Leaflet controls stay within reasonable z-index */
@@ -309,6 +314,77 @@
         
         .leaflet-pane {
             z-index: 1 !important;
+        }
+        
+        /* Collapsible Map Section */
+        .map-section-wrapper {
+            position: relative;
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .map-drag-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 44px;
+            background: var(--ios-secondary-background);
+            border-top: 0.5px solid var(--ios-separator);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            z-index: 2;
+            touch-action: none;
+        }
+        
+        .map-drag-handle:active {
+            cursor: grabbing;
+            background: var(--ios-gray-6);
+        }
+        
+        .drag-indicator {
+            width: 36px;
+            height: 5px;
+            background: var(--ios-gray-3);
+            border-radius: 2.5px;
+        }
+        
+        .map-list-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--ios-background);
+        }
+        
+        .map-list-container.expanded {
+            max-height: 400px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .map-hint {
+            position: absolute;
+            bottom: 54px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .map-hint.show {
+            opacity: 1;
         }
 
         /* Tab Views */
@@ -923,16 +999,21 @@
                 <h1 class="large-title">Mapa de Sucursales</h1>
             </div>
 
-            <div class="chart-section">
+            <div class="map-section-wrapper">
                 <div class="map-container" id="map"></div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">SUCURSALES POR ESTADO</div>
-                <div class="list-container" id="sucursales-por-estado">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        Cargando mapa...
+                <div class="map-hint" id="map-hint">Desliza hacia arriba para ver lista</div>
+                <div class="map-drag-handle" id="map-drag-handle">
+                    <div class="drag-indicator"></div>
+                </div>
+                <div class="map-list-container" id="map-list-container">
+                    <div class="section">
+                        <div class="section-header">SUCURSALES POR ESTADO</div>
+                        <div class="list-container" id="sucursales-por-estado">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando sucursales...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1107,6 +1188,7 @@
         };
         let kpiData = {};
         let map = null;
+        let mapExpanded = false;
         
         // Charts
         let performanceChart = null;
@@ -2011,6 +2093,108 @@
                     }
                 });
             });
+            
+            // Map collapsible functionality
+            initMapCollapsible();
+        }
+        
+        function initMapCollapsible() {
+            const dragHandle = document.getElementById('map-drag-handle');
+            const mapContainer = document.querySelector('.map-container');
+            const mapListContainer = document.getElementById('map-list-container');
+            const mapHint = document.getElementById('map-hint');
+            
+            if (!dragHandle || !mapContainer || !mapListContainer) return;
+            
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            
+            // Show hint when hovering over handle
+            dragHandle.addEventListener('mouseenter', () => {
+                if (!mapExpanded) {
+                    mapHint.classList.add('show');
+                }
+            });
+            
+            dragHandle.addEventListener('mouseleave', () => {
+                mapHint.classList.remove('show');
+            });
+            
+            // Touch events for mobile
+            dragHandle.addEventListener('touchstart', handleStart, { passive: false });
+            dragHandle.addEventListener('touchmove', handleMove, { passive: false });
+            dragHandle.addEventListener('touchend', handleEnd);
+            
+            // Mouse events for desktop testing
+            dragHandle.addEventListener('mousedown', handleStart);
+            dragHandle.addEventListener('mousemove', handleMove);
+            dragHandle.addEventListener('mouseup', handleEnd);
+            dragHandle.addEventListener('mouseleave', handleEnd);
+            
+            function handleStart(e) {
+                isDragging = true;
+                startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                dragHandle.style.cursor = 'grabbing';
+            }
+            
+            function handleMove(e) {
+                if (!isDragging) return;
+                
+                e.preventDefault();
+                currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                const deltaY = startY - currentY;
+                
+                // If dragged up more than 50px, expand
+                if (deltaY > 50 && !mapExpanded) {
+                    expandMap();
+                }
+                // If dragged down more than 50px, collapse
+                else if (deltaY < -50 && mapExpanded) {
+                    collapseMap();
+                }
+            }
+            
+            function handleEnd() {
+                isDragging = false;
+                dragHandle.style.cursor = 'grab';
+            }
+            
+            // Click to toggle
+            dragHandle.addEventListener('click', () => {
+                if (mapExpanded) {
+                    collapseMap();
+                } else {
+                    expandMap();
+                }
+            });
+            
+            function expandMap() {
+                mapExpanded = true;
+                mapContainer.classList.add('collapsed');
+                mapListContainer.classList.add('expanded');
+                mapHint.classList.remove('show');
+                
+                // Resize map after transition
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 300);
+            }
+            
+            function collapseMap() {
+                mapExpanded = false;
+                mapContainer.classList.remove('collapsed');
+                mapListContainer.classList.remove('expanded');
+                
+                // Resize map after transition
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 300);
+            }
         }
     </script>
 </body>
