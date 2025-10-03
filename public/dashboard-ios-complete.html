@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="light-content">
     <title>El Pollo Loco CAS - Dashboard Completo</title>
@@ -1708,8 +1709,8 @@
                 performanceChart2.update();
             }
 
-            // Destroy and recreate critical chart if view changed
-            if (currentView === 'criticos' && criticalChart) {
+            // SEGURIDAD: Destruir critical chart SIEMPRE antes de recrear
+            if (criticalChart) {
                 criticalChart.destroy();
                 criticalChart = null;
             }
@@ -1721,7 +1722,7 @@
                     const criticalData = filteredGroups.filter(g => g.performance < 80);
                     if (criticalData.length > 0) {
                         criticalChart = new Chart(ctx2, {
-                            type: 'horizontalBar',
+                            type: 'bar',
                             data: {
                                 labels: criticalData.map(g => g.name),
                                 datasets: [{
@@ -1734,6 +1735,7 @@
                                 }]
                             },
                             options: {
+                                indexAxis: 'y',
                                 responsive: true,
                                 maintainAspectRatio: false,
                                 plugins: { legend: { display: false } },
