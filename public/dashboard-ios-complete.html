@@ -386,6 +386,21 @@
         .map-hint.show {
             opacity: 1;
         }
+        
+        /* Clickable Estado Styling */
+        .clickable-estado {
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+        
+        .clickable-estado:hover {
+            background-color: var(--ios-gray-6);
+        }
+        
+        .clickable-estado:active {
+            background-color: var(--ios-gray-5);
+            transform: scale(0.98);
+        }
 
         /* Tab Views */
         .tab-view {
@@ -1811,14 +1826,18 @@
             const html = Object.entries(byEstado)
                 .map(([estado, sucursales]) => {
                     const avgPerformance = sucursales.reduce((sum, s) => sum + parseFloat(s.promedio), 0) / sucursales.length;
+                    const performanceColor = avgPerformance >= 90 ? 'var(--ios-green)' : 
+                                           avgPerformance >= 80 ? 'var(--ios-blue)' : 
+                                           avgPerformance >= 70 ? 'var(--ios-yellow)' : 'var(--ios-red)';
                     return `
-                        <div class="list-item">
+                        <div class="list-item clickable-estado" onclick="zoomToEstado('${estado}')" data-estado="${estado}">
                             <div class="list-item-content">
-                                <div class="list-item-title">${estado}</div>
+                                <div class="list-item-title">📍 ${estado}</div>
                                 <div class="list-item-subtitle">${sucursales.length} sucursales • ${avgPerformance.toFixed(2)}% promedio</div>
                             </div>
                             <div class="list-item-end">
-                                <div class="list-item-value">${sucursales.length}</div>
+                                <div class="list-item-value" style="color: ${performanceColor};">${avgPerformance.toFixed(1)}%</div>
+                                <div class="list-item-trend" style="font-size: 12px; color: var(--ios-gray);">${sucursales.length} 📍</div>
                             </div>
                         </div>
                     `;
@@ -2186,6 +2205,88 @@
             });
         }
         
+        // PASO 2: Zoom to Estados Function
+        function zoomToEstado(estado) {
+            if (!map) return;
+            
+            // Mexican states boundaries (approximate center coordinates and zoom levels)
+            const estadoBounds = {
+                'Aguascalientes': { lat: 21.8853, lng: -102.2916, zoom: 10 },
+                'Baja California': { lat: 30.8406, lng: -115.2838, zoom: 7 },
+                'Baja California Sur': { lat: 24.1442, lng: -110.3261, zoom: 8 },
+                'Campeche': { lat: 19.8301, lng: -90.5349, zoom: 8 },
+                'Chiapas': { lat: 16.7569, lng: -93.1292, zoom: 8 },
+                'Chihuahua': { lat: 28.6330, lng: -106.0691, zoom: 7 },
+                'Coahuila': { lat: 27.0587, lng: -101.7068, zoom: 7 },
+                'Colima': { lat: 19.2452, lng: -103.7240, zoom: 10 },
+                'Durango': { lat: 24.0277, lng: -104.6532, zoom: 8 },
+                'Guanajuato': { lat: 21.0190, lng: -101.2574, zoom: 9 },
+                'Guerrero': { lat: 17.4392, lng: -99.5451, zoom: 8 },
+                'Hidalgo': { lat: 20.0911, lng: -98.7624, zoom: 9 },
+                'Jalisco': { lat: 20.6597, lng: -103.3496, zoom: 8 },
+                'México': { lat: 19.2808, lng: -99.7550, zoom: 9 },
+                'Estado de México': { lat: 19.2808, lng: -99.7550, zoom: 9 },
+                'Michoacán': { lat: 19.5665, lng: -101.7068, zoom: 8 },
+                'Morelos': { lat: 18.6813, lng: -99.1013, zoom: 10 },
+                'Nayarit': { lat: 21.7514, lng: -104.8455, zoom: 9 },
+                'Nuevo León': { lat: 25.5922, lng: -99.9962, zoom: 9 },
+                'Oaxaca': { lat: 17.0732, lng: -96.7266, zoom: 8 },
+                'Puebla': { lat: 19.0414, lng: -98.2063, zoom: 9 },
+                'Querétaro': { lat: 20.5888, lng: -100.3899, zoom: 10 },
+                'Quintana Roo': { lat: 19.1817, lng: -87.4653, zoom: 8 },
+                'San Luis Potosí': { lat: 22.1565, lng: -100.9855, zoom: 8 },
+                'Sinaloa': { lat: 25.1721, lng: -107.4795, zoom: 8 },
+                'Sonora': { lat: 29.2972, lng: -110.3309, zoom: 7 },
+                'Tabasco': { lat: 17.8409, lng: -92.6189, zoom: 9 },
+                'Tamaulipas': { lat: 24.2669, lng: -98.8363, zoom: 8 },
+                'Tlaxcala': { lat: 19.3139, lng: -98.2404, zoom: 11 },
+                'Veracruz': { lat: 19.1738, lng: -96.1342, zoom: 8 },
+                'Yucatán': { lat: 20.7099, lng: -89.0943, zoom: 8 },
+                'Zacatecas': { lat: 22.7709, lng: -102.5832, zoom: 8 },
+                'Ciudad de México': { lat: 19.4326, lng: -99.1332, zoom: 11 },
+                'CDMX': { lat: 19.4326, lng: -99.1332, zoom: 11 }
+            };
+            
+            // Get estado bounds
+            const bounds = estadoBounds[estado];
+            if (!bounds) {
+                console.warn(`No bounds found for estado: ${estado}`);
+                return;
+            }
+            
+            // Smooth zoom and pan to estado
+            map.flyTo([bounds.lat, bounds.lng], bounds.zoom, {
+                animate: true,
+                duration: 1.5 // 1.5 seconds animation
+            });
+            
+            // Optional: Show a temporary popup with estado info
+            setTimeout(() => {
+                const estadoSucursales = mapData.filter(point => point.estado === estado);
+                if (estadoSucursales.length > 0) {
+                    const avgPerformance = estadoSucursales.reduce((sum, s) => sum + parseFloat(s.promedio), 0) / estadoSucursales.length;
+                    
+                    L.popup()
+                        .setLatLng([bounds.lat, bounds.lng])
+                        .setContent(`
+                            <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                                <strong>${estado}</strong><br>
+                                <span style="color: #666;">${estadoSucursales.length} sucursales</span><br>
+                                <span style="font-weight: 600; color: ${avgPerformance >= 90 ? '#34C759' : avgPerformance >= 80 ? '#007AFF' : avgPerformance >= 70 ? '#FFCC00' : '#FF3B30'};">
+                                    ${avgPerformance.toFixed(1)}% promedio
+                                </span>
+                            </div>
+                        `)
+                        .openOn(map);
+                        
+                    // Auto-close popup after 3 seconds
+                    setTimeout(() => {
+                        map.closePopup();
+                    }, 3000);
+                }
+            }, 1600); // Show popup after zoom animation completes
+        }
+
         function initMapCollapsible() {
             const dragHandle = document.getElementById('map-drag-handle');
             const mapContainer = document.querySelector('.map-container');
