@@ -413,11 +413,7 @@ bot.onText(/\/dashboard/, async (msg) => {
 });
 
 
-// Keyboard button handlers
-bot.onText(/📊 Dashboard/, async (msg) => {
-    console.log('📊 Dashboard button pressed');
-    return bot.emit('text', msg, [null, '/dashboard']);
-});
+// Sin keyboard buttons - solo menú button azul
 
 
 // Basic message handler
@@ -425,9 +421,8 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const messageText = msg.text || '';
     
-    // Skip commands and keyboard buttons
-    if (messageText.startsWith('/') || 
-        messageText.includes('📊')) {
+    // Skip commands only
+    if (messageText.startsWith('/')) {
         return;
     }
     
@@ -457,16 +452,12 @@ bot.onText(/\/start/, async (msg) => {
                           `• KPIs y métricas operativas\n\n` +
                           `🎯 **Dashboard optimizado para móvil**\n` +
                           `Todo en una sola interfaz intuitiva\n\n` +
-                          `👆 Toca el botón de abajo para comenzar`;
+                          `👆 Usa el botón azul del menú para acceder`;
     
+    // Sin teclado - solo botón azul del menú
     const keyboard = {
         reply_markup: {
-            keyboard: [
-                ['📊 Dashboard']
-            ],
-            resize_keyboard: true,
-            one_time_keyboard: false,
-            persistent: true
+            remove_keyboard: true
         }
     };
     
