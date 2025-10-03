@@ -2238,7 +2238,7 @@
                     <strong style="color: #1d1d1f; font-size: 16px;">📍 ${sucursalName}</strong><br>
                     <span style="color: #86868b; font-size: 14px;">${estado} • ${grupoOperativo}</span><br>
                     <div style="margin: 8px 0; padding: 8px; background: ${performance >= 90 ? '#d1f2eb' : performance >= 80 ? '#d6eaf8' : performance >= 70 ? '#fef9e7' : '#fadbd8'}; border-radius: 6px;">
-                        <span style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
+                        <span id="performance-${uniqueId}" style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
                             🎯 Performance General: ${performance || 'N/A'}%
                         </span>
                         <div id="tendencia-${uniqueId}" style="font-size: 13px; color: #666; margin-top: 4px;">
@@ -2272,6 +2272,28 @@
                 console.log('📊 Datos recibidos:', data);
                 
                 if (data.success) {
+                    // ACTUALIZAR PERFORMANCE CON VALOR CORRECTO DEL ANÁLISIS
+                    const performanceElement = document.getElementById(`performance-${uniqueId}`);
+                    if (performanceElement && data.performance_general.actual) {
+                        const actualPerformance = data.performance_general.actual;
+                        const performanceColor = actualPerformance >= 90 ? '#27ae60' : 
+                                                actualPerformance >= 80 ? '#3498db' : 
+                                                actualPerformance >= 70 ? '#f39c12' : '#e74c3c';
+                        
+                        // Actualizar performance con valor correcto
+                        performanceElement.innerHTML = `🎯 Performance General: ${actualPerformance}%`;
+                        performanceElement.style.color = performanceColor;
+                        
+                        // Actualizar color del contenedor también
+                        const container = performanceElement.parentElement;
+                        if (container) {
+                            const bgColor = actualPerformance >= 90 ? '#d1f2eb' : 
+                                          actualPerformance >= 80 ? '#d6eaf8' : 
+                                          actualPerformance >= 70 ? '#fef9e7' : '#fadbd8';
+                            container.style.background = bgColor;
+                        }
+                    }
+                    
                     // Actualizar tendencia
                     const tendenciaElement = document.getElementById(`tendencia-${uniqueId}`);
                     if (tendenciaElement && data.performance_general.anterior > 0) {
