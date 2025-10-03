@@ -2236,7 +2236,7 @@
             return `
                 <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-width: 280px; max-width: 320px;">
                     <strong style="color: #1d1d1f; font-size: 16px;">📍 ${sucursalName}</strong><br>
-                    <span style="color: #86868b; font-size: 14px;">${estado} • ${grupoOperativo}</span><br>
+                    <span id="grupo-info-${uniqueId}" style="color: #86868b; font-size: 14px;">${estado} • ${grupoOperativo}</span><br>
                     <div style="margin: 8px 0; padding: 8px; background: ${performance >= 90 ? '#d1f2eb' : performance >= 80 ? '#d6eaf8' : performance >= 70 ? '#fef9e7' : '#fadbd8'}; border-radius: 6px;">
                         <span id="performance-${uniqueId}" style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
                             🎯 Performance General: ${performance || 'N/A'}%
@@ -2292,6 +2292,12 @@
                                           actualPerformance >= 70 ? '#fef9e7' : '#fadbd8';
                             container.style.background = bgColor;
                         }
+                    }
+                    
+                    // ACTUALIZAR GRUPO OPERATIVO SI ESTÁ DISPONIBLE
+                    const grupoInfoElement = document.getElementById(`grupo-info-${uniqueId}`);
+                    if (grupoInfoElement && data.grupo_operativo && data.grupo_operativo !== 'Grupo no disponible') {
+                        grupoInfoElement.innerHTML = `${estado} • ${data.grupo_operativo}`;
                     }
                     
                     // Actualizar tendencia

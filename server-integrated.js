@@ -3170,7 +3170,12 @@ app.get('/api/analisis-critico', async (req, res) => {
                 CASE 
                     WHEN pa.performance_actual IS NULL THEN true
                     ELSE false
-                END as es_fallback
+                END as es_fallback,
+                -- Agregar información del grupo operativo
+                (SELECT grupo_operativo_limpio 
+                 FROM supervision_operativa_clean 
+                 WHERE ${whereConditions.length > 0 ? whereConditions.join(' AND ') : '1=1'} 
+                 LIMIT 1) as grupo_operativo_real
             FROM performance_actual pa, performance_anterior pan, ultima_supervision_actual usa, ultima_info_disponible uid
         `;
         
@@ -3271,6 +3276,7 @@ app.get('/api/analisis-critico', async (req, res) => {
                 cambio: performance.cambio || 0,
                 tendencia: performance.cambio > 0 ? '↗️' : performance.cambio < 0 ? '↘️' : '➡️'
             },
+            grupo_operativo: performance.grupo_operativo_real || grupo || 'Grupo no disponible',
             ultima_supervision: performance.ultima_fecha || null,
             areas_criticas: areasResult.rows.map(area => ({
                 ...area,
