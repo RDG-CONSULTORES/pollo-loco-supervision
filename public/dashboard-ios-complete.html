@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -651,6 +652,99 @@
             border-radius: 2px;
         }
 
+        /* Heatmap Controls */
+        .heatmap-controls {
+            margin-bottom: 1rem;
+        }
+
+        .heatmap-options {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 0.5px solid var(--ios-separator);
+        }
+
+        /* Toggle Switch */
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--ios-label);
+        }
+
+        .toggle-option input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: relative;
+            width: 44px;
+            height: 26px;
+            background: var(--ios-gray-4);
+            border-radius: 13px;
+            transition: background-color 0.2s ease;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .toggle-option input[type="checkbox"]:checked + .toggle-slider {
+            background: var(--ios-blue);
+        }
+
+        .toggle-option input[type="checkbox"]:checked + .toggle-slider::before {
+            transform: translateX(18px);
+        }
+
+        /* EPL CAS Row Styles */
+        .epl-cas-row {
+            background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+            color: white !important;
+            font-weight: 600 !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 15 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+
+        .epl-cas-row td {
+            color: white !important;
+            font-weight: 600 !important;
+        }
+
+        /* Trend Indicators */
+        .trend-indicator {
+            font-size: 0.625rem;
+            display: block;
+            margin-top: 0.125rem;
+        }
+
+        .diff-value {
+            font-size: 0.625rem;
+            display: block;
+            margin-top: 0.125rem;
+        }
+
+        .diff-positive {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .diff-negative {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
         .heatmap-filters {
             display: flex;
             gap: 0.5rem;
@@ -1253,27 +1347,39 @@
             <div class="section">
                 <div class="section-header">HISTÓRICO</div>
                 <div class="heatmap-container">
-                    <!-- Heatmap Legend -->
-                    <div class="heatmap-legend">
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #FF3030;"></div>
-                            <span>Crítico (< 70%)</span>
+                    <!-- Heatmap Controls -->
+                    <div class="heatmap-controls">
+                        <!-- Legend -->
+                        <div class="heatmap-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #FF3030;"></div>
+                                <span>Crítico (< 70%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #FF9500;"></div>
+                                <span>Bajo (70-79%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #FFCC00;"></div>
+                                <span>Regular (80-89%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #34C759;"></div>
+                                <span>Bueno (90-94%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #007AFF;"></div>
+                                <span>Excelente (≥95%)</span>
+                            </div>
                         </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #FF9500;"></div>
-                            <span>Bajo (70-79%)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #FFCC00;"></div>
-                            <span>Regular (80-89%)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #34C759;"></div>
-                            <span>Bueno (90-94%)</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color" style="background: #007AFF;"></div>
-                            <span>Excelente (≥95%)</span>
+
+                        <!-- Options -->
+                        <div class="heatmap-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" id="showDifferences" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Mostrar diferencias</span>
+                            </label>
                         </div>
                     </div>
 
@@ -1318,19 +1424,19 @@
     <!-- Tab Bar -->
     <div class="tab-bar">
         <div class="tab active" onclick="switchTab('dashboard')">
-            <div class="tab-icon">●</div>
+            <div class="tab-icon"><i class="fas fa-chart-bar"></i></div>
             <div class="tab-label">Dashboard</div>
         </div>
         <div class="tab" onclick="switchTab('mapa')">
-            <div class="tab-icon">◆</div>
+            <div class="tab-icon"><i class="fas fa-map-pin"></i></div>
             <div class="tab-label">Mapa</div>
         </div>
         <div class="tab" onclick="switchTab('tendencias')">
-            <div class="tab-icon">■</div>
+            <div class="tab-icon"><i class="fas fa-chart-line"></i></div>
             <div class="tab-label">Histórico</div>
         </div>
         <div class="tab" onclick="switchTab('alertas')">
-            <div class="tab-icon">▲</div>
+            <div class="tab-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <div class="tab-label">Alertas</div>
         </div>
     </div>
@@ -1474,7 +1580,7 @@
             }
         }
 
-        // Render heatmap table - EXACT logic from historico-v2
+        // Render heatmap table - COMPLETE logic from historico-v2 with EPL CAS and differences
         function renderHeatmap(filter = 'all') {
             if (!heatmapPeriodsData || !heatmapPeriodsData.groups) {
                 showHeatmapError('No hay datos disponibles');
@@ -1482,7 +1588,10 @@
             }
 
             const heatmapBody = document.getElementById('heatmapBody');
-            if (!heatmapBody) return;
+            const heatmapHeader = document.getElementById('heatmapHeader');
+            if (!heatmapBody || !heatmapHeader) return;
+
+            console.log('🔥 Rendering heatmap with filter:', filter);
 
             // Apply filters - EXACT from historico-v2
             let filteredGroups = heatmapPeriodsData.groups.slice();
@@ -1495,47 +1604,176 @@
                     filteredGroups = filteredGroups.filter(group => {
                         const periods = heatmapPeriodsData.periods;
                         if (periods.length < 2) return false;
-                        const lastPeriod = group.periodos[periods[periods.length - 1]];
-                        const prevPeriod = group.periodos[periods[periods.length - 2]];
-                        return lastPeriod && prevPeriod && lastPeriod.promedio > prevPeriod.promedio;
+                        const periodValues = periods.map(p => group.periodos[p]?.promedio || 0).filter(v => v > 0);
+                        if (periodValues.length < 2) return false;
+                        return periodValues[periodValues.length - 1] > periodValues[periodValues.length - 2];
                     });
                     break;
                 case 'declining':
                     filteredGroups = filteredGroups.filter(group => {
                         const periods = heatmapPeriodsData.periods;
                         if (periods.length < 2) return false;
-                        const lastPeriod = group.periodos[periods[periods.length - 1]];
-                        const prevPeriod = group.periodos[periods[periods.length - 2]];
-                        return lastPeriod && prevPeriod && lastPeriod.promedio < prevPeriod.promedio;
+                        const periodValues = periods.map(p => group.periodos[p]?.promedio || 0).filter(v => v > 0);
+                        if (periodValues.length < 2) return false;
+                        return periodValues[periodValues.length - 1] < periodValues[periodValues.length - 2];
                     });
                     break;
                 default: // 'all'
                     break;
             }
 
-            // Clear table
+            const periods = heatmapPeriodsData.periods || [];
+            const expectedColumns = periods.length + 2; // periods + grupo + promedio
+
+            // Update header with periods
+            heatmapHeader.innerHTML = '<th>Grupo Operativo</th>';
+            periods.forEach(period => {
+                const th = document.createElement('th');
+                th.textContent = period;
+                heatmapHeader.appendChild(th);
+            });
+            const avgTh = document.createElement('th');
+            avgTh.textContent = 'Prom';
+            heatmapHeader.appendChild(avgTh);
+
+            // Clear table body
             heatmapBody.innerHTML = '';
 
-            // Populate table - EXACT logic from historico-v2
-            filteredGroups.forEach(group => {
+            // Calculate EPL CAS averages for each period
+            const eplAverages = {};
+            let eplOverallSum = 0;
+            let eplOverallCount = 0;
+
+            periods.forEach(periodo => {
+                let periodSum = 0;
+                let periodCount = 0;
+                
+                heatmapPeriodsData.groups.forEach(group => {
+                    const periodData = group.periodos[periodo];
+                    if (periodData && periodData.promedio > 0) {
+                        periodSum += periodData.promedio;
+                        periodCount++;
+                    }
+                });
+                
+                eplAverages[periodo] = periodCount > 0 ? periodSum / periodCount : null;
+                if (eplAverages[periodo] !== null) {
+                    eplOverallSum += eplAverages[periodo];
+                    eplOverallCount++;
+                }
+            });
+
+            const eplOverallAverage = eplOverallCount > 0 ? eplOverallSum / eplOverallCount : 0;
+
+            // Add EPL CAS row (fixed at top)
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-cas-row';
+
+            // EPL CAS label
+            const eplLabelCell = document.createElement('td');
+            eplLabelCell.innerHTML = `<div style="color: white; font-weight: bold;">PROMEDIO EPL CAS</div>`;
+            eplRow.appendChild(eplLabelCell);
+
+            // EPL period values
+            let lastValidEpl = null;
+            const showDifferences = document.getElementById('showDifferences')?.checked ?? true;
+            
+            periods.forEach((periodo, index) => {
+                const cell = document.createElement('td');
+                cell.style.textAlign = 'center';
+                
+                if (eplAverages[periodo] !== null) {
+                    const promedio = eplAverages[periodo];
+                    let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
+                    
+                    // Add difference if enabled and there's a previous value
+                    if (showDifferences && lastValidEpl !== null) {
+                        const diff = promedio - lastValidEpl;
+                        const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                        const diffSign = diff > 0 ? '+' : '';
+                        const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                        cellContent += `<div class="${diffClass}" style="font-size: 0.7rem; color: rgba(255,255,255,0.9);">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                    }
+                    
+                    cell.innerHTML = cellContent;
+                    cell.title = `EPL CAS - ${periodo}: ${promedio.toFixed(2)}%`;
+                    lastValidEpl = promedio;
+                } else {
+                    cell.innerHTML = '<div>-</div>';
+                    cell.title = `EPL CAS - ${periodo}: Sin datos`;
+                }
+                
+                eplRow.appendChild(cell);
+            });
+
+            // Handle any missing columns
+            while (eplRow.children.length < expectedColumns) {
+                const emptyCell = document.createElement('td');
+                emptyCell.innerHTML = '<div>-</div>';
+                eplRow.appendChild(emptyCell);
+            }
+
+            // EPL overall average
+            const eplAvgCell = document.createElement('td');
+            eplAvgCell.style.textAlign = 'center';
+            eplAvgCell.textContent = `${eplOverallAverage.toFixed(1)}%`;
+            eplAvgCell.title = `EPL CAS Promedio General: ${eplOverallAverage.toFixed(2)}%`;
+            eplRow.appendChild(eplAvgCell);
+
+            // Add EPL row first
+            heatmapBody.appendChild(eplRow);
+
+            // Sort groups by average performance (descending) - EXACT from historico-v2
+            const sortedGroups = filteredGroups
+                .sort((a, b) => b.promedio_general - a.promedio_general);
+
+            // Populate table with groups
+            sortedGroups.forEach(group => {
                 const row = document.createElement('tr');
                 
                 // Group name cell
                 const nameCell = document.createElement('td');
                 nameCell.textContent = group.grupo;
+                nameCell.style.fontWeight = '600';
+                nameCell.style.position = 'sticky';
+                nameCell.style.left = '0';
+                nameCell.style.background = 'var(--ios-secondary-background)';
+                nameCell.style.zIndex = '5';
                 row.appendChild(nameCell);
 
                 // Period cells
-                heatmapPeriodsData.periods.forEach(period => {
+                let lastValidValue = null;
+                
+                periods.forEach((periodo, index) => {
                     const cell = document.createElement('td');
-                    const periodData = group.periodos[period];
+                    cell.style.textAlign = 'center';
+                    cell.style.position = 'relative';
+                    const periodData = group.periodos[periodo];
                     
                     if (periodData && periodData.promedio !== null && periodData.promedio > 0) {
-                        cell.textContent = periodData.promedio.toFixed(1) + '%';
-                        cell.className = getHeatClass(periodData.promedio);
+                        const performance = periodData.promedio;
+                        let cellContent = `<div style="font-weight: 600;">${performance.toFixed(1)}%</div>`;
+                        
+                        // Add difference if enabled and there's a previous value
+                        if (showDifferences && lastValidValue !== null) {
+                            const diff = performance - lastValidValue;
+                            const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                            const diffSign = diff > 0 ? '+' : '';
+                            const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                            cellContent += `<div class="${diffClass}" style="font-size: 0.7rem;">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                        } else if (!showDifferences) {
+                            // Show evaluations count when not showing differences
+                            cellContent += `<div style="font-size: 0.7rem; opacity: 0.8;">${periodData.evaluaciones} eval.</div>`;
+                        }
+                        
+                        cell.innerHTML = cellContent;
+                        cell.className = getHeatClass(performance);
+                        cell.title = `${group.grupo} - ${periodo}: ${performance.toFixed(2)}% (${periodData.evaluaciones} evaluaciones)`;
+                        lastValidValue = performance;
                     } else {
-                        cell.textContent = '-';
+                        cell.innerHTML = '<div>-</div>';
                         cell.className = 'heat-none';
+                        cell.title = `${group.grupo} - ${periodo}: Sin datos`;
                     }
                     
                     row.appendChild(cell);
@@ -1543,22 +1781,17 @@
 
                 // Average cell
                 const avgCell = document.createElement('td');
-                if (group.promedio_general && group.promedio_general > 0) {
-                    avgCell.textContent = group.promedio_general.toFixed(1) + '%';
-                    avgCell.className = getHeatClass(group.promedio_general);
-                } else {
-                    avgCell.textContent = '-';
-                    avgCell.className = 'heat-none';
-                }
+                avgCell.style.textAlign = 'center';
+                avgCell.className = getHeatClass(group.promedio_general);
+                avgCell.style.fontWeight = '600';
+                avgCell.textContent = `${group.promedio_general.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${group.promedio_general.toFixed(2)}%`;
                 row.appendChild(avgCell);
 
                 heatmapBody.appendChild(row);
             });
 
-            // Update filter buttons
-            document.querySelectorAll('.heatmap-filter-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.filter === filter);
-            });
+            console.log('✅ Heatmap rendered with', sortedGroups.length, 'groups and EPL CAS row');
         }
 
         // Get heat class - EXACT from historico-v2
@@ -1579,6 +1812,15 @@
                     renderHeatmap(filter);
                 });
             });
+
+            // Setup differences toggle
+            const showDifferencesToggle = document.getElementById('showDifferences');
+            if (showDifferencesToggle) {
+                showDifferencesToggle.addEventListener('change', () => {
+                    console.log('🔄 Toggle differences:', showDifferencesToggle.checked);
+                    renderHeatmap(heatmapCurrentFilter || 'all');
+                });
+            }
         }
 
         // Show heatmap error
