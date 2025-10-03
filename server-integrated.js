@@ -598,6 +598,11 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'design-showcase.html'));
 });
 
+// iOS Dashboard
+app.get('/dashboard-ios', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'dashboard-ios.html'));
+});
+
 app.get('/design/:variant', (req, res) => {
     const { variant } = req.params;
     const designFiles = {
@@ -764,7 +769,7 @@ app.get('/api/kpis', async (req, res) => {
         const { grupo, estado, sucursal, trimestre, periodoCas } = req.query;
         
         // Build dynamic WHERE clause
-        let whereConditions = ['porcentaje IS NOT NULL'];
+        let whereConditions = ['porcentaje IS NOT NULL', 'area_evaluacion = \'\''];
         let params = [];
         let paramIndex = 1;
         
@@ -1092,7 +1097,7 @@ app.get('/api/indicadores', async (req, res) => {
         const result = await pool.query(`
             SELECT 
                 area_evaluacion as indicador,
-                ROUND(AVG(CASE WHEN area_evaluacion = '' THEN porcentaje END), 2) as promedio,
+                ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(*) as evaluaciones,
                 -- NEW: Add color classification for heat map
                 CASE 

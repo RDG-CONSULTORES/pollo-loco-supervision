@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Pollo Loco CAS - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.4;
+            font-size: 16px;
+        }
+
+        .header {
+            background: #fff;
+            padding: 20px;
+            border-bottom: 1px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #212529;
+            text-align: center;
+            margin-bottom: 4px;
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #6c757d;
+            text-align: center;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 100%;
+        }
+
+        /* KPIs Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .kpi-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s ease;
+        }
+
+        .kpi-card:active {
+            transform: scale(0.98);
+        }
+
+        .kpi-number {
+            font-size: 28px;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            color: #6c757d;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Filter Buttons */
+        .filters {
+            margin-bottom: 25px;
+        }
+
+        .filter-group {
+            margin-bottom: 15px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            display: block;
+        }
+
+        .filter-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            background: #fff;
+            border: 2px solid #dee2e6;
+            color: #495057;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .filter-btn:active {
+            transform: scale(0.98);
+        }
+
+        .filter-btn.active {
+            background: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+
+        /* Tabs */
+        .tabs {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            background: #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .tab {
+            padding: 14px 8px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #6c757d;
+        }
+
+        .tab.active {
+            background: #fff;
+            color: #212529;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .tab:active {
+            transform: scale(0.98);
+        }
+
+        /* Content Sections */
+        .section {
+            background: #fff;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        .section-header {
+            background: #f8f9fa;
+            padding: 16px 20px;
+            font-weight: 600;
+            font-size: 16px;
+            color: #495057;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Chart Container */
+        .chart-container {
+            padding: 20px;
+            height: 300px;
+            position: relative;
+        }
+
+        .chart-container canvas {
+            max-height: 260px !important;
+        }
+
+        /* Ranking List */
+        .ranking-list {
+            padding: 0;
+        }
+
+        .ranking-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f3f4;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .ranking-item:last-child {
+            border-bottom: none;
+        }
+
+        .ranking-item:active {
+            background: #f8f9fa;
+        }
+
+        .ranking-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+        }
+
+        .ranking-position {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .pos-1 { background: #28a745; }
+        .pos-2 { background: #17a2b8; }
+        .pos-3 { background: #ffc107; color: #212529; }
+        .pos-good { background: #6c757d; }
+        .pos-regular { background: #fd7e14; }
+        .pos-critical { background: #dc3545; }
+
+        .ranking-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .ranking-name {
+            font-weight: 600;
+            font-size: 15px;
+            color: #212529;
+            margin-bottom: 2px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .ranking-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .ranking-score {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .score-number {
+            font-size: 18px;
+            font-weight: 700;
+            color: #212529;
+            display: block;
+        }
+
+        .score-change {
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .positive { color: #28a745; }
+        .negative { color: #dc3545; }
+
+        /* Comparison Cards */
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .comparison-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 2px solid transparent;
+        }
+
+        .comparison-card.winner {
+            border-color: #28a745;
+            background: #d4edda;
+        }
+
+        .comparison-card.loser {
+            border-color: #dc3545;
+            background: #f8d7da;
+        }
+
+        .comparison-title {
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .comparison-value {
+            font-size: 24px;
+            font-weight: 800;
+            margin-bottom: 4px;
+            color: #212529;
+        }
+
+        .comparison-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 4px;
+        }
+
+        .comparison-change {
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 20px;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 20px;
+            font-weight: 700;
+            color: #212529;
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #6c757d;
+            text-transform: uppercase;
+            font-weight: 500;
+        }
+
+        /* Loading State */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: #6c757d;
+            font-size: 12px;
+            background: #fff;
+            margin-top: 20px;
+        }
+
+        .footer div {
+            margin-bottom: 4px;
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 480px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .kpi-number {
+                font-size: 24px;
+            }
+            
+            .ranking-name {
+                font-size: 14px;
+            }
+            
+            .comparison-value {
+                font-size: 20px;
+            }
+            
+            .filter-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .chart-container {
+                height: 250px;
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>El Pollo Loco CAS</h1>
+        <div class="subtitle">Sistema de Supervisión Operativa</div>
+    </div>
+
+    <div class="container">
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <span class="kpi-number">87.92%</span>
+                <div class="kpi-label">Performance</div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-number">82</span>
+                <div class="kpi-label">Sucursales</div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-number">20</span>
+                <div class="kpi-label">Grupos</div>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-number">169</span>
+                <div class="kpi-label">Supervisiones</div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters">
+            <div class="filter-group">
+                <label class="filter-label">Vista Rápida</label>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="showView('all')">Todos</button>
+                    <button class="filter-btn" onclick="showView('top')">Top 5</button>
+                    <button class="filter-btn" onclick="showView('critical')">Críticos</button>
+                    <button class="filter-btn" onclick="showView('nl')">Nuevo León</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('ranking')">Ranking</div>
+            <div class="tab" onclick="showTab('charts')">Gráficas</div>
+            <div class="tab" onclick="showTab('compare')">Comparar</div>
+        </div>
+
+        <!-- Tab: Ranking -->
+        <div id="ranking-tab" class="tab-content active">
+            <div class="section">
+                <div class="section-header">Ranking Grupos Operativos</div>
+                <div class="ranking-list" id="ranking-list">
+                    <!-- Top performers -->
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-1">1</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">OGAS</div>
+                                <div class="ranking-meta">8 sucursales • 24 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">97.74%</span>
+                            <div class="score-change positive">+9.82%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-2">2</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">PLOG QUERÉTARO</div>
+                                <div class="ranking-meta">4 sucursales • 4 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">97.13%</span>
+                            <div class="score-change positive">+9.21%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-3">3</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">EPL SO</div>
+                                <div class="ranking-meta">1 sucursal • 3 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">95.02%</span>
+                            <div class="score-change positive">+7.10%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-good">4</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">TEPEYAC</div>
+                                <div class="ranking-meta">10 sucursales • 17 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">92.10%</span>
+                            <div class="score-change positive">+4.18%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-good">5</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">TEC</div>
+                                <div class="ranking-meta">4 sucursales • 10 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">91.57%</span>
+                            <div class="score-change positive">+3.65%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-good">6</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">PLOG LAGUNA</div>
+                                <div class="ranking-meta">6 sucursales • 6 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">90.13%</span>
+                            <div class="score-change positive">+2.21%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-good">15</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">EXPO</div>
+                                <div class="ranking-meta">11 sucursales • 29 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">86.08%</span>
+                            <div class="score-change negative">-1.84%</div>
+                        </div>
+                    </div>
+
+                    <!-- Critical performers -->
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-critical">19</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">NUEVO LAREDO</div>
+                                <div class="ranking-meta">2 sucursales • 2 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">71.34%</span>
+                            <div class="score-change negative">-16.58%</div>
+                        </div>
+                    </div>
+
+                    <div class="ranking-item">
+                        <div class="ranking-left">
+                            <div class="ranking-position pos-critical">20</div>
+                            <div class="ranking-info">
+                                <div class="ranking-name">GRUPO SALTILLO</div>
+                                <div class="ranking-meta">5 sucursales • 9 supervisiones</div>
+                            </div>
+                        </div>
+                        <div class="ranking-score">
+                            <span class="score-number">63.55%</span>
+                            <div class="score-change negative">-24.37%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Charts -->
+        <div id="charts-tab" class="tab-content">
+            <div class="section">
+                <div class="section-header">Distribución de Performance</div>
+                <div class="chart-container">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">Top 5 vs Bottom 5</div>
+                <div class="chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Compare -->
+        <div id="compare-tab" class="tab-content">
+            <div class="section">
+                <div class="section-header">Mejor vs Peor</div>
+                <div class="comparison-grid">
+                    <div class="comparison-card winner">
+                        <div class="comparison-title">Mejor</div>
+                        <div class="comparison-value">97.74%</div>
+                        <div class="comparison-name">OGAS</div>
+                        <div class="comparison-change positive">+34.19% vs peor</div>
+                    </div>
+                    <div class="comparison-card loser">
+                        <div class="comparison-title">Peor</div>
+                        <div class="comparison-value">63.55%</div>
+                        <div class="comparison-name">GRUPO SALTILLO</div>
+                        <div class="comparison-change negative">-24.37% vs promedio</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-header">Estadísticas Generales</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #28a745;">6</div>
+                        <div class="stat-label">Excelentes ≥90%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #17a2b8;">9</div>
+                        <div class="stat-label">Buenos 80-89%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #ffc107;">3</div>
+                        <div class="stat-label">Regulares 70-79%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number" style="color: #dc3545;">2</div>
+                        <div class="stat-label">Críticos <70%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Actualización en tiempo real • 855,993 registros</div>
+        <div>Período: Mar-Oct 2025 • Base: Neon PostgreSQL</div>
+    </div>
+
+    <script>
+        // Data for charts
+        const performanceData = {
+            labels: ['Excelentes', 'Buenos', 'Regulares', 'Críticos'],
+            datasets: [{
+                data: [6, 9, 3, 2],
+                backgroundColor: ['#28a745', '#17a2b8', '#ffc107', '#dc3545'],
+                borderWidth: 0
+            }]
+        };
+
+        const comparisonData = {
+            labels: ['OGAS', 'PLOG QUERÉTARO', 'EPL SO', 'TEPEYAC', 'TEC', 'EXPO', 'CENTRITO', 'SABINAS', 'NUEVO LAREDO', 'SALTILLO'],
+            datasets: [{
+                label: 'Performance %',
+                data: [97.74, 97.13, 95.02, 92.10, 91.57, 86.08, 78.38, 80.61, 71.34, 63.55],
+                backgroundColor: function(context) {
+                    const value = context.parsed.y;
+                    if (value >= 90) return '#28a745';
+                    if (value >= 80) return '#17a2b8';
+                    if (value >= 70) return '#ffc107';
+                    return '#dc3545';
+                },
+                borderWidth: 0,
+                borderRadius: 4
+            }]
+        };
+
+        // Chart configuration
+        const chartConfig = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        color: '#f1f3f4'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        font: {
+                            size: 10
+                        },
+                        maxRotation: 45
+                    }
+                }
+            }
+        };
+
+        // Initialize charts
+        let performanceChart, comparisonChart;
+
+        function initCharts() {
+            const ctx1 = document.getElementById('performanceChart').getContext('2d');
+            performanceChart = new Chart(ctx1, {
+                type: 'doughnut',
+                data: performanceData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const ctx2 = document.getElementById('comparisonChart').getContext('2d');
+            comparisonChart = new Chart(ctx2, {
+                type: 'bar',
+                data: comparisonData,
+                options: chartConfig
+            });
+        }
+
+        // Tab functionality
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Initialize charts when charts tab is shown
+            if (tabName === 'charts' && !performanceChart) {
+                setTimeout(initCharts, 100);
+            }
+        }
+
+        // Filter functionality
+        function showView(view) {
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            const rankingList = document.getElementById('ranking-list');
+            const items = rankingList.querySelectorAll('.ranking-item');
+
+            items.forEach(item => {
+                item.style.display = 'flex';
+            });
+
+            if (view === 'top') {
+                items.forEach((item, index) => {
+                    if (index >= 6) {
+                        item.style.display = 'none';
+                    }
+                });
+            } else if (view === 'critical') {
+                items.forEach((item, index) => {
+                    if (index < items.length - 2) {
+                        item.style.display = 'none';
+                    }
+                });
+            } else if (view === 'nl') {
+                const nlGroups = ['OGAS', 'EPL SO', 'TEPEYAC', 'SALTILLO'];
+                items.forEach(item => {
+                    const name = item.querySelector('.ranking-name').textContent;
+                    if (!nlGroups.some(group => name.includes(group))) {
+                        item.style.display = 'none';
+                    }
+                });
+            }
+        }
+
+        // Touch feedback
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.kpi-card, .ranking-item, .tab, .filter-btn').forEach(item => {
+                item.addEventListener('touchstart', function() {
+                    this.style.transform = 'scale(0.98)';
+                });
+                
+                item.addEventListener('touchend', function() {
+                    this.style.transform = 'scale(1)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>
