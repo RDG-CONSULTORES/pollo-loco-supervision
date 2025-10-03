@@ -1242,47 +1242,12 @@
             </div>
         </div>
 
-        <!-- Tendencias Tab -->
+        <!-- Histórico Tab -->
         <div id="tendencias-view" class="tab-view">
             <div class="large-title-container">
-                <h1 class="large-title">Tendencias</h1>
+                <h1 class="large-title">Histórico</h1>
             </div>
 
-            <div class="chart-section">
-                <h3 class="chart-title">Evolución Temporal</h3>
-                <div class="chart-container">
-                    <canvas id="trendChart"></canvas>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="trend-mejor">--</div>
-                    <div class="stat-label">Mejor Performance</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="trend-promedio">--</div>
-                    <div class="stat-label">Promedio Histórico</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="trend-mejora">--</div>
-                    <div class="stat-label">Grupos en Mejora</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-value" id="trend-decline">--</div>
-                    <div class="stat-label">Grupos en Decline</div>
-                </div>
-            </div>
-
-            <div class="section">
-                <div class="section-header">MEJORES TENDENCIAS</div>
-                <div class="list-container" id="mejores-tendencias">
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        Analizando tendencias...
-                    </div>
-                </div>
-            </div>
 
             <!-- Histórico Heatmap Section -->
             <div class="section">
@@ -1353,19 +1318,19 @@
     <!-- Tab Bar -->
     <div class="tab-bar">
         <div class="tab active" onclick="switchTab('dashboard')">
-            <div class="tab-icon">📊</div>
+            <div class="tab-icon">●</div>
             <div class="tab-label">Dashboard</div>
         </div>
         <div class="tab" onclick="switchTab('mapa')">
-            <div class="tab-icon">📍</div>
+            <div class="tab-icon">◆</div>
             <div class="tab-label">Mapa</div>
         </div>
         <div class="tab" onclick="switchTab('tendencias')">
-            <div class="tab-icon">📈</div>
-            <div class="tab-label">Tendencias</div>
+            <div class="tab-icon">■</div>
+            <div class="tab-label">Histórico</div>
         </div>
         <div class="tab" onclick="switchTab('alertas')">
-            <div class="tab-icon">⚠️</div>
+            <div class="tab-icon">▲</div>
             <div class="tab-label">Alertas</div>
         </div>
     </div>
@@ -1468,7 +1433,6 @@
         let performanceChart = null;
         let performanceChart2 = null;
         let criticalChart = null;
-        let trendChart = null;
 
         // API Base URL
         const API_BASE = window.location.hostname === 'localhost' 
@@ -2273,87 +2237,15 @@
 
         async function loadTrendData() {
             try {
-                // Mock trend data - replace with real API call
-                const trendData = allGroups.map(g => ({
-                    name: g.name,
-                    trend: g.trend,
-                    performance: g.performance
-                }));
-
-                // Update trend stats
-                document.getElementById('trend-mejor').textContent = 
-                    Math.max(...allGroups.map(g => g.performance)).toFixed(2) + '%';
-                document.getElementById('trend-promedio').textContent = 
-                    (allGroups.reduce((sum, g) => sum + g.performance, 0) / allGroups.length).toFixed(2) + '%';
-                document.getElementById('trend-mejora').textContent = 
-                    allGroups.filter(g => g.trend > 0).length;
-                document.getElementById('trend-decline').textContent = 
-                    allGroups.filter(g => g.trend < 0).length;
-
-                // Best trends
-                const mejoresTendencias = allGroups
-                    .filter(g => g.trend > 0)
-                    .sort((a, b) => b.trend - a.trend)
-                    .slice(0, 5);
-
-                updateContainer('mejores-tendencias', 
-                    mejoresTendencias.map(group => createListItem(group)).join('')
-                );
-
-                // Initialize trend chart
-                initTrendChart();
-
-                // Load heatmap data
+                console.log('📊 Loading historical data...');
+                
+                // Load heatmap data for historical view
                 loadHeatmapData();
             } catch (error) {
-                console.error('Error loading trend data:', error);
+                console.error('Error loading historical data:', error);
             }
         }
 
-        function initTrendChart() {
-            const ctx = document.getElementById('trendChart');
-            if (ctx && !trendChart) {
-                const topGroups = allGroups.slice(0, 10);
-                
-                trendChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: topGroups.map(g => g.name),
-                        datasets: [{
-                            label: 'Performance',
-                            data: topGroups.map(g => g.performance),
-                            borderColor: '#007AFF',
-                            backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                max: 100,
-                                grid: { color: 'rgba(60, 60, 67, 0.12)' },
-                                ticks: { font: { family: '-apple-system', size: 11 }, color: '#8E8E93' }
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { 
-                                    font: { family: '-apple-system', size: 10 }, 
-                                    color: '#3C3C43',
-                                    maxRotation: 45
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-        }
 
         async function loadAlertas() {
             try {
@@ -2444,7 +2336,7 @@
             const titles = {
                 dashboard: 'Dashboard CAS',
                 mapa: 'Mapa',
-                tendencias: 'Tendencias', 
+                tendencias: 'Histórico', 
                 alertas: 'Alertas'
             };
             document.getElementById('nav-title').textContent = titles[tab];
@@ -2552,7 +2444,7 @@
         function refreshData() {
             loadData();
             if (currentTab === 'mapa') loadMapData();
-            if (currentTab === 'tendencias') loadTrendData();
+            if (currentTab === 'tendencias') loadTrendData(); // Now loads historical data only
             if (currentTab === 'alertas') loadAlertas();
         }
 
