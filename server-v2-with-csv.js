@@ -129,9 +129,15 @@ app.get('/health', async (req, res) => {
 
 // Main dashboard route - serve V2
 app.get('/', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'public', 'dashboard-v2-ios.html');
+    const dashboardPath = path.join(__dirname, 'dashboard-v2-ios.html');
     console.log('📱 Dashboard V2 requested:', dashboardPath);
-    res.sendFile(dashboardPath);
+    res.sendFile(dashboardPath, (err) => {
+        if (err) {
+            console.log('⚠️ V2 dashboard not found, serving original dashboard from public/');
+            const fallbackPath = path.join(__dirname, 'public', 'dashboard-ios-complete.html');
+            res.sendFile(fallbackPath);
+        }
+    });
 });
 
 // Performance Overview API - Enhanced with new date logic
