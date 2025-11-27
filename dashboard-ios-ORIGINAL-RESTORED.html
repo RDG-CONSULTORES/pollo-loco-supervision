@@ -2096,7 +2096,7 @@
                 // Clear previous map data
                 mapData = [];
                 
-                const response = await fetch(`${API_BASE}/map/data${buildQueryString()}`);
+                const response = await fetch(`${API_BASE}/mapa${buildQueryString()}`);
                 const data = await response.json();
                 
                 // Validate response
@@ -2518,12 +2518,12 @@
 
             // Add markers
             mapData.forEach(point => {
-                if (point.latitud && point.longitud) {
-                    const color = point.promedio >= 90 ? 'green' : 
-                                  point.promedio >= 80 ? 'blue' : 
-                                  point.promedio >= 70 ? 'orange' : 'red';
+                if (point.lat && point.lng) {
+                    const color = point.performance >= 90 ? 'green' : 
+                                  point.performance >= 80 ? 'blue' : 
+                                  point.performance >= 70 ? 'orange' : 'red';
                     
-                    L.circleMarker([point.latitud, point.longitud], {
+                    L.circleMarker([point.lat, point.lng], {
                         radius: 8,
                         fillColor: color,
                         color: '#fff',
@@ -2686,7 +2686,7 @@
             
             // Update tab bar
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            event.currentTarget.classList.add('active');
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
 
             // Hide all views
             document.querySelectorAll('.tab-view').forEach(view => {
@@ -2888,10 +2888,10 @@
         
         // FASE 3: Tooltip Básico
         function createBasicTooltip(point) {
-            const sucursalName = point.sucursal || point.location_name || 'Sucursal';
+            const sucursalName = point.nombre || point.sucursal || point.location_name || 'Sucursal';
             const estado = point.estado || 'Estado';
-            const grupoOperativo = point.grupo_operativo || 'Grupo no disponible';
-            const performance = point.promedio || 0;
+            const grupoOperativo = point.grupo || point.grupo_operativo || 'Grupo no disponible';
+            const performance = point.performance || point.promedio || 0;
             
             const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
             
