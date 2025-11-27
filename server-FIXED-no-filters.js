@@ -75,22 +75,73 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Main dashboard route
+// Main dashboard route - RESTAURADO ORIGINAL
 app.get('/', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'dashboard-ios-complete-FIXED.html');
-    console.log('📱 Dashboard FIXED requested:', dashboardPath);
+    const dashboardPath = path.join(__dirname, 'dashboard-ios-ORIGINAL-RESTORED.html');
+    console.log('📱 Dashboard ORIGINAL RESTORED requested:', dashboardPath);
     res.sendFile(dashboardPath, (err) => {
         if (err) {
-            console.log('⚠️ FIXED dashboard not found, trying fallbacks...');
-            const fallbackPath1 = path.join(__dirname, 'dashboard-v2-ios.html');
-            res.sendFile(fallbackPath1, (err2) => {
+            console.log('⚠️ Original dashboard not found, trying backup...');
+            const fallbackPath = path.join(__dirname, 'backups', 'working-version-20251126-180625', 'dashboard-ios-complete.html');
+            res.sendFile(fallbackPath, (err2) => {
                 if (err2) {
-                    const fallbackPath2 = path.join(__dirname, 'public', 'dashboard-ios-complete.html');
-                    res.sendFile(fallbackPath2);
+                    console.error('❌ No dashboard files found');
+                    res.status(404).send('Dashboard not found');
                 }
             });
         }
     });
+});
+
+// KPIs API - PARA DASHBOARD ORIGINAL
+app.get('/api/kpis', async (req, res) => {
+    try {
+        console.log('📊 KPIs requested with filters:', req.query);
+        
+        let whereClause = 'WHERE porcentaje IS NOT NULL';
+        const params = [];
+        let paramIndex = 1;
+        
+        // Show recent data (last 30 days)
+        whereClause += ` AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'`;
+        
+        // Apply filters
+        if (req.query.estado && req.query.estado !== 'all') {
+            whereClause += ` AND estado = $${paramIndex}`;
+            params.push(req.query.estado);
+            paramIndex++;
+        }
+        
+        if (req.query.grupo) {
+            whereClause += ` AND grupo = $${paramIndex}`;
+            params.push(req.query.grupo);
+            paramIndex++;
+        }
+        
+        const query = `
+            SELECT 
+                COUNT(*) as total_supervisiones,
+                ROUND(AVG(porcentaje), 2) as promedio_general,
+                COUNT(DISTINCT location_name) as sucursales_evaluadas,
+                COUNT(DISTINCT grupo) as total_grupos,
+                COUNT(CASE WHEN porcentaje < 70 THEN 1 END) as grupos_criticos,
+                MAX(fecha_supervision) as ultima_evaluacion,
+                MIN(fecha_supervision) as primera_evaluacion
+            FROM supervision_dashboard_view 
+            ${whereClause}
+        `;
+        
+        const result = await pool.query(query, params);
+        const kpis = result.rows[0];
+        
+        console.log(`📈 KPIs: ${kpis.total_supervisiones} supervisiones, ${kpis.promedio_general}% promedio`);
+        
+        res.json(kpis);
+        
+    } catch (error) {
+        console.error('❌ Error fetching KPIs:', error);
+        res.status(500).json({ error: 'Error fetching KPIs', details: error.message });
+    }
 });
 
 // Performance Overview API - NO DATE FILTERS
