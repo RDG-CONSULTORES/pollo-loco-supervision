@@ -1254,7 +1254,7 @@
                     <div class="summary-row">
                         <div>
                             <div class="summary-label">Performance General</div>
-                            <div class="summary-subtitle">Período: <span id="current-period">NL-T3 / FOR-S2</span></div>
+                            <div class="summary-subtitle">Período: <span id="current-period">NL-T4 / FOR-S2 (cerrado)</span></div>
                         </div>
                         <div class="summary-value" id="performance-general">--%</div>
                     </div>
@@ -1533,9 +1533,10 @@
                 <div class="section">
                     <div class="section-header">PERÍODO CAS</div>
                     <div class="filter-pills" id="periodo-filters">
-                        <button class="filter-pill active" data-value="all">Todos</button>
+                        <button class="filter-pill" data-value="all">Todos</button>
+                        <button class="filter-pill active" data-value="nl_t4">NL-T4</button>
+                        <button class="filter-pill active" data-value="for_s2_cerrado">FOR-S2 (cerrado)</button>
                         <button class="filter-pill" data-value="nl_t3">NL-T3</button>
-                        <button class="filter-pill" data-value="for_s2">FOR-S2</button>
                         <button class="filter-pill" data-value="nl_t2">NL-T2</button>
                         <button class="filter-pill" data-value="for_s1">FOR-S1</button>
                     </div>
@@ -1984,10 +1985,15 @@
                 allGroups = [];
                 updateUI(); // Show empty state while loading
                 
-                // Load KPIs
-                const kpiResponse = await fetch(`${API_BASE}/kpis${buildQueryString()}`);
+                // Load Performance Overview (KPIs)
+                const kpiResponse = await fetch(`${API_BASE}/performance/overview${buildQueryString()}`);
                 kpiData = await kpiResponse.json();
                 updateKPIs();
+                
+                // Update current period from API
+                if (kpiData.periodo_actual) {
+                    document.getElementById('current-period').textContent = kpiData.periodo_actual;
+                }
 
                 // Load Groups
                 const groupsResponse = await fetch(`${API_BASE}/grupos${buildQueryString()}`);
@@ -2131,11 +2137,19 @@
             document.getElementById('performance-general').textContent = 
                 kpiData.promedio_general ? `${parseFloat(kpiData.promedio_general).toFixed(2)}%` : '--%';
             document.getElementById('total-supervisiones').textContent = 
-                kpiData.total_supervisiones || '--';
+                kpiData.total_evaluaciones || '--';
             document.getElementById('total-grupos').textContent = 
-                kpiData.total_grupos || '--';
+                kpiData.grupos_activos || '--';
             document.getElementById('total-sucursales').textContent = 
-                kpiData.total_sucursales || '--';
+                kpiData.sucursales_evaluadas || '--';
+                
+            // Show CSV sucursales info if available
+            if (kpiData.csv_sucursales_disponibles) {
+                console.log(`📊 CSV Data: ${kpiData.csv_sucursales_disponibles} sucursales disponibles`);
+                if (kpiData.nuevas_sucursales && kpiData.nuevas_sucursales.length > 0) {
+                    console.log(`🆕 New branches: ${kpiData.nuevas_sucursales.join(', ')}`);
+                }
+            }
         }
 
         function populateGroupSelect() {
