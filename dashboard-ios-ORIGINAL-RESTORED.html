@@ -1227,9 +1227,9 @@
 <body>
     <!-- Navigation Bar -->
     <nav class="nav-bar">
-        <button class="nav-button" onclick="showFilters()">Filtrar</button>
+        <button class="nav-button" data-action="showFilters">Filtrar</button>
         <div class="nav-title" id="nav-title">Dashboard CAS</div>
-        <button class="nav-button" onclick="refreshData()">Actualizar</button>
+        <button class="nav-button" data-action="refreshData">Actualizar</button>
     </nav>
 
     <!-- Main Content -->
@@ -1243,9 +1243,9 @@
 
             <!-- Segmented Control -->
             <div class="segmented-control">
-                <button class="segment active" onclick="switchView('general')">General</button>
-                <button class="segment" onclick="switchView('grupos')">Grupos</button>
-                <button class="segment" onclick="switchView('criticos')">Críticos</button>
+                <button class="segment active" data-view="general">General</button>
+                <button class="segment" data-view="grupos">Grupos</button>
+                <button class="segment" data-view="criticos">Críticos</button>
             </div>
 
             <!-- Summary Cards -->
@@ -1286,8 +1286,8 @@
             <div class="view-mode-container">
                 <div class="section-header" style="margin: 0;">VISTA DE DATOS</div>
                 <div class="view-mode-toggle">
-                    <button class="view-mode-button active" onclick="switchViewMode('list')">Lista</button>
-                    <button class="view-mode-button" onclick="switchViewMode('chart')">Gráficas</button>
+                    <button class="view-mode-button active" data-mode="list">Lista</button>
+                    <button class="view-mode-button" data-mode="chart">Gráficas</button>
                 </div>
             </div>
 
@@ -1391,7 +1391,7 @@
         <div id="mapa-view" class="tab-view">
             <div class="large-title-container">
                 <h1 class="large-title">Mapa de Sucursales</h1>
-                <button class="map-fullscreen-btn" id="map-fullscreen-btn" onclick="toggleMapFullscreen()">
+                <button class="map-fullscreen-btn" id="map-fullscreen-btn" data-action="toggleMapFullscreen">
                     <i class="fas fa-expand"></i>
                 </button>
             </div>
@@ -1504,19 +1504,19 @@
 
     <!-- Tab Bar -->
     <div class="tab-bar">
-        <div class="tab active" onclick="switchTab('dashboard')">
+        <div class="tab active" data-tab="dashboard">
             <div class="tab-icon"><i class="fas fa-chart-bar"></i></div>
             <div class="tab-label">Dashboard</div>
         </div>
-        <div class="tab" onclick="switchTab('mapa')">
+        <div class="tab" data-tab="mapa">
             <div class="tab-icon"><i class="fas fa-map-pin"></i></div>
             <div class="tab-label">Mapa</div>
         </div>
-        <div class="tab" onclick="switchTab('tendencias')">
+        <div class="tab" data-tab="tendencias">
             <div class="tab-icon"><i class="fas fa-chart-line"></i></div>
             <div class="tab-label">Histórico</div>
         </div>
-        <div class="tab" onclick="switchTab('alertas')">
+        <div class="tab" data-tab="alertas">
             <div class="tab-icon"><i class="fas fa-exclamation-triangle"></i></div>
             <div class="tab-label">Alertas</div>
         </div>
@@ -1527,7 +1527,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Filtros</h3>
-                <button class="modal-close" onclick="closeFilters()">Listo</button>
+                <button class="modal-close" data-action="closeFilters">Listo</button>
             </div>
             <div class="modal-content">
                 <div class="section">
@@ -1574,7 +1574,7 @@
         <div class="modal">
             <div class="modal-header">
                 <h3 class="modal-title">Detalle del Grupo</h3>
-                <button class="modal-close" onclick="closeGroupDetail()">Cerrar</button>
+                <button class="modal-close" data-action="closeGroupDetail">Cerrar</button>
             </div>
             <div class="modal-content">
                 <div class="group-detail">
@@ -1952,7 +1952,44 @@
             loadData();
             loadEstados();
             initEventListeners();
+            initCSPSafeEventListeners();
         });
+
+        // Add CSP-safe event listeners
+        function initCSPSafeEventListeners() {
+            // Navigation buttons and modal actions
+            document.querySelectorAll('[data-action]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    if (action === 'showFilters') showFilters();
+                    else if (action === 'refreshData') refreshData();
+                    else if (action === 'toggleMapFullscreen') toggleMapFullscreen();
+                    else if (action === 'closeFilters') closeFilters();
+                    else if (action === 'closeGroupDetail') closeGroupDetail();
+                });
+            });
+
+            // View switches
+            document.querySelectorAll('[data-view]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    switchView(this.dataset.view);
+                });
+            });
+
+            // View mode toggles
+            document.querySelectorAll('[data-mode]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    switchViewMode(this.dataset.mode);
+                });
+            });
+
+            // Tab switches
+            document.querySelectorAll('[data-tab]').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+        }
 
         // Load all groups once without filters
         async function loadAllGroupsOnce() {
@@ -1963,10 +2000,10 @@
                 if (groupsData && groupsData.length > 0) {
                     allGroupsComplete = groupsData.map((group, index) => ({
                         rank: index + 1,
-                        name: group.grupo_operativo,
-                        performance: parseFloat(group.promedio),
-                        sucursales: parseInt(group.sucursales),
-                        supervisiones: parseInt(group.supervisiones)
+                        name: group.grupo || group.grupo_operativo || 'Sin nombre',
+                        performance: parseFloat(group.promedio || 0),
+                        sucursales: parseInt(group.sucursales || 0),
+                        supervisiones: parseInt(group.supervisiones || 0)
                     }));
                 }
             } catch (error) {
@@ -1998,11 +2035,11 @@
                     // Process groups data
                     allGroups = groupsData.map((group, index) => ({
                         rank: index + 1,
-                        name: group.grupo_operativo,
-                        performance: parseFloat(group.promedio),
-                        sucursales: parseInt(group.sucursales),
-                        supervisiones: parseInt(group.supervisiones),
-                        trend: parseFloat(group.promedio) - (kpiData.promedio_general || 87.92)
+                        name: group.grupo || group.grupo_operativo || 'Sin nombre',
+                        performance: parseFloat(group.promedio || 0),
+                        sucursales: parseInt(group.sucursales || 0),
+                        supervisiones: parseInt(group.supervisiones || 0),
+                        trend: parseFloat(group.promedio || 0) - (kpiData.promedio_general || 87.92)
                     }));
                 } else {
                     // No data found with current filters

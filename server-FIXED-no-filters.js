@@ -76,13 +76,13 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Main dashboard route - FUNCIONAL COMPLETO
+// Main dashboard route - iOS ORIGINAL ARREGLADO  
 app.get('/', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'dashboard-ios-COMPLETE-FUNCTIONAL.html');
-    console.log('📱 Dashboard FUNCIONAL COMPLETO requested:', dashboardPath);
+    const dashboardPath = path.join(__dirname, 'dashboard-ios-ORIGINAL-RESTORED.html');
+    console.log('📱 Dashboard iOS ORIGINAL ARREGLADO requested:', dashboardPath);
     res.sendFile(dashboardPath, (err) => {
         if (err) {
-            console.log('⚠️ Functional dashboard not found, trying backup...');
+            console.log('⚠️ iOS dashboard not found, trying backup...');
             const fallbackPath = path.join(__dirname, 'dashboard-COMPLETE-WORKING.html');
             res.sendFile(fallbackPath, (err2) => {
                 if (err2) {
