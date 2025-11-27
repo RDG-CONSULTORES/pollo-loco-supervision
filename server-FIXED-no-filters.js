@@ -204,7 +204,7 @@ app.get('/api/mapa', async (req, res) => {
         }
         
         if (estado) {
-            whereClause += ` AND estado_normalizado = $${paramIndex}`;
+            whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(estado);
             paramIndex++;
         }
@@ -226,7 +226,7 @@ app.get('/api/mapa', async (req, res) => {
             ${whereClause}
               AND porcentaje IS NOT NULL
               AND fecha_supervision >= '2025-02-01'
-            GROUP BY numero_sucursal, nombre_normalizado, grupo_normalizado, lat_validada, lng_validada, estado_normalizado, ciudad_normalizada
+            GROUP BY numero_sucursal, nombre_normalizado, grupo_normalizado, lat_validada, lng_validada, estado_final, ciudad_normalizada
             ORDER BY performance DESC
         `;
         
@@ -302,7 +302,7 @@ app.get('/api/filtros', async (req, res) => {
         const estadosResult = await pool.query(`
             SELECT DISTINCT estado_final as estado 
             FROM supervision_normalized_view 
-            WHERE estado IS NOT NULL 
+            WHERE estado_final IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
             ORDER BY estado
         `);
@@ -328,7 +328,7 @@ app.get('/api/estados', async (req, res) => {
         const result = await pool.query(`
             SELECT DISTINCT estado_final as estado 
             FROM supervision_normalized_view 
-            WHERE estado IS NOT NULL 
+            WHERE estado_final IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
             ORDER BY estado
         `);
