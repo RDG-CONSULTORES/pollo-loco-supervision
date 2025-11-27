@@ -98,38 +98,22 @@ app.get('/api/kpis', async (req, res) => {
     try {
         console.log('📊 KPIs requested with filters:', req.query);
         
-        let whereClause = 'WHERE s.porcentaje IS NOT NULL';
+        let whereClause = 'WHERE porcentaje IS NOT NULL';
         const params = [];
         let paramIndex = 1;
         
         // Show recent data (last 90 days)
-        whereClause += ` AND s.fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'`;
+        whereClause += ` AND fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'`;
         
-        // Apply filters - need to join with coordenadas_validadas for filtering
+        // Apply filters using the view directly
         if (req.query.estado && req.query.estado !== 'all') {
-            whereClause += ` AND EXISTS (
-                SELECT 1 FROM coordenadas_validadas c 
-                WHERE c.numero_sucursal = CASE 
-                    WHEN s.location_name ~ '^[0-9]+' THEN 
-                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
-                    ELSE NULL 
-                END
-                AND c.estado = $${paramIndex}
-            )`;
+            whereClause += ` AND estado = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
         
         if (req.query.grupo) {
-            whereClause += ` AND EXISTS (
-                SELECT 1 FROM coordenadas_validadas c 
-                WHERE c.numero_sucursal = CASE 
-                    WHEN s.location_name ~ '^[0-9]+' THEN 
-                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
-                    ELSE NULL 
-                END
-                AND c.grupo_operativo = $${paramIndex}
-            )`;
+            whereClause += ` AND grupo = $${paramIndex}`;
             params.push(req.query.grupo);
             paramIndex++;
         }
@@ -139,11 +123,11 @@ app.get('/api/kpis', async (req, res) => {
                 COUNT(*) as total_supervisiones,
                 ROUND(AVG(porcentaje), 2) as promedio_general,
                 COUNT(DISTINCT location_name) as sucursales_evaluadas,
-                (SELECT COUNT(DISTINCT grupo_operativo) FROM coordenadas_validadas) as total_grupos,
+                COUNT(DISTINCT grupo) as total_grupos,
                 COUNT(CASE WHEN porcentaje < 70 THEN 1 END) as grupos_criticos,
                 MAX(fecha_supervision) as ultima_evaluacion,
                 MIN(fecha_supervision) as primera_evaluacion
-            FROM supervision_operativa_clean s
+            FROM supervision_dashboard_view 
             ${whereClause}
         `;
         
@@ -227,28 +211,23 @@ app.get('/api/mapa', async (req, res) => {
         
         const query = `
             SELECT 
-                c.nombre_sucursal as nombre,
-                c.numero_sucursal,
-                c.grupo_operativo as grupo,
-                c.latitude as lat,
-                c.longitude as lng,
-                COALESCE(AVG(s.porcentaje), 85.0) as performance,
-                c.estado,
-                c.ciudad,
-                MAX(s.fecha_supervision) as ultima_evaluacion,
-                COUNT(s.id) as total_evaluaciones,
-                'validated_csv' as coordinate_source
-            FROM coordenadas_validadas c
-            LEFT JOIN supervision_operativa_clean s ON (
-                c.numero_sucursal = CASE 
-                    WHEN s.location_name ~ '^[0-9]+' THEN 
-                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
-                    ELSE NULL 
-                END
-                AND s.fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
-            )
-            ${whereClause}
-            GROUP BY c.numero_sucursal, c.nombre_sucursal, c.grupo_operativo, c.latitude, c.longitude, c.estado, c.ciudad
+                COALESCE(nombre_estandarizado, location_name) as nombre,
+                numero_sucursal,
+                grupo,
+                lat,
+                lng,
+                ROUND(AVG(porcentaje), 2) as performance,
+                estado,
+                COALESCE(ciudad_validada, municipio) as ciudad,
+                MAX(fecha_supervision) as ultima_evaluacion,
+                COUNT(*) as total_evaluaciones,
+                coordinate_source
+            FROM supervision_dashboard_view 
+            WHERE lat IS NOT NULL 
+              AND lng IS NOT NULL 
+              AND porcentaje IS NOT NULL
+              AND fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
+            GROUP BY COALESCE(nombre_estandarizado, location_name), numero_sucursal, grupo, lat, lng, estado, COALESCE(ciudad_validada, municipio), coordinate_source
             ORDER BY performance DESC
         `;
         
@@ -349,8 +328,9 @@ app.get('/api/estados', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT DISTINCT estado 
-            FROM coordenadas_validadas 
+            FROM supervision_dashboard_view 
             WHERE estado IS NOT NULL 
+              AND fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
             ORDER BY estado
         `);
         res.json(result.rows.map(row => row.estado));
@@ -385,23 +365,16 @@ app.get('/api/grupos', async (req, res) => {
         
         const query = `
             SELECT 
-                c.grupo_operativo as grupo,
-                COUNT(DISTINCT c.numero_sucursal) as sucursales,
-                COALESCE(AVG(s.porcentaje), 85.0) as promedio,
-                COUNT(s.id) as supervisiones,
-                MAX(s.fecha_supervision) as ultima_evaluacion,
-                string_agg(DISTINCT c.estado, ', ') as estado
-            FROM coordenadas_validadas c
-            LEFT JOIN supervision_operativa_clean s ON (
-                c.numero_sucursal = CASE 
-                    WHEN s.location_name ~ '^[0-9]+' THEN 
-                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
-                    ELSE NULL 
-                END
-                AND s.fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
-            )
-            ${whereClause}
-            GROUP BY c.grupo_operativo
+                grupo,
+                COUNT(DISTINCT location_name) as sucursales,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                COUNT(*) as supervisiones,
+                MAX(fecha_supervision) as ultima_evaluacion,
+                string_agg(DISTINCT estado, ', ') as estado
+            FROM supervision_dashboard_view 
+            WHERE porcentaje IS NOT NULL 
+              AND fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
+            GROUP BY grupo
             ORDER BY promedio DESC
         `;
         
