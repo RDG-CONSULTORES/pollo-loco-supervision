@@ -90,7 +90,7 @@ app.use(helmet({
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
             scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
-            connectSrc: ["'self'"],
+            connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
         },
     },
@@ -394,6 +394,42 @@ app.get('/api/filtros', async (req, res) => {
     } catch (error) {
         console.error('❌ Error fetching filters:', error);
         res.status(500).json({ error: 'Error fetching filter data', details: error.message });
+    }
+});
+
+// Legacy API endpoints for dashboard compatibility
+app.get('/api/estados', async (req, res) => {
+    try {
+        console.log('🗺️ Estados legacy API requested');
+        
+        const estadosQuery = `
+            SELECT DISTINCT estado_normalizado as estado 
+            FROM supervision_operativa_clean 
+            WHERE estado_normalizado IS NOT NULL 
+            ORDER BY estado_normalizado
+        `;
+        const result = await pool.query(estadosQuery);
+        
+        res.json(result.rows.map(row => row.estado));
+        
+    } catch (error) {
+        console.error('❌ Error fetching estados:', error);
+        res.status(500).json({ error: 'Error fetching estados', details: error.message });
+    }
+});
+
+app.get('/api/grupos', async (req, res) => {
+    try {
+        console.log('👥 Grupos legacy API requested');
+        
+        // Get grupos from CSV (more complete and consistent)
+        const gruposFromCSV = [...new Set(csvData.map(row => row.Grupo_Operativo))].sort();
+        
+        res.json(gruposFromCSV);
+        
+    } catch (error) {
+        console.error('❌ Error fetching grupos:', error);
+        res.status(500).json({ error: 'Error fetching grupos', details: error.message });
     }
 });
 
