@@ -1763,12 +1763,12 @@
                 cell.style.textAlign = 'center';
                 
                 if (eplAverages[periodo] !== null) {
-                    const promedio = eplAverages[periodo];
+                    const promedio = parseFloat(eplAverages[periodo]) || 0;
                     let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
                     
                     // Add difference if enabled and there's a previous value
                     if (showDifferences && lastValidEpl !== null) {
-                        const diff = promedio - lastValidEpl;
+                        const diff = parseFloat(promedio - lastValidEpl) || 0;
                         const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
                         const diffSign = diff > 0 ? '+' : '';
                         const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
@@ -1789,8 +1789,9 @@
             // EPL overall average (no need for extra columns)
             const eplAvgCell = document.createElement('td');
             eplAvgCell.style.textAlign = 'center';
-            eplAvgCell.textContent = `${eplOverallAverage.toFixed(1)}%`;
-            eplAvgCell.title = `EPL CAS Promedio General: ${eplOverallAverage.toFixed(2)}%`;
+            const eplAvg = parseFloat(eplOverallAverage) || 0;
+            eplAvgCell.textContent = `${eplAvg.toFixed(1)}%`;
+            eplAvgCell.title = `EPL CAS Promedio General: ${eplAvg.toFixed(2)}%`;
             eplRow.appendChild(eplAvgCell);
 
             // Add EPL row first
@@ -1824,12 +1825,12 @@
                     const periodData = group.periodos[periodo];
                     
                     if (periodData && periodData.promedio !== null && periodData.promedio > 0) {
-                        const performance = periodData.promedio;
+                        const performance = parseFloat(periodData.promedio) || 0;
                         let cellContent = `<div style="font-weight: 600;">${performance.toFixed(1)}%</div>`;
                         
                         // Add difference if enabled and there's a previous value
                         if (showDifferences && lastValidValue !== null) {
-                            const diff = performance - lastValidValue;
+                            const diff = parseFloat(performance - lastValidValue) || 0;
                             const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
                             const diffSign = diff > 0 ? '+' : '';
                             const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
@@ -1855,7 +1856,7 @@
                 // Average cell
                 const avgCell = document.createElement('td');
                 avgCell.style.textAlign = 'center';
-                const promedio = group.promedio_general || 0;
+                const promedio = parseFloat(group.promedio_general) || 0;
                 avgCell.className = getHeatClass(promedio);
                 avgCell.style.fontWeight = '600';
                 avgCell.textContent = `${promedio.toFixed(1)}%`;
