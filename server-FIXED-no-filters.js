@@ -256,7 +256,7 @@ app.get('/api/historico', async (req, res) => {
         whereClause += ` AND fecha_supervision >= '2025-02-01'`;
         
         if (grupo) {
-            whereClause += ` AND grupo = $${paramIndex}`;
+            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(grupo);
             paramIndex++;
         }
@@ -266,11 +266,11 @@ app.get('/api/historico', async (req, res) => {
                 DATE_TRUNC('month', fecha_supervision) as mes,
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(*) as evaluaciones,
-                grupo
+                grupo_normalizado as grupo
             FROM supervision_normalized_view 
             ${whereClause}
-            GROUP BY DATE_TRUNC('month', fecha_supervision), grupo
-            ORDER BY mes DESC, grupo
+            GROUP BY DATE_TRUNC('month', fecha_supervision), grupo_normalizado
+            ORDER BY mes DESC, grupo_normalizado
         `;
         
         const result = await pool.query(query, params);
@@ -291,16 +291,16 @@ app.get('/api/filtros', async (req, res) => {
         
         // Get grupos from recent data
         const gruposResult = await pool.query(`
-            SELECT DISTINCT grupo 
+            SELECT DISTINCT grupo_normalizado as grupo 
             FROM supervision_normalized_view 
-            WHERE grupo IS NOT NULL 
+            WHERE grupo_normalizado IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
             ORDER BY grupo
         `);
         
         // Get estados from recent data
         const estadosResult = await pool.query(`
-            SELECT DISTINCT estado 
+            SELECT DISTINCT estado_final as estado 
             FROM supervision_normalized_view 
             WHERE estado IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
@@ -326,7 +326,7 @@ app.get('/api/filtros', async (req, res) => {
 app.get('/api/estados', async (req, res) => {
     try {
         const result = await pool.query(`
-            SELECT DISTINCT estado 
+            SELECT DISTINCT estado_final as estado 
             FROM supervision_normalized_view 
             WHERE estado IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
@@ -407,7 +407,7 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
         const query = `
             WITH periods_data AS (
                 SELECT 
-                    grupo,
+                    grupo_normalizado as grupo,
                     CASE 
                         WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
                         WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
