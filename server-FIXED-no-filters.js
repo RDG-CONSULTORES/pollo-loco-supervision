@@ -107,7 +107,7 @@ app.get('/api/kpis', async (req, res) => {
         
         // Apply filters using the normalized view
         if (req.query.estado && req.query.estado !== 'all') {
-            whereClause += ` AND estado_normalizado = $${paramIndex}`;
+            whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
@@ -217,7 +217,7 @@ app.get('/api/mapa', async (req, res) => {
                 lat_validada as lat,
                 lng_validada as lng,
                 ROUND(AVG(porcentaje), 2) as performance,
-                estado_normalizado as estado,
+                estado_final as estado,
                 ciudad_normalizada as ciudad,
                 MAX(fecha_supervision) as ultima_evaluacion,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
@@ -350,7 +350,7 @@ app.get('/api/grupos', async (req, res) => {
         
         // Apply filters using normalized view
         if (req.query.estado && req.query.estado !== 'all') {
-            whereClause += ` AND estado_normalizado = $${paramIndex}`;
+            whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
@@ -368,7 +368,7 @@ app.get('/api/grupos', async (req, res) => {
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(DISTINCT submission_id) as supervisiones,
                 MAX(fecha_supervision) as ultima_evaluacion,
-                string_agg(DISTINCT estado_normalizado, ', ') as estado
+                string_agg(DISTINCT estado_final, ', ') as estado
             FROM supervision_normalized_view 
             ${whereClause}
               AND fecha_supervision >= '2025-02-01'
@@ -502,7 +502,7 @@ app.get('/api/areas', async (req, res) => {
         
         // Apply filters
         if (req.query.estado && req.query.estado !== 'all') {
-            whereClause += ` AND estado_normalizado = $${paramIndex}`;
+            whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
