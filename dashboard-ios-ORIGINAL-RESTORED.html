@@ -927,6 +927,63 @@
             color: var(--ios-gray);
         }
 
+        /* Heatmap Colors */
+        .heat-excellent {
+            background-color: #1e7e34 !important;
+            color: white !important;
+        }
+        
+        .heat-very-good {
+            background-color: #28a745 !important;
+            color: white !important;
+        }
+        
+        .heat-good {
+            background-color: #7bc96f !important;
+            color: white !important;
+        }
+        
+        .heat-average {
+            background-color: #ffc107 !important;
+            color: #333 !important;
+        }
+        
+        .heat-below-average {
+            background-color: #fd7e14 !important;
+            color: white !important;
+        }
+        
+        .heat-poor {
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+        
+        .heat-critical {
+            background-color: #721c24 !important;
+            color: white !important;
+        }
+        
+        .heat-none {
+            background-color: #f8f9fa !important;
+            color: #6c757d !important;
+        }
+        
+        /* Heatmap table styles */
+        .heatmap-table th {
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .heatmap-table td {
+            transition: transform 0.2s ease;
+        }
+        
+        .heatmap-table td:hover {
+            transform: scale(1.05);
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
         /* Mobile optimizations */
         @media (max-width: 768px) {
             /* Heatmap mobile styles */
@@ -2802,26 +2859,29 @@
             document.getElementById('groupDetailModal').classList.remove('active');
         }
 
-        // Load historical data and render chart
+        // Load historical data using CAS periods
         async function loadHistoricoData() {
             try {
-                console.log('📊 Loading historical data...');
-                const response = await fetch(`${API_BASE}/historico`);
-                if (!response.ok) throw new Error('Error cargando datos históricos');
+                console.log('📊 Loading CAS periods data...');
+                const response = await fetch(`${API_BASE}/heatmap-periods/all`);
+                if (!response.ok) throw new Error('Error cargando datos de períodos CAS');
                 
                 const data = await response.json();
-                console.log('✅ Historical data loaded:', data.length, 'data points');
-                
-                renderHistoricoChart(data);
+                if (data.success) {
+                    console.log('✅ CAS periods data loaded:', data.data.groups.length, 'groups,', data.data.periods.length, 'periods');
+                    renderCASPeriodsHeatmap(data.data);
+                } else {
+                    throw new Error('Error en respuesta de períodos CAS');
+                }
                 
             } catch (error) {
-                console.error('❌ Error loading historical data:', error);
+                console.error('❌ Error loading CAS periods:', error);
                 const container = document.getElementById('heatmap-container');
                 if (container) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 32px; color: #666;">
                             <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                            <p>Error cargando datos históricos</p>
+                            <p>Error cargando períodos CAS</p>
                             <p style="font-size: 14px; opacity: 0.7;">${error.message}</p>
                         </div>
                     `;
@@ -2829,80 +2889,115 @@
             }
         }
         
-        // Render simple historical chart
-        function renderHistoricoChart(historicalData) {
+        // Render CAS periods heatmap
+        function renderCASPeriodsHeatmap(data) {
             const container = document.getElementById('heatmap-container');
             if (!container) return;
             
+            const { periods, groups } = data;
+            
+            // Sort periods: S2-Foráneas, T4-2024, T1-2025, T2-2025, T3-2025, T4-2025
+            const sortedPeriods = periods.sort((a, b) => {
+                const order = ['S2-Foráneas', 'T4-2024', 'T1-2025', 'T2-2025', 'T3-2025', 'T4-2025'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            
+            // Sort groups by general average descending
+            const sortedGroups = groups.sort((a, b) => (b.promedio_general || 0) - (a.promedio_general || 0));
+            
             // Clear existing content
             container.innerHTML = `
-                <div style="padding: 16px;">
-                    <h3 style="margin-bottom: 16px; color: #1d1d1f;">Tendencia Mensual de Performance</h3>
-                    <canvas id="historico-chart-canvas" style="max-height: 400px;"></canvas>
+                <div style="padding: 16px; background: #f2f2f7; border-radius: 12px; margin: 8px;">
+                    <h3 style="margin-bottom: 16px; color: #1d1d1f; text-align: center;">
+                        📊 Períodos CAS por Grupo Operativo
+                    </h3>
+                    <p style="color: #666; font-size: 14px; text-align: center; margin-bottom: 20px;">
+                        Locales (NL): T1-T4 trimestrales • Foráneas: S2 semestral
+                    </p>
+                    <div style="overflow-x: auto; background: white; border-radius: 8px; padding: 16px;">
+                        <table class="heatmap-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 12px 8px; text-align: left; background: #f8f9fa; border-bottom: 2px solid #dee2e6; position: sticky; left: 0; background: #f8f9fa; z-index: 10; min-width: 140px;">
+                                        Grupo Operativo
+                                    </th>
+                                    ${sortedPeriods.map(period => `
+                                        <th style="padding: 12px 8px; text-align: center; background: #f8f9fa; border-bottom: 2px solid #dee2e6; min-width: 80px;">
+                                            ${period}
+                                        </th>
+                                    `).join('')}
+                                    <th style="padding: 12px 8px; text-align: center; background: #e3f2fd; border-bottom: 2px solid #2196f3; font-weight: 700; min-width: 80px;">
+                                        Promedio
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="heatmap-tbody">
+                                <!-- Rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             `;
             
-            const canvas = document.getElementById('historico-chart-canvas');
-            const ctx = canvas.getContext('2d');
+            const tbody = document.getElementById('heatmap-tbody');
             
-            // Group data by month
-            const monthlyData = {};
-            historicalData.forEach(item => {
-                const month = new Date(item.mes).toLocaleDateString('es-ES', { year: 'numeric', month: 'short' });
-                if (!monthlyData[month]) {
-                    monthlyData[month] = [];
-                }
-                monthlyData[month].push(item.promedio || 0);
-            });
-            
-            const labels = Object.keys(monthlyData).sort();
-            const data = labels.map(month => {
-                const values = monthlyData[month];
-                return values.reduce((a, b) => a + b, 0) / values.length;
-            });
-            
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Promedio Mensual (%)',
-                        data: data,
-                        borderColor: '#007aff',
-                        backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                        borderWidth: 3,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#007aff',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: false,
-                            min: Math.max(0, Math.min(...data) - 10),
-                            max: Math.min(100, Math.max(...data) + 10),
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
-                                }
-                            }
-                        }
+            // Render each group
+            sortedGroups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const nameCell = document.createElement('td');
+                nameCell.style.cssText = 'padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: white; z-index: 5;';
+                nameCell.textContent = group.grupo || 'Sin nombre';
+                row.appendChild(nameCell);
+                
+                // Period cells
+                sortedPeriods.forEach(period => {
+                    const cell = document.createElement('td');
+                    cell.style.cssText = 'padding: 12px 8px; text-align: center; border-bottom: 1px solid #dee2e6; position: relative;';
+                    
+                    const periodData = group.periodos && group.periodos[period];
+                    if (periodData && periodData.promedio > 0) {
+                        const performance = parseFloat(periodData.promedio) || 0;
+                        cell.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 2px;">${performance.toFixed(1)}%</div>
+                            <div style="font-size: 10px; opacity: 0.7;">${periodData.evaluaciones || 0} eval.</div>
+                        `;
+                        cell.className = getHeatClass(performance);
+                        cell.title = `${group.grupo} - ${period}: ${performance.toFixed(2)}% (${periodData.evaluaciones || 0} evaluaciones)`;
+                    } else {
+                        cell.innerHTML = '<div style="color: #999;">-</div>';
+                        cell.style.background = '#f8f9fa';
+                        cell.title = `${group.grupo} - ${period}: Sin datos`;
                     }
-                }
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Average cell
+                const avgCell = document.createElement('td');
+                avgCell.style.cssText = 'padding: 12px 8px; text-align: center; font-weight: 700; border-bottom: 1px solid #dee2e6; background: #e3f2fd;';
+                const promedio = parseFloat(group.promedio_general) || 0;
+                avgCell.innerHTML = `${promedio.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${promedio.toFixed(2)}%`;
+                row.appendChild(avgCell);
+                
+                tbody.appendChild(row);
             });
             
-            console.log('✅ Historical chart rendered with', labels.length, 'months');
+            console.log('✅ CAS periods heatmap rendered with', sortedGroups.length, 'groups and', sortedPeriods.length, 'periods');
+        }
+        
+        // Heat class helper function
+        function getHeatClass(value) {
+            const perf = parseFloat(value) || 0;
+            if (perf >= 95) return 'heat-excellent';
+            if (perf >= 90) return 'heat-very-good'; 
+            if (perf >= 85) return 'heat-good';
+            if (perf >= 80) return 'heat-average';
+            if (perf >= 70) return 'heat-below-average';
+            if (perf >= 60) return 'heat-poor';
+            return 'heat-critical';
         }
 
         function refreshData() {
