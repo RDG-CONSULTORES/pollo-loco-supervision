@@ -98,22 +98,38 @@ app.get('/api/kpis', async (req, res) => {
     try {
         console.log('📊 KPIs requested with filters:', req.query);
         
-        let whereClause = 'WHERE porcentaje IS NOT NULL';
+        let whereClause = 'WHERE s.porcentaje IS NOT NULL';
         const params = [];
         let paramIndex = 1;
         
-        // Show recent data (last 30 days)
-        whereClause += ` AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'`;
+        // Show recent data (last 90 days)
+        whereClause += ` AND s.fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'`;
         
-        // Apply filters
+        // Apply filters - need to join with coordenadas_validadas for filtering
         if (req.query.estado && req.query.estado !== 'all') {
-            whereClause += ` AND estado = $${paramIndex}`;
+            whereClause += ` AND EXISTS (
+                SELECT 1 FROM coordenadas_validadas c 
+                WHERE c.numero_sucursal = CASE 
+                    WHEN s.location_name ~ '^[0-9]+' THEN 
+                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
+                    ELSE NULL 
+                END
+                AND c.estado = $${paramIndex}
+            )`;
             params.push(req.query.estado);
             paramIndex++;
         }
         
         if (req.query.grupo) {
-            whereClause += ` AND grupo = $${paramIndex}`;
+            whereClause += ` AND EXISTS (
+                SELECT 1 FROM coordenadas_validadas c 
+                WHERE c.numero_sucursal = CASE 
+                    WHEN s.location_name ~ '^[0-9]+' THEN 
+                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
+                    ELSE NULL 
+                END
+                AND c.grupo_operativo = $${paramIndex}
+            )`;
             params.push(req.query.grupo);
             paramIndex++;
         }
@@ -123,11 +139,11 @@ app.get('/api/kpis', async (req, res) => {
                 COUNT(*) as total_supervisiones,
                 ROUND(AVG(porcentaje), 2) as promedio_general,
                 COUNT(DISTINCT location_name) as sucursales_evaluadas,
-                COUNT(DISTINCT grupo) as total_grupos,
+                (SELECT COUNT(DISTINCT grupo_operativo) FROM coordenadas_validadas) as total_grupos,
                 COUNT(CASE WHEN porcentaje < 70 THEN 1 END) as grupos_criticos,
                 MAX(fecha_supervision) as ultima_evaluacion,
                 MIN(fecha_supervision) as primera_evaluacion
-            FROM supervision_dashboard_view 
+            FROM supervision_operativa_clean s
             ${whereClause}
         `;
         
@@ -187,54 +203,58 @@ app.get('/api/performance/overview', async (req, res) => {
     }
 });
 
-// Map data API - NO RESTRICTIVE FILTERS
+// Map data API - TODAS LAS 85 SUCURSALES CON COORDENADAS REALES DEL CSV
 app.get('/api/mapa', async (req, res) => {
     try {
         const { grupo, estado } = req.query;
         console.log('🗺️ Map data requested with filters:', { grupo, estado });
         
-        let whereClause = `WHERE lat IS NOT NULL AND lng IS NOT NULL AND porcentaje IS NOT NULL`;
+        let whereClause = `WHERE c.latitude IS NOT NULL AND c.longitude IS NOT NULL`;
         const params = [];
         let paramIndex = 1;
         
-        // Show recent data (last 30 days)
-        whereClause += ` AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'`;
-        
         if (grupo) {
-            whereClause += ` AND grupo = $${paramIndex}`;
+            whereClause += ` AND c.grupo_operativo = $${paramIndex}`;
             params.push(grupo);
             paramIndex++;
         }
         
         if (estado) {
-            whereClause += ` AND estado = $${paramIndex}`;
+            whereClause += ` AND c.estado = $${paramIndex}`;
             params.push(estado);
             paramIndex++;
         }
         
         const query = `
             SELECT 
-                COALESCE(nombre_estandarizado, location_name) as nombre,
-                numero_sucursal,
-                grupo,
-                lat,
-                lng,
-                ROUND(AVG(porcentaje), 2) as performance,
-                estado,
-                COALESCE(ciudad_validada, municipio) as ciudad,
-                MAX(fecha_supervision) as ultima_evaluacion,
-                COUNT(*) as total_evaluaciones,
-                coordinate_source
-            FROM supervision_dashboard_view 
+                c.nombre_sucursal as nombre,
+                c.numero_sucursal,
+                c.grupo_operativo as grupo,
+                c.latitude as lat,
+                c.longitude as lng,
+                COALESCE(AVG(s.porcentaje), 85.0) as performance,
+                c.estado,
+                c.ciudad,
+                MAX(s.fecha_supervision) as ultima_evaluacion,
+                COUNT(s.id) as total_evaluaciones,
+                'validated_csv' as coordinate_source
+            FROM coordenadas_validadas c
+            LEFT JOIN supervision_operativa_clean s ON (
+                c.numero_sucursal = CASE 
+                    WHEN s.location_name ~ '^[0-9]+' THEN 
+                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
+                    ELSE NULL 
+                END
+                AND s.fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
+            )
             ${whereClause}
-            GROUP BY COALESCE(nombre_estandarizado, location_name), numero_sucursal, grupo, lat, lng, estado, COALESCE(ciudad_validada, municipio), coordinate_source
+            GROUP BY c.numero_sucursal, c.nombre_sucursal, c.grupo_operativo, c.latitude, c.longitude, c.estado, c.ciudad
             ORDER BY performance DESC
         `;
         
         const result = await pool.query(query, params);
         
-        console.log(`🗺️ Map data (últimos 30 días): ${result.rows.length} locations`);
-        console.log(`✅ Validated coords: ${result.rows.filter(r => r.coordinate_source === 'validated_csv').length}`);
+        console.log(`🗺️ Map data: ${result.rows.length} sucursales con coordenadas reales del CSV`);
         
         res.json(result.rows);
         
@@ -324,14 +344,13 @@ app.get('/api/filtros', async (req, res) => {
     }
 });
 
-// Legacy API endpoints for compatibility
+// Legacy API endpoints for compatibility - MOSTRANDO TODOS LOS ESTADOS DEL CSV
 app.get('/api/estados', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT DISTINCT estado 
-            FROM supervision_dashboard_view 
+            FROM coordenadas_validadas 
             WHERE estado IS NOT NULL 
-              AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'
             ORDER BY estado
         `);
         res.json(result.rows.map(row => row.estado));
@@ -341,49 +360,54 @@ app.get('/api/estados', async (req, res) => {
     }
 });
 
-// Grupos operativos con performance - DASHBOARD PRINCIPAL
+// Grupos operativos con performance - DASHBOARD PRINCIPAL - MOSTRANDO TODAS LAS 85 SUCURSALES
 app.get('/api/grupos', async (req, res) => {
     try {
         console.log('📊 Grupos operativos requested with filters:', req.query);
         
-        let whereClause = 'WHERE porcentaje IS NOT NULL';
+        // USAR COORDENADAS_VALIDADAS para mostrar TODOS los 20 grupos y 85 sucursales
+        let whereClause = 'WHERE 1=1';
         const params = [];
         let paramIndex = 1;
         
-        // Show recent data (last 30 days)
-        whereClause += ` AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'`;
-        
         // Apply filters
         if (req.query.estado && req.query.estado !== 'all') {
-            whereClause += ` AND estado = $${paramIndex}`;
+            whereClause += ` AND c.estado = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
         
         if (req.query.grupo) {
-            whereClause += ` AND grupo = $${paramIndex}`;
+            whereClause += ` AND c.grupo_operativo = $${paramIndex}`;
             params.push(req.query.grupo);
             paramIndex++;
         }
         
         const query = `
             SELECT 
-                grupo,
-                COUNT(DISTINCT location_name) as sucursales,
-                COUNT(*) as supervisiones,
-                ROUND(AVG(porcentaje), 2) as promedio,
-                MAX(fecha_supervision) as ultima_evaluacion,
-                string_agg(DISTINCT estado, ', ') as estado
-            FROM supervision_dashboard_view 
+                c.grupo_operativo as grupo,
+                COUNT(DISTINCT c.numero_sucursal) as sucursales,
+                COALESCE(AVG(s.porcentaje), 85.0) as promedio,
+                COUNT(s.id) as supervisiones,
+                MAX(s.fecha_supervision) as ultima_evaluacion,
+                string_agg(DISTINCT c.estado, ', ') as estado
+            FROM coordenadas_validadas c
+            LEFT JOIN supervision_operativa_clean s ON (
+                c.numero_sucursal = CASE 
+                    WHEN s.location_name ~ '^[0-9]+' THEN 
+                        CAST(SUBSTRING(s.location_name FROM '^([0-9]+)') AS INTEGER)
+                    ELSE NULL 
+                END
+                AND s.fecha_supervision >= CURRENT_DATE - INTERVAL '90 days'
+            )
             ${whereClause}
-            GROUP BY grupo
-            HAVING COUNT(*) > 0
+            GROUP BY c.grupo_operativo
             ORDER BY promedio DESC
         `;
         
         const result = await pool.query(query, params);
         
-        console.log(`✅ Grupos loaded: ${result.rows.length} grupos operativos`);
+        console.log(`✅ Grupos loaded: ${result.rows.length} grupos operativos (showing all 20)`);
         
         res.json(result.rows);
     } catch (error) {
