@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="light-content">
+    <title>El Pollo Loco CAS - Dashboard Completo</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            /* iOS System Colors */
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-red: #FF3B30;
+            --ios-yellow: #FFCC00;
+            --ios-orange: #FF9500;
+            --ios-gray: #8E8E93;
+            --ios-gray-2: #AEAEB2;
+            --ios-gray-3: #C7C7CC;
+            --ios-gray-4: #D1D1D6;
+            --ios-gray-5: #E5E5EA;
+            --ios-gray-6: #F2F2F7;
+            --ios-background: #F2F2F7;
+            --ios-secondary-background: #FFFFFF;
+            --ios-grouped-background: #F2F2F7;
+            --ios-label: #000000;
+            --ios-secondary-label: #3C3C43;
+            --ios-tertiary-label: #3C3C43;
+            --ios-quaternary-label: #3C3C43;
+            --ios-separator: rgba(60, 60, 67, 0.12);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+            background: var(--ios-background);
+            color: var(--ios-label);
+            line-height: 1.47059;
+            font-size: 17px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Navigation Bar */
+        .nav-bar {
+            background: rgba(242, 242, 247, 0.94);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 0.5px solid var(--ios-separator);
+            padding: 0 16px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+            text-align: center;
+            flex: 1;
+        }
+
+        .nav-button {
+            color: var(--ios-blue);
+            font-size: 17px;
+            font-weight: 400;
+            background: none;
+            border: none;
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        /* Large Title */
+        .large-title-container {
+            background: var(--ios-background);
+            padding: 8px 16px 0;
+        }
+
+        .large-title {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--ios-label);
+            margin-bottom: 8px;
+        }
+
+        /* Tab Bar */
+        .tab-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--ios-secondary-background);
+            border-top: 0.5px solid var(--ios-separator);
+            padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+            display: flex;
+            z-index: 1000;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            cursor: pointer;
+            color: var(--ios-gray);
+            transition: color 0.2s ease;
+        }
+
+        .tab.active {
+            color: var(--ios-blue);
+        }
+
+        .tab-icon {
+            font-size: 24px;
+            margin-bottom: 2px;
+        }
+
+        .tab-label {
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        /* Content */
+        .content {
+            padding-bottom: 80px; /* Space for tab bar */
+        }
+
+        .tab-view {
+            display: none;
+        }
+
+        .tab-view.active {
+            display: block;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            margin: 8px 16px;
+            overflow: hidden;
+            border: 0.5px solid var(--ios-separator);
+        }
+
+        /* KPI Grid */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 8px;
+            margin: 8px 16px;
+        }
+
+        .kpi-card {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            border: 0.5px solid var(--ios-separator);
+        }
+
+        .kpi-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--ios-blue);
+            margin-bottom: 4px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--ios-secondary-label);
+            font-weight: 500;
+        }
+
+        /* Tabs Content */
+        .tabs-container {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            margin: 8px 16px;
+            overflow: hidden;
+            border: 0.5px solid var(--ios-separator);
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 0.5px solid var(--ios-separator);
+        }
+
+        .tab-button {
+            flex: 1;
+            padding: 12px 8px;
+            background: none;
+            border: none;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--ios-secondary-label);
+            transition: all 0.2s ease;
+        }
+
+        .tab-button.active {
+            color: var(--ios-blue);
+            border-bottom-color: var(--ios-blue);
+        }
+
+        .tab-content {
+            padding: 16px;
+        }
+
+        .tab-pane {
+            display: none;
+        }
+
+        .tab-pane.active {
+            display: block;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 0.5px solid var(--ios-separator);
+        }
+
+        .data-table th {
+            font-weight: 600;
+            background: var(--ios-gray-6);
+            color: var(--ios-secondary-label);
+            font-size: 13px;
+        }
+
+        .data-table td {
+            font-size: 15px;
+        }
+
+        /* Performance Badges */
+        .performance-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .performance-excellent {
+            background: rgba(52, 199, 89, 0.15);
+            color: var(--ios-green);
+        }
+
+        .performance-good {
+            background: rgba(255, 204, 0, 0.15);
+            color: #B8860B;
+        }
+
+        .performance-critical {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--ios-red);
+        }
+
+        /* Map */
+        #map {
+            height: 400px;
+            width: 100%;
+            border-radius: 12px;
+            margin: 8px 16px;
+        }
+
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 32px;
+            color: var(--ios-secondary-label);
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--ios-separator);
+            border-radius: 50%;
+            border-top-color: var(--ios-blue);
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Error */
+        .error {
+            background: rgba(255, 59, 48, 0.15);
+            color: var(--ios-red);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin: 8px 16px;
+        }
+
+        /* Responsive */
+        @media (max-width: 375px) {
+            .large-title {
+                font-size: 28px;
+            }
+            
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <button class="nav-button" id="refresh-btn">Actualizar</button>
+        <div class="nav-title">El Pollo Loco CAS</div>
+        <button class="nav-button" id="info-btn">Info</button>
+    </nav>
+
+    <!-- Content -->
+    <div class="content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard-view" class="tab-view active">
+            <div class="large-title-container">
+                <h1 class="large-title">Dashboard</h1>
+                <p style="color: var(--ios-secondary-label); font-size: 15px; margin-bottom: 16px;">
+                    Supervisiones Operativas - <span id="last-update">Cargando...</span>
+                </p>
+            </div>
+
+            <!-- KPIs -->
+            <div class="kpi-grid" id="kpi-grid">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Cargando KPIs...
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs-container">
+                <div class="tab-buttons">
+                    <button class="tab-button active" data-dashboard-tab="grupos">👥 Grupos</button>
+                    <button class="tab-button" data-dashboard-tab="areas">📋 Áreas</button>
+                </div>
+                
+                <div class="tab-content">
+                    <!-- Grupos Tab -->
+                    <div id="grupos-tab" class="tab-pane active">
+                        <h3 style="margin-bottom: 12px; font-size: 17px;">Grupos Operativos</h3>
+                        <div id="grupos-content">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando grupos...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Areas Tab -->
+                    <div id="areas-tab" class="tab-pane">
+                        <h3 style="margin-bottom: 12px; font-size: 17px;">Áreas de Evaluación</h3>
+                        <div id="areas-content">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando áreas...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mapa Tab -->
+        <div id="mapa-view" class="tab-view">
+            <div class="large-title-container">
+                <h1 class="large-title">Mapa</h1>
+                <p style="color: var(--ios-secondary-label); font-size: 15px; margin-bottom: 16px;">
+                    Sucursales con coordenadas validadas
+                </p>
+            </div>
+            <div id="map"></div>
+        </div>
+
+        <!-- Histórico Tab -->
+        <div id="historico-view" class="tab-view">
+            <div class="large-title-container">
+                <h1 class="large-title">Histórico</h1>
+                <p style="color: var(--ios-secondary-label); font-size: 15px; margin-bottom: 16px;">
+                    Análisis temporal de superviones
+                </p>
+            </div>
+            <div class="card">
+                <div style="padding: 16px;">
+                    <canvas id="historico-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas Tab -->
+        <div id="alertas-view" class="tab-view">
+            <div class="large-title-container">
+                <h1 class="large-title">Alertas</h1>
+                <p style="color: var(--ios-secondary-label); font-size: 15px; margin-bottom: 16px;">
+                    Notificaciones y supervisiones críticas
+                </p>
+            </div>
+            <div id="alertas-content">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Cargando alertas...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <div class="tab active" data-tab="dashboard">
+            <div class="tab-icon"><i class="fas fa-chart-bar"></i></div>
+            <div class="tab-label">Dashboard</div>
+        </div>
+        <div class="tab" data-tab="mapa">
+            <div class="tab-icon"><i class="fas fa-map-pin"></i></div>
+            <div class="tab-label">Mapa</div>
+        </div>
+        <div class="tab" data-tab="historico">
+            <div class="tab-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="tab-label">Histórico</div>
+        </div>
+        <div class="tab" data-tab="alertas">
+            <div class="tab-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="tab-label">Alertas</div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let allData = {
+            kpis: {},
+            grupos: [],
+            mapa: [],
+            historico: [],
+            areas: [],
+            filtros: {}
+        };
+        
+        let map = null;
+        let historicoChart = null;
+        
+        // API Base URL
+        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:10000/api' : '/api';
+        
+        // Initialize dashboard
+        async function init() {
+            console.log('🚀 Iniciando dashboard...');
+            try {
+                await loadKPIs();
+                await loadGrupos();
+                await loadAreas();
+                await loadMapa();
+                await loadHistorico();
+                console.log('✅ Dashboard inicializado correctamente');
+            } catch (error) {
+                console.error('❌ Error inicializando dashboard:', error);
+                showError('Error inicializando dashboard: ' + error.message);
+            }
+        }
+
+        // Load KPIs
+        async function loadKPIs() {
+            try {
+                const response = await fetch(`${API_BASE}/kpis`);
+                if (!response.ok) throw new Error('Error cargando KPIs');
+                
+                const data = await response.json();
+                allData.kpis = data;
+                
+                // Render KPIs
+                const kpiGrid = document.getElementById('kpi-grid');
+                kpiGrid.innerHTML = `
+                    <div class="kpi-card">
+                        <div class="kpi-value">${data.total_supervisiones || 0}</div>
+                        <div class="kpi-label">Total Supervisiones</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">${data.promedio_general || 0}%</div>
+                        <div class="kpi-label">Promedio General</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">${data.sucursales_evaluadas || 0}</div>
+                        <div class="kpi-label">Sucursales Evaluadas</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">${data.total_grupos || 0}</div>
+                        <div class="kpi-label">Grupos Operativos</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value">${data.supervisiones_criticas || 0}</div>
+                        <div class="kpi-label">Supervisiones Críticas</div>
+                    </div>
+                `;
+                
+                // Update last update time
+                if (data.ultima_evaluacion) {
+                    document.getElementById('last-update').textContent = 
+                        'Última actualización: ' + new Date(data.ultima_evaluacion).toLocaleDateString();
+                }
+                
+                console.log('✅ KPIs cargados:', data.total_supervisiones, 'supervisiones');
+            } catch (error) {
+                console.error('❌ Error cargando KPIs:', error);
+                throw error;
+            }
+        }
+
+        // Load grupos
+        async function loadGrupos() {
+            try {
+                const response = await fetch(`${API_BASE}/grupos`);
+                if (!response.ok) throw new Error('Error cargando grupos');
+                
+                const data = await response.json();
+                allData.grupos = data;
+                renderGrupos(data);
+                console.log('✅ Grupos cargados:', data.length, 'grupos');
+            } catch (error) {
+                console.error('❌ Error cargando grupos:', error);
+                document.getElementById('grupos-content').innerHTML = 
+                    '<div class="error">Error cargando grupos operativos</div>';
+            }
+        }
+
+        // Render grupos
+        function renderGrupos(grupos) {
+            const content = document.getElementById('grupos-content');
+            if (!grupos || grupos.length === 0) {
+                content.innerHTML = '<div class="error">No hay datos de grupos disponibles</div>';
+                return;
+            }
+            
+            const table = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Grupo</th>
+                            <th>Sucursales</th>
+                            <th>Supervisiones</th>
+                            <th>Promedio</th>
+                            <th>Estado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${grupos.map(grupo => `
+                            <tr>
+                                <td><strong>${grupo.grupo && grupo.grupo !== 'undefined' ? grupo.grupo : 'Sin nombre'}</strong></td>
+                                <td>${grupo.sucursales || 0}</td>
+                                <td>${grupo.supervisiones || 0}</td>
+                                <td>
+                                    <span class="performance-badge ${getPerformanceClass(grupo.promedio)}">
+                                        ${grupo.promedio && grupo.promedio !== 'undefined' ? Math.round(grupo.promedio) : 0}%
+                                    </span>
+                                </td>
+                                <td>${grupo.estado && grupo.estado !== 'undefined' ? grupo.estado : 'N/A'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            content.innerHTML = table;
+        }
+
+        // Load areas
+        async function loadAreas() {
+            try {
+                const response = await fetch(`${API_BASE}/areas`);
+                if (!response.ok) throw new Error('Error cargando áreas');
+                
+                const data = await response.json();
+                allData.areas = data.areas || [];
+                renderAreas(allData.areas);
+                console.log('✅ Áreas cargadas:', allData.areas.length, 'áreas');
+            } catch (error) {
+                console.error('❌ Error cargando áreas:', error);
+                document.getElementById('areas-content').innerHTML = 
+                    '<div class="error">Error cargando áreas de evaluación</div>';
+            }
+        }
+
+        // Render areas
+        function renderAreas(areas) {
+            const content = document.getElementById('areas-content');
+            if (!areas || areas.length === 0) {
+                content.innerHTML = '<div class="error">No hay datos de áreas disponibles</div>';
+                return;
+            }
+            
+            const table = `
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Área de Evaluación</th>
+                            <th>Supervisiones</th>
+                            <th>Sucursales</th>
+                            <th>Promedio</th>
+                            <th>Rango</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${areas.map(area => `
+                            <tr>
+                                <td><strong>${area.area_evaluacion && area.area_evaluacion !== 'undefined' ? area.area_evaluacion : 'Sin nombre'}</strong></td>
+                                <td>${area.supervisiones_reales || 0}</td>
+                                <td>${area.sucursales_evaluadas || 0}</td>
+                                <td>
+                                    <span class="performance-badge ${getPerformanceClass(area.promedio_area)}">
+                                        ${area.promedio_area && area.promedio_area !== 'undefined' ? Math.round(area.promedio_area) : 0}%
+                                    </span>
+                                </td>
+                                <td>${area.minimo_porcentaje || 0}% - ${area.maximo_porcentaje || 0}%</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            content.innerHTML = table;
+        }
+
+        // Load mapa
+        async function loadMapa() {
+            try {
+                const response = await fetch(`${API_BASE}/mapa`);
+                if (!response.ok) throw new Error('Error cargando datos del mapa');
+                
+                const data = await response.json();
+                allData.mapa = data;
+                console.log('✅ Datos del mapa cargados:', data.length, 'sucursales');
+            } catch (error) {
+                console.error('❌ Error cargando mapa:', error);
+            }
+        }
+
+        // Load historico
+        async function loadHistorico() {
+            try {
+                const response = await fetch(`${API_BASE}/historico`);
+                if (!response.ok) throw new Error('Error cargando datos históricos');
+                
+                const data = await response.json();
+                allData.historico = data;
+                console.log('✅ Datos históricos cargados:', data.length, 'data points');
+            } catch (error) {
+                console.error('❌ Error cargando histórico:', error);
+            }
+        }
+
+        // Show dashboard tab
+        function showDashboardTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-pane').forEach(pane => {
+                pane.classList.remove('active');
+            });
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            const clickedButton = document.querySelector(`[data-dashboard-tab="${tabName}"]`);
+            if (clickedButton) {
+                clickedButton.classList.add('active');
+            }
+        }
+
+        // Switch main tab
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-view').forEach(view => {
+                view.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-view').classList.add('active');
+            
+            // Add active class to the clicked tab
+            const clickedTab = document.querySelector(`[data-tab="${tabName}"]`);
+            if (clickedTab) {
+                clickedTab.classList.add('active');
+            }
+            
+            // Special handling for map
+            if (tabName === 'mapa' && !map) {
+                initMap();
+            }
+            
+            // Special handling for historico chart
+            if (tabName === 'historico' && !historicoChart) {
+                renderHistoricoChart();
+            }
+            
+            // Handle alertas
+            if (tabName === 'alertas') {
+                loadAlertas();
+            }
+        }
+
+        // Initialize map
+        function initMap() {
+            if (map) return;
+            
+            map = L.map('map').setView([25.6866, -100.3161], 6);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            
+            // Add markers
+            allData.mapa.forEach(sucursal => {
+                if (sucursal.lat && sucursal.lng) {
+                    const marker = L.marker([sucursal.lat, sucursal.lng]).addTo(map);
+                    marker.bindPopup(`
+                        <div style="min-width: 200px;">
+                            <h4>${sucursal.nombre || 'Sucursal'}</h4>
+                            <p><strong>Grupo:</strong> ${sucursal.grupo || 'N/A'}</p>
+                            <p><strong>Performance:</strong> ${sucursal.performance || 0}%</p>
+                            <p><strong>Supervisiones:</strong> ${sucursal.total_supervisiones || 0}</p>
+                            <p><strong>Ubicación:</strong> ${sucursal.ciudad || 'N/A'}, ${sucursal.estado || 'N/A'}</p>
+                            ${sucursal.ultima_evaluacion ? `<p><strong>Última:</strong> ${new Date(sucursal.ultima_evaluacion).toLocaleDateString()}</p>` : ''}
+                        </div>
+                    `);
+                }
+            });
+            
+            console.log('✅ Mapa inicializado con', allData.mapa.length, 'marcadores');
+        }
+
+        // Render historico chart
+        function renderHistoricoChart() {
+            if (historicoChart) return;
+            
+            const ctx = document.getElementById('historico-chart').getContext('2d');
+            
+            // Group data by month
+            const monthlyData = {};
+            allData.historico.forEach(item => {
+                const month = new Date(item.mes).toLocaleDateString('es-ES', { year: 'numeric', month: 'short' });
+                if (!monthlyData[month]) {
+                    monthlyData[month] = [];
+                }
+                monthlyData[month].push(item.promedio);
+            });
+            
+            const labels = Object.keys(monthlyData).sort();
+            const data = labels.map(month => {
+                const values = monthlyData[month];
+                return values.reduce((a, b) => a + b, 0) / values.length;
+            });
+            
+            historicoChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Promedio Mensual (%)',
+                        data: data,
+                        borderColor: '#007aff',
+                        backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            console.log('✅ Gráfico histórico renderizado');
+        }
+
+        // Load alertas
+        function loadAlertas() {
+            const content = document.getElementById('alertas-content');
+            const criticalGroups = allData.grupos.filter(grupo => grupo.promedio < 70);
+            
+            if (criticalGroups.length === 0) {
+                content.innerHTML = `
+                    <div class="card" style="margin: 8px 16px;">
+                        <div style="padding: 16px; text-align: center; color: var(--ios-green);">
+                            <i class="fas fa-check-circle" style="font-size: 32px; margin-bottom: 8px;"></i>
+                            <p>No hay alertas críticas</p>
+                            <p style="font-size: 13px; color: var(--ios-secondary-label); margin-top: 8px;">
+                                Todos los grupos están por encima del 70% de performance
+                            </p>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const alertsHtml = criticalGroups.map(grupo => `
+                <div class="card" style="margin: 8px 16px; border-left: 4px solid var(--ios-red);">
+                    <div style="padding: 16px;">
+                        <div style="font-weight: 600; color: var(--ios-red); margin-bottom: 8px;">
+                            🚨 ${grupo.grupo}
+                        </div>
+                        <div style="color: var(--ios-secondary-label); font-size: 15px;">
+                            Performance: <span class="performance-badge performance-critical">${grupo.promedio}%</span>
+                        </div>
+                        <div style="color: var(--ios-secondary-label); font-size: 13px; margin-top: 8px;">
+                            ${grupo.sucursales} sucursales • ${grupo.supervisiones} supervisiones
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            content.innerHTML = alertsHtml;
+        }
+
+        // Utility functions
+        function getPerformanceClass(percentage) {
+            const perf = parseFloat(percentage);
+            if (isNaN(perf)) return 'performance-critical';
+            if (perf >= 90) return 'performance-excellent';
+            if (perf >= 70) return 'performance-good';
+            return 'performance-critical';
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.innerHTML = `
+                ${message}
+                <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer; color: var(--ios-red);">&times;</button>
+            `;
+            document.body.insertAdjacentElement('afterbegin', errorDiv);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function refreshData() {
+            console.log('🔄 Refrescando datos...');
+            init();
+        }
+
+        function showInfo() {
+            alert('El Pollo Loco CAS Dashboard\n\nVersión: 2.0\nTodas las 219 supervisiones\nSin filtros restrictivos\nDatos actualizados');
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            
+            // Add event listeners for tabs
+            document.querySelectorAll('[data-tab]').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+            
+            // Add event listeners for dashboard tabs
+            document.querySelectorAll('[data-dashboard-tab]').forEach(button => {
+                button.addEventListener('click', function() {
+                    showDashboardTab(this.dataset.dashboardTab);
+                });
+            });
+            
+            // Add event listeners for nav buttons
+            document.getElementById('refresh-btn').addEventListener('click', refreshData);
+            document.getElementById('info-btn').addEventListener('click', showInfo);
+        });
+    </script>
+</body>
+</html>

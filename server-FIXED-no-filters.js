@@ -28,7 +28,8 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'", "https://cdnjs.cloudflare.com", "https://unpkg.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net", "https://unpkg.com", "https://cdnjs.cloudflare.com"],
+            scriptSrcAttr: ["'unsafe-inline'"],
             imgSrc: ["'self'", "data:", "https:", "blob:"],
             connectSrc: ["'self'", "https://cdn.jsdelivr.net", "https://unpkg.com", "http://localhost:10000", "https://*.onrender.com"],
             fontSrc: ["'self'", "https://cdnjs.cloudflare.com"],
@@ -75,14 +76,14 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Main dashboard route - RESTAURADO ORIGINAL
+// Main dashboard route - FUNCIONAL COMPLETO
 app.get('/', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'dashboard-ios-ORIGINAL-RESTORED.html');
-    console.log('📱 Dashboard ORIGINAL RESTORED requested:', dashboardPath);
+    const dashboardPath = path.join(__dirname, 'dashboard-ios-COMPLETE-FUNCTIONAL.html');
+    console.log('📱 Dashboard FUNCIONAL COMPLETO requested:', dashboardPath);
     res.sendFile(dashboardPath, (err) => {
         if (err) {
-            console.log('⚠️ Original dashboard not found, trying backup...');
-            const fallbackPath = path.join(__dirname, 'backups', 'working-version-20251126-180625', 'dashboard-ios-complete.html');
+            console.log('⚠️ Functional dashboard not found, trying backup...');
+            const fallbackPath = path.join(__dirname, 'dashboard-COMPLETE-WORKING.html');
             res.sendFile(fallbackPath, (err2) => {
                 if (err2) {
                     console.error('❌ No dashboard files found');
