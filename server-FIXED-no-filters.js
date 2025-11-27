@@ -625,7 +625,7 @@ app.get('/api/analisis-critico', async (req, res) => {
             });
         }
         
-        // Buscar la sucursal por nombre o número
+        // Buscar la sucursal por nombre o número - BÚSQUEDA MEJORADA
         const sucursalQuery = `
             SELECT 
                 nombre_normalizado,
@@ -637,7 +637,10 @@ app.get('/api/analisis-critico', async (req, res) => {
                 lng_validada,
                 MAX(fecha_supervision) as ultima_supervision
             FROM supervision_normalized_view 
-            WHERE (nombre_normalizado ILIKE $1 OR location_name ILIKE $1)
+            WHERE (nombre_normalizado ILIKE $1 
+                OR location_name ILIKE $1
+                OR numero_sucursal::text = $2
+                OR LOWER(nombre_normalizado) = LOWER($3))
               AND area_tipo = 'area_principal'
               AND porcentaje IS NOT NULL
               AND fecha_supervision >= '2025-02-01'
@@ -645,12 +648,15 @@ app.get('/api/analisis-critico', async (req, res) => {
             LIMIT 1
         `;
         
-        const sucursalResult = await pool.query(sucursalQuery, [`%${id}%`]);
+        console.log('🔍 Buscando sucursal con ID:', id);
+        const sucursalResult = await pool.query(sucursalQuery, [`%${id}%`, id, id]);
         
         if (sucursalResult.rows.length === 0) {
+            console.log('❌ Sucursal no encontrada para ID:', id);
             return res.status(404).json({ 
                 success: false, 
-                error: 'Sucursal no encontrada' 
+                error: 'Sucursal no encontrada',
+                debug: { searchId: id, query: sucursalQuery }
             });
         }
         
