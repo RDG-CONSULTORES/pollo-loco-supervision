@@ -2867,8 +2867,12 @@
                 if (!response.ok) throw new Error('Error cargando datos de períodos CAS');
                 
                 const data = await response.json();
+                console.log('📊 Raw API response:', data);
+                
                 if (data.success) {
                     console.log('✅ CAS periods data loaded:', data.data.groups.length, 'groups,', data.data.periods.length, 'periods');
+                    console.log('📊 Periods:', data.data.periods);
+                    console.log('📊 First group sample:', data.data.groups[0]);
                     renderCASPeriodsHeatmap(data.data);
                 } else {
                     throw new Error('Error en respuesta de períodos CAS');
@@ -2876,7 +2880,7 @@
                 
             } catch (error) {
                 console.error('❌ Error loading CAS periods:', error);
-                const container = document.getElementById('heatmap-container');
+                const container = document.querySelector('.heatmap-container');
                 if (container) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 32px; color: #666;">
@@ -2891,8 +2895,11 @@
         
         // Render CAS periods heatmap
         function renderCASPeriodsHeatmap(data) {
-            const container = document.getElementById('heatmap-container');
-            if (!container) return;
+            const container = document.querySelector('.heatmap-container');
+            if (!container) {
+                console.error('❌ Heatmap container not found');
+                return;
+            }
             
             const { periods, groups } = data;
             
@@ -2932,7 +2939,7 @@
                                     </th>
                                 </tr>
                             </thead>
-                            <tbody id="heatmap-tbody">
+                            <tbody id="historico-heatmap-tbody">
                                 <!-- Rows will be populated here -->
                             </tbody>
                         </table>
@@ -2940,7 +2947,11 @@
                 </div>
             `;
             
-            const tbody = document.getElementById('heatmap-tbody');
+            const tbody = document.getElementById('historico-heatmap-tbody');
+            if (!tbody) {
+                console.error('❌ Tbody not found for heatmap');
+                return;
+            }
             
             // Render each group
             sortedGroups.forEach(group => {
