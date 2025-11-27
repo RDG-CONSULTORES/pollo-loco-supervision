@@ -1989,6 +1989,18 @@
                     switchTab(this.dataset.tab);
                 });
             });
+            
+            // Group detail clicks - Need to re-add after UI updates
+            addGroupDetailListeners();
+        }
+
+        // Add group detail event listeners (needs to be called after UI updates)
+        function addGroupDetailListeners() {
+            document.querySelectorAll('[data-group-detail]').forEach(item => {
+                item.addEventListener('click', function() {
+                    showGroupDetail(this.dataset.groupDetail);
+                });
+            });
         }
 
         // Load all groups once without filters
@@ -2228,6 +2240,9 @@
             if (currentViewMode === 'chart') {
                 updateHorizontalCharts(filteredGroups);
             }
+            
+            // Re-add event listeners for group detail clicks after UI update
+            addGroupDetailListeners();
         }
 
         function filterGroups() {
@@ -2263,7 +2278,7 @@
             const trendSymbol = group.trend >= 0 ? '↑' : '↓';
 
             return `
-                <div class="list-item" onclick="showGroupDetail('${group.name}')">
+                <div class="list-item" data-group-detail="${group.name}">
                     <div class="list-item-main">
                         <div class="list-item-number ${rankClass}">${group.rank}</div>
                         <div class="list-item-content">
@@ -2353,7 +2368,7 @@
             const trendSymbol = group.trend >= 0 ? '↑' : '↓';
 
             return `
-                <div class="horizontal-bar-item" onclick="showGroupDetail('${group.name}')">
+                <div class="horizontal-bar-item" data-group-detail="${group.name}">
                     <div class="bar-rank ${rankClass}">${group.rank}</div>
                     <div class="bar-content">
                         <div class="bar-label">${group.name}</div>

@@ -333,6 +333,47 @@ app.get('/api/filtros', async (req, res) => {
     }
 });
 
+// Sucursales por grupo - PARA MODAL DE DETALLES
+app.get('/api/sucursales-ranking', async (req, res) => {
+    try {
+        const { grupo } = req.query;
+        console.log('🏢 Sucursales ranking requested for grupo:', grupo);
+        
+        if (!grupo) {
+            return res.status(400).json({ error: 'Grupo parameter is required' });
+        }
+        
+        const query = `
+            SELECT 
+                nombre_normalizado as sucursal,
+                numero_sucursal,
+                estado_final as estado,
+                ciudad_normalizada as ciudad,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                COUNT(DISTINCT submission_id) as evaluaciones,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                MAX(fecha_supervision) as ultima_evaluacion
+            FROM supervision_normalized_view 
+            WHERE grupo_normalizado = $1 
+              AND porcentaje IS NOT NULL
+              AND area_tipo = 'area_principal'
+              AND fecha_supervision >= '2025-02-01'
+            GROUP BY nombre_normalizado, numero_sucursal, estado_final, ciudad_normalizada
+            ORDER BY AVG(porcentaje) DESC
+        `;
+        
+        const result = await pool.query(query, [grupo]);
+        
+        console.log(`🏢 Sucursales found for ${grupo}: ${result.rows.length} sucursales`);
+        
+        res.json(result.rows);
+        
+    } catch (error) {
+        console.error('❌ Error fetching sucursales ranking:', error);
+        res.status(500).json({ error: 'Error fetching sucursales ranking', details: error.message });
+    }
+});
+
 // Legacy API endpoints for compatibility - MOSTRANDO TODOS LOS ESTADOS DEL CSV
 app.get('/api/estados', async (req, res) => {
     try {
