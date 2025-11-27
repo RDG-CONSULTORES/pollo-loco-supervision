@@ -51,7 +51,7 @@ app.get('/health', async (req, res) => {
                 COUNT(*) as total_records,
                 COUNT(DISTINCT location_name) as unique_locations,
                 COUNT(CASE WHEN coordinate_source = 'validated_csv' THEN 1 END) as validated_coordinates
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             LIMIT 1
         `);
         
@@ -164,7 +164,7 @@ app.get('/api/performance/overview', async (req, res) => {
                 MAX(fecha_supervision) as ultima_evaluacion,
                 MIN(fecha_supervision) as primera_evaluacion,
                 COUNT(CASE WHEN coordinate_source = 'validated_csv' THEN 1 END) as with_validated_coords
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             ${whereClause}
         `;
         
@@ -267,7 +267,7 @@ app.get('/api/historico', async (req, res) => {
                 ROUND(AVG(porcentaje), 2) as promedio,
                 COUNT(*) as evaluaciones,
                 grupo
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             ${whereClause}
             GROUP BY DATE_TRUNC('month', fecha_supervision), grupo
             ORDER BY mes DESC, grupo
@@ -292,7 +292,7 @@ app.get('/api/filtros', async (req, res) => {
         // Get grupos from recent data
         const gruposResult = await pool.query(`
             SELECT DISTINCT grupo 
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             WHERE grupo IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
             ORDER BY grupo
@@ -301,7 +301,7 @@ app.get('/api/filtros', async (req, res) => {
         // Get estados from recent data
         const estadosResult = await pool.query(`
             SELECT DISTINCT estado 
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             WHERE estado IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
             ORDER BY estado
@@ -327,7 +327,7 @@ app.get('/api/estados', async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT DISTINCT estado 
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             WHERE estado IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
             ORDER BY estado
@@ -419,7 +419,7 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
                     END as periodo,
                     ROUND(AVG(porcentaje), 2) as promedio,
                     COUNT(*) as evaluaciones
-                FROM supervision_dashboard_view 
+                FROM supervision_normalized_view 
                 ${whereClause}
                 GROUP BY grupo, 
                 CASE 
@@ -464,7 +464,7 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
                     WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
                     ELSE 'Otro'
                 END as periodo
-            FROM supervision_dashboard_view 
+            FROM supervision_normalized_view 
             ${whereClause}
             ORDER BY periodo
         `;
