@@ -96,7 +96,12 @@ app.get('/', (req, res) => {
 // KPIs API - USING NORMALIZED VIEW FOR CORRECT SUPERVISION COUNT
 app.get('/api/kpis', async (req, res) => {
     try {
-        console.log('📊 KPIs requested with filters:', req.query);
+        const cleanQuery = Object.fromEntries(
+            Object.entries(req.query).filter(([key, value]) => 
+                value && value !== 'undefined' && value !== 'null'
+            )
+        );
+        console.log('📊 KPIs requested with filters:', Object.keys(cleanQuery).length > 0 ? cleanQuery : 'no filters');
         
         let whereClause = 'WHERE porcentaje IS NOT NULL AND area_tipo = \'area_principal\'';
         const params = [];
@@ -106,13 +111,13 @@ app.get('/api/kpis', async (req, res) => {
         whereClause += ` AND fecha_supervision >= '2025-02-01'`;
         
         // Apply filters using the normalized view
-        if (req.query.estado && req.query.estado !== 'all') {
+        if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
             whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
         
-        if (req.query.grupo) {
+        if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
             whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(req.query.grupo);
             paramIndex++;
@@ -191,19 +196,23 @@ app.get('/api/performance/overview', async (req, res) => {
 app.get('/api/mapa', async (req, res) => {
     try {
         const { grupo, estado } = req.query;
-        console.log('🗺️ Map data requested with filters:', { grupo, estado });
+        const cleanFilters = {
+            grupo: (grupo && grupo !== 'undefined' && grupo !== 'null') ? grupo : 'none',
+            estado: (estado && estado !== 'undefined' && estado !== 'null') ? estado : 'none'
+        };
+        console.log('🗺️ Map data requested with filters:', cleanFilters);
         
         let whereClause = `WHERE lat_validada IS NOT NULL AND lng_validada IS NOT NULL AND area_tipo = 'area_principal'`;
         const params = [];
         let paramIndex = 1;
         
-        if (grupo) {
+        if (grupo && grupo !== 'undefined' && grupo !== 'null') {
             whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(grupo);
             paramIndex++;
         }
         
-        if (estado) {
+        if (estado && estado !== 'undefined' && estado !== 'null') {
             whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(estado);
             paramIndex++;
@@ -246,7 +255,8 @@ app.get('/api/mapa', async (req, res) => {
 app.get('/api/historico', async (req, res) => {
     try {
         const { grupo } = req.query;
-        console.log('📈 Historical data requested for grupo:', grupo);
+        const cleanGrupo = (grupo && grupo !== 'undefined' && grupo !== 'null') ? grupo : 'all groups';
+        console.log('📈 Historical data requested for grupo:', cleanGrupo);
         
         let whereClause = `WHERE porcentaje IS NOT NULL`;
         const params = [];
@@ -255,7 +265,7 @@ app.get('/api/historico', async (req, res) => {
         // Show ALL data from February 2025 onwards
         whereClause += ` AND fecha_supervision >= '2025-02-01'`;
         
-        if (grupo) {
+        if (grupo && grupo !== 'undefined' && grupo !== 'null') {
             whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(grupo);
             paramIndex++;
@@ -342,20 +352,25 @@ app.get('/api/estados', async (req, res) => {
 // Grupos operativos con performance - DASHBOARD PRINCIPAL - CON SUPERVISION COUNT CORREGIDO
 app.get('/api/grupos', async (req, res) => {
     try {
-        console.log('📊 Grupos operativos requested with filters:', req.query);
+        const cleanQuery = Object.fromEntries(
+            Object.entries(req.query).filter(([key, value]) => 
+                value && value !== 'undefined' && value !== 'null'
+            )
+        );
+        console.log('📊 Grupos operativos requested with filters:', Object.keys(cleanQuery).length > 0 ? cleanQuery : 'no filters');
         
         let whereClause = 'WHERE porcentaje IS NOT NULL AND area_tipo = \'area_principal\'';
         const params = [];
         let paramIndex = 1;
         
         // Apply filters using normalized view
-        if (req.query.estado && req.query.estado !== 'all') {
+        if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
             whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
         
-        if (req.query.grupo) {
+        if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
             whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(req.query.grupo);
             paramIndex++;
@@ -397,7 +412,7 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
         let paramIndex = 1;
         
         // Apply estado filter if provided
-        if (req.query.estado && req.query.estado !== 'all') {
+        if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
             whereClause += ` AND estado = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
@@ -501,13 +516,13 @@ app.get('/api/areas', async (req, res) => {
         let paramIndex = 1;
         
         // Apply filters
-        if (req.query.estado && req.query.estado !== 'all') {
+        if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
             whereClause += ` AND estado_final = $${paramIndex}`;
             params.push(req.query.estado);
             paramIndex++;
         }
         
-        if (req.query.grupo) {
+        if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
             whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(req.query.grupo);
             paramIndex++;
