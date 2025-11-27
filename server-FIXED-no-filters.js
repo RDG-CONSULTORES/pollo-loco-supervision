@@ -77,13 +77,18 @@ app.get('/health', async (req, res) => {
 
 // Main dashboard route
 app.get('/', (req, res) => {
-    const dashboardPath = path.join(__dirname, 'dashboard-v2-ios.html');
-    console.log('📱 Dashboard requested:', dashboardPath);
+    const dashboardPath = path.join(__dirname, 'dashboard-ios-complete-FIXED.html');
+    console.log('📱 Dashboard FIXED requested:', dashboardPath);
     res.sendFile(dashboardPath, (err) => {
         if (err) {
-            console.log('⚠️ V2 dashboard not found, serving from public/');
-            const fallbackPath = path.join(__dirname, 'public', 'dashboard-ios-complete.html');
-            res.sendFile(fallbackPath);
+            console.log('⚠️ FIXED dashboard not found, trying fallbacks...');
+            const fallbackPath1 = path.join(__dirname, 'dashboard-v2-ios.html');
+            res.sendFile(fallbackPath1, (err2) => {
+                if (err2) {
+                    const fallbackPath2 = path.join(__dirname, 'public', 'dashboard-ios-complete.html');
+                    res.sendFile(fallbackPath2);
+                }
+            });
         }
     });
 });
@@ -285,19 +290,158 @@ app.get('/api/estados', async (req, res) => {
     }
 });
 
+// Grupos operativos con performance - DASHBOARD PRINCIPAL
 app.get('/api/grupos', async (req, res) => {
     try {
-        const result = await pool.query(`
-            SELECT DISTINCT grupo 
+        console.log('📊 Grupos operativos requested with filters:', req.query);
+        
+        let whereClause = 'WHERE porcentaje IS NOT NULL';
+        const params = [];
+        let paramIndex = 1;
+        
+        // Show recent data (last 30 days)
+        whereClause += ` AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'`;
+        
+        // Apply filters
+        if (req.query.estado && req.query.estado !== 'all') {
+            whereClause += ` AND estado = $${paramIndex}`;
+            params.push(req.query.estado);
+            paramIndex++;
+        }
+        
+        if (req.query.grupo) {
+            whereClause += ` AND grupo = $${paramIndex}`;
+            params.push(req.query.grupo);
+            paramIndex++;
+        }
+        
+        const query = `
+            SELECT 
+                grupo,
+                COUNT(DISTINCT location_name) as sucursales,
+                COUNT(*) as supervisiones,
+                ROUND(AVG(porcentaje), 2) as promedio,
+                MAX(fecha_supervision) as ultima_evaluacion,
+                string_agg(DISTINCT estado, ', ') as estado
             FROM supervision_dashboard_view 
-            WHERE grupo IS NOT NULL 
-              AND fecha_supervision >= CURRENT_DATE - INTERVAL '30 days'
-            ORDER BY grupo
-        `);
-        res.json(result.rows.map(row => row.grupo));
+            ${whereClause}
+            GROUP BY grupo
+            HAVING COUNT(*) > 0
+            ORDER BY promedio DESC
+        `;
+        
+        const result = await pool.query(query, params);
+        
+        console.log(`✅ Grupos loaded: ${result.rows.length} grupos operativos`);
+        
+        res.json(result.rows);
     } catch (error) {
-        console.error('❌ Error fetching grupos:', error);
-        res.status(500).json({ error: 'Error fetching grupos', details: error.message });
+        console.error('❌ Error fetching grupos operativos:', error);
+        res.status(500).json({ error: 'Error fetching grupos operativos', details: error.message });
+    }
+});
+
+// Heatmap periods data - HISTÓRICO
+app.get('/api/heatmap-periods/all', async (req, res) => {
+    try {
+        console.log('🔥 Heatmap periods requested with filters:', req.query);
+        
+        let whereClause = 'WHERE porcentaje IS NOT NULL';
+        const params = [];
+        let paramIndex = 1;
+        
+        // Apply estado filter if provided
+        if (req.query.estado && req.query.estado !== 'all') {
+            whereClause += ` AND estado = $${paramIndex}`;
+            params.push(req.query.estado);
+            paramIndex++;
+        }
+        
+        // Generate periods based on fechas de corte
+        const query = `
+            WITH periods_data AS (
+                SELECT 
+                    grupo,
+                    CASE 
+                        WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
+                        WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
+                        WHEN fecha_supervision BETWEEN '2025-04-01' AND '2025-06-30' THEN 'T2-2025'
+                        WHEN fecha_supervision BETWEEN '2025-01-01' AND '2025-03-31' THEN 'T1-2025'
+                        WHEN fecha_supervision BETWEEN '2024-10-10' AND '2024-12-31' THEN 'T4-2024'
+                        WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
+                        ELSE 'Otro'
+                    END as periodo,
+                    ROUND(AVG(porcentaje), 2) as promedio,
+                    COUNT(*) as evaluaciones
+                FROM supervision_dashboard_view 
+                ${whereClause}
+                GROUP BY grupo, 
+                CASE 
+                    WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
+                    WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
+                    WHEN fecha_supervision BETWEEN '2025-04-01' AND '2025-06-30' THEN 'T2-2025'
+                    WHEN fecha_supervision BETWEEN '2025-01-01' AND '2025-03-31' THEN 'T1-2025'
+                    WHEN fecha_supervision BETWEEN '2024-10-10' AND '2024-12-31' THEN 'T4-2024'
+                    WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
+                    ELSE 'Otro'
+                END
+                HAVING COUNT(*) > 0
+            ),
+            group_averages AS (
+                SELECT 
+                    grupo,
+                    ROUND(AVG(promedio), 2) as promedio_general
+                FROM periods_data 
+                GROUP BY grupo
+            )
+            SELECT 
+                ga.grupo,
+                ga.promedio_general,
+                json_object_agg(pd.periodo, json_build_object('promedio', pd.promedio, 'evaluaciones', pd.evaluaciones)) as periodos
+            FROM group_averages ga
+            LEFT JOIN periods_data pd ON ga.grupo = pd.grupo
+            GROUP BY ga.grupo, ga.promedio_general
+            ORDER BY ga.promedio_general DESC
+        `;
+        
+        const result = await pool.query(query, params);
+        
+        // Get distinct periods
+        const periodsQuery = `
+            SELECT DISTINCT 
+                CASE 
+                    WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
+                    WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
+                    WHEN fecha_supervision BETWEEN '2025-04-01' AND '2025-06-30' THEN 'T2-2025'
+                    WHEN fecha_supervision BETWEEN '2025-01-01' AND '2025-03-31' THEN 'T1-2025'
+                    WHEN fecha_supervision BETWEEN '2024-10-10' AND '2024-12-31' THEN 'T4-2024'
+                    WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
+                    ELSE 'Otro'
+                END as periodo
+            FROM supervision_dashboard_view 
+            ${whereClause}
+            ORDER BY periodo
+        `;
+        
+        const periodsResult = await pool.query(periodsQuery, params);
+        const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'Otro');
+        
+        console.log(`✅ Heatmap data: ${result.rows.length} grupos, ${periods.length} períodos`);
+        
+        res.json({
+            success: true,
+            data: {
+                periods: periods,
+                groups: result.rows
+            }
+        });
+    } catch (error) {
+        console.error('❌ Error fetching heatmap data:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Error fetching heatmap data', 
+            details: error.message 
+        });
     }
 });
 
