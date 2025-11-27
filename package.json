@@ -2,9 +2,9 @@
   "name": "pollo-loco-supervision",
   "version": "2.0.0",
   "description": "El Pollo Loco CAS - Dashboard FINAL con datos reales + coordenadas validadas + clean view en Neon",
-  "main": "server-final-with-view.js",
+  "main": "server-FIXED-no-filters.js",
   "scripts": {
-    "start": "NODE_ENV=production node server-final-with-view.js",
+    "start": "NODE_ENV=production node server-FIXED-no-filters.js",
     "dev": "concurrently \"npm run server\" \"npm run bot\"",
     "server": "cd backend && npm run dev",
     "bot": "node telegram-bot/bot-simple.js",

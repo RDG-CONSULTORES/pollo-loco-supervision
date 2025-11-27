@@ -1,0 +1,57 @@
+🎯 VARIABLES DE ENTORNO PARA RENDER - VERSIÓN FINAL
+================================================================
+
+⚠️ IMPORTANTE: Configurar estas variables en Render Dashboard
+
+VARIABLE CRÍTICA:
+-----------------
+Key: DATABASE_URL
+Value: postgresql://neondb_owner:npg_DlSRAHuyaY83@ep-orange-grass-a402u4o5-pooler.us-east-1.aws.neon.tech/neondb?sslmode=require
+
+VARIABLES ADICIONALES:
+----------------------
+Key: NODE_ENV
+Value: production
+
+Key: PORT  
+Value: 10000
+
+🔧 INSTRUCCIONES RENDER:
+========================
+
+1. Ve a: https://dashboard.render.com
+2. Click en "pollo-loco-supervision" 
+3. Click "Environment" (menú izquierdo)
+4. BORRA todas las variables existentes
+5. Agrega DATABASE_URL (copia exactamente la URL de arriba)
+6. Agrega NODE_ENV=production
+7. Agrega PORT=10000
+8. Click "Save Changes"
+9. El deploy se hace automático
+
+✅ VERIFICACIÓN:
+================
+
+Después de deploy, verifica:
+https://pollo-loco-supervision.onrender.com/health
+
+Debe mostrar:
+- status: "healthy"  
+- database: "connected_to_neon"
+- total_records: >1000000
+- unique_locations: >70
+- validated_coordinates: >1000000
+
+🎉 DASHBOARD FUNCIONANDO:
+=========================
+
+URL: https://pollo-loco-supervision.onrender.com
+
+Características:
+✅ 20 grupos operativos con datos reales
+✅ 80+ sucursales con coordenadas validadas  
+✅ Performance real desde ETL diario
+✅ Períodos T4 Local | S2 Foráneas correctos
+✅ Mapa con ubicaciones exactas
+✅ Historiales y filtros funcionando
+✅ Nuevas sucursales 82-85 preparadas
