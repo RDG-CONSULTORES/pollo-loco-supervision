@@ -1,10 +1,10 @@
 {
   "name": "pollo-loco-supervision",
   "version": "2.0.0",
-  "description": "El Pollo Loco CAS - Dashboard V2 con coordenadas validadas, 85 sucursales, fechas T4/S2 actualizadas",
-  "main": "server-v2-with-csv.js",
+  "description": "El Pollo Loco CAS - Dashboard FINAL con datos reales + coordenadas validadas + clean view en Neon",
+  "main": "server-final-with-view.js",
   "scripts": {
-    "start": "NODE_ENV=production node server-v2-with-csv.js",
+    "start": "NODE_ENV=production node server-final-with-view.js",
     "dev": "concurrently \"npm run server\" \"npm run bot\"",
     "server": "cd backend && npm run dev",
     "bot": "node telegram-bot/bot-simple.js",
