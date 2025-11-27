@@ -1855,10 +1855,11 @@
                 // Average cell
                 const avgCell = document.createElement('td');
                 avgCell.style.textAlign = 'center';
-                avgCell.className = getHeatClass(group.promedio_general);
+                const promedio = group.promedio_general || 0;
+                avgCell.className = getHeatClass(promedio);
                 avgCell.style.fontWeight = '600';
-                avgCell.textContent = `${group.promedio_general.toFixed(1)}%`;
-                avgCell.title = `Promedio general: ${group.promedio_general.toFixed(2)}%`;
+                avgCell.textContent = `${promedio.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${promedio.toFixed(2)}%`;
                 row.appendChild(avgCell);
 
                 heatmapBody.appendChild(row);
@@ -2120,28 +2121,13 @@
         
         async function loadMapDataFallback() {
             try {
-                const response = await fetch(`${API_BASE}/sucursales-ranking${buildQueryString()}`);
+                console.log('🔄 Map fallback: using /api/mapa endpoint');
+                const response = await fetch(`${API_BASE}/mapa${buildQueryString()}`);
                 const sucursales = await response.json();
                 
                 if (sucursales && sucursales.length > 0) {
-                    // Mock coordinates for Mexican states
-                    const stateCoords = {
-                        'Nuevo León': { lat: 25.6866, lng: -100.3161 },
-                        'Tamaulipas': { lat: 24.2669, lng: -98.8363 },
-                        'Querétaro': { lat: 20.5888, lng: -100.3899 },
-                        'Coahuila': { lat: 27.0587, lng: -101.7068 },
-                        'San Luis Potosí': { lat: 22.1565, lng: -100.9855 }
-                    };
-                    
-                    // Add mock coordinates to sucursales data
-                    mapData = sucursales.map((suc, index) => {
-                        const baseCoords = stateCoords[suc.estado] || { lat: 25.6866, lng: -100.3161 };
-                        return {
-                            ...suc,
-                            latitud: baseCoords.lat + (Math.random() - 0.5) * 0.5, // Add some spread
-                            longitud: baseCoords.lng + (Math.random() - 0.5) * 0.5
-                        };
-                    });
+                    // /api/mapa already has real coordinates as lat/lng
+                    mapData = sucursales;
                 } else {
                     mapData = [];
                 }
