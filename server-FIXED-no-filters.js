@@ -466,12 +466,18 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
                 SELECT 
                     grupo_normalizado as grupo,
                     CASE 
-                        WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
-                        WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
-                        WHEN fecha_supervision BETWEEN '2025-04-01' AND '2025-06-30' THEN 'T2-2025'
-                        WHEN fecha_supervision BETWEEN '2025-01-01' AND '2025-03-31' THEN 'T1-2025'
-                        WHEN fecha_supervision BETWEEN '2024-10-10' AND '2024-12-31' THEN 'T4-2024'
-                        WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
+                        -- NL-T4 (Locales): 10/Oct/2025 → 31/Dic/2025
+                        WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
+                        -- NL-T3 (Locales): 19/Ago/2025 → 09/Oct/2025  
+                        WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
+                        -- FOR-S2 (Foráneas): 30/Jul/2025 → 31/Dic/2025
+                        WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
+                        -- NL-T2 (Locales): 11/Jun/2025 → 18/Ago/2025
+                        WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
+                        -- FOR-S1 (Foráneas): 10/Abr/2025 → 09/Jun/2025
+                        WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                        -- NL-T1 (Locales): 12/Mar/2025 → 16/Abr/2025
+                        WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
                         ELSE 'Otro'
                     END as periodo,
                     ROUND(AVG(porcentaje), 2) as promedio,
@@ -480,12 +486,12 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
                 ${whereClause}
                 GROUP BY grupo, 
                 CASE 
-                    WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
-                    WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
-                    WHEN fecha_supervision BETWEEN '2025-04-01' AND '2025-06-30' THEN 'T2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-01-01' AND '2025-03-31' THEN 'T1-2025'
-                    WHEN fecha_supervision BETWEEN '2024-10-10' AND '2024-12-31' THEN 'T4-2024'
-                    WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
+                    WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
+                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
+                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
+                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
+                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
                     ELSE 'Otro'
                 END
                 HAVING COUNT(*) > 0
@@ -513,12 +519,12 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
         const periodsQuery = `
             SELECT DISTINCT 
                 CASE 
-                    WHEN fecha_supervision >= '2025-10-10' THEN 'T4-2025'
-                    WHEN fecha_supervision BETWEEN '2025-07-01' AND '2025-09-30' THEN 'T3-2025'
-                    WHEN fecha_supervision BETWEEN '2025-04-01' AND '2025-06-30' THEN 'T2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-01-01' AND '2025-03-31' THEN 'T1-2025'
-                    WHEN fecha_supervision BETWEEN '2024-10-10' AND '2024-12-31' THEN 'T4-2024'
-                    WHEN fecha_supervision BETWEEN '2024-07-01' AND '2024-10-07' THEN 'S2-Foráneas'
+                    WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
+                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
+                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
+                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
+                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
                     ELSE 'Otro'
                 END as periodo
             FROM supervision_normalized_view 

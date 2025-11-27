@@ -2903,10 +2903,10 @@
             
             const { periods, groups } = data;
             
-            // Sort periods in CAS order (not chronological): Current periods first, then historical
+            // Sort periods in CAS order: T1 → T2 → T3 → T4 → FOR-S1 → FOR-S2
             const sortedPeriods = periods.sort((a, b) => {
-                // Períodos CAS order: Current 2025 quarters first, then historical periods
-                const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'T4-2024', 'S2-Foráneas'];
+                // Orden CAS definitivo: Locales primero, luego Foráneas
+                const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
                 return order.indexOf(a) - order.indexOf(b);
             });
             
@@ -2920,7 +2920,9 @@
                         📊 Períodos CAS por Grupo Operativo
                     </h3>
                     <p style="color: #666; font-size: 14px; text-align: center; margin-bottom: 20px;">
-                        Locales (NL): T1-T4 trimestrales • Foráneas: S2 semestral
+                        📊 Períodos CAS 2025 • Promedio consolidado por Grupo Operativo<br>
+                        🏠 Locales: T1 (12Mar-16Abr) • T2 (11Jun-18Ago) • T3 (19Ago-9Oct) • T4 (10Oct-31Dic)<br>
+                        🌎 Foráneas: FOR-S1 (10Abr-9Jun) • FOR-S2 (30Jul-31Dic)
                     </p>
                     <div style="overflow-x: auto; background: white; border-radius: 8px; padding: 16px;">
                         <table class="heatmap-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
