@@ -304,7 +304,7 @@ app.get('/api/filtros', async (req, res) => {
             FROM supervision_normalized_view 
             WHERE estado_final IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
-            ORDER BY estado
+            ORDER BY estado_final
         `);
         
         const filters = {
@@ -330,7 +330,7 @@ app.get('/api/estados', async (req, res) => {
             FROM supervision_normalized_view 
             WHERE estado_final IS NOT NULL 
               AND fecha_supervision >= '2025-02-01'
-            ORDER BY estado
+            ORDER BY estado_final
         `);
         res.json(result.rows.map(row => row.estado));
     } catch (error) {
