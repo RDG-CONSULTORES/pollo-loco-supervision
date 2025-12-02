@@ -50,8 +50,8 @@ app.get('/health', async (req, res) => {
             SELECT 
                 NOW() as server_time,
                 COUNT(*) as total_records,
-                COUNT(DISTINCT location_name) as unique_locations,
-                COUNT(CASE WHEN coordinate_source = 'validated_csv' THEN 1 END) as validated_coordinates
+                COUNT(DISTINCT numero_sucursal) as unique_locations,
+                COUNT(CASE WHEN lat_validada IS NOT NULL THEN 1 END) as validated_coordinates
             FROM supervision_normalized_view 
             LIMIT 1
         `);
@@ -165,11 +165,11 @@ app.get('/api/performance/overview', async (req, res) => {
             SELECT 
                 COUNT(*) as total_evaluaciones,
                 ROUND(AVG(porcentaje), 2) as promedio_general,
-                COUNT(DISTINCT location_name) as sucursales_evaluadas,
-                COUNT(DISTINCT grupo) as grupos_activos,
+                COUNT(DISTINCT numero_sucursal) as sucursales_evaluadas,
+                COUNT(DISTINCT grupo_normalizado) as grupos_activos,
                 MAX(fecha_supervision) as ultima_evaluacion,
                 MIN(fecha_supervision) as primera_evaluacion,
-                COUNT(CASE WHEN coordinate_source = 'validated_csv' THEN 1 END) as with_validated_coords
+                COUNT(CASE WHEN lat_validada IS NOT NULL THEN 1 END) as with_validated_coords
             FROM supervision_normalized_view 
             ${whereClause}
         `;
@@ -231,7 +231,7 @@ app.get('/api/mapa', async (req, res) => {
                 ciudad_normalizada as ciudad,
                 MAX(fecha_supervision) as ultima_evaluacion,
                 COUNT(DISTINCT submission_id) as total_supervisiones,
-                'validated_csv' as coordinate_source
+                'csv_validated' as coordinate_source
             FROM supervision_normalized_view 
             ${whereClause}
               AND porcentaje IS NOT NULL
