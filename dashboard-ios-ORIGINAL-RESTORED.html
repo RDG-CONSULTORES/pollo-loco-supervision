@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="light-content">
@@ -50,6 +50,8 @@
             font-size: 17px;
             -webkit-font-smoothing: antialiased;
             -moz-osx-font-smoothing: grayscale;
+            /* Fix tab bar overlap */
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
         }
 
         /* Navigation Bar */
@@ -418,7 +420,7 @@
         }
         
         .map-list-container.expanded {
-            max-height: 35vh; /* Reduced from 50vh - more compact for states list only */
+            max-height: 25vh; /* Reduced to prevent tab bar overlap */
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
         }
@@ -479,6 +481,9 @@
             right: 0;
             height: 49px;
             display: flex;
+            /* Add safe area support */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
             padding: 0 2px;
         }
 
@@ -1007,7 +1012,7 @@
             }
             
             .map-list-container.expanded {
-                max-height: 25vh !important; /* Reduced from 60vh - compact states list */
+                max-height: 18vh !important; /* Further reduced to prevent tab overlap */
             }
             
             .large-title-container {
@@ -1028,7 +1033,7 @@
             }
             
             .map-list-container.expanded {
-                max-height: 20vh !important; /* Very compact for landscape */
+                max-height: 15vh !important; /* Very compact for landscape to avoid tabs */
             }
         }
 
@@ -1509,6 +1514,14 @@
                                 <div class="legend-color" style="background: #007AFF;"></div>
                                 <span>Excelente (≥95%)</span>
                             </div>
+                        </div>
+
+                        <!-- Heatmap Filters -->
+                        <div class="heatmap-filters">
+                            <button class="heatmap-filter-btn active" data-filter="all">Todos los Grupos</button>
+                            <button class="heatmap-filter-btn" data-filter="critical">Críticos <80%</button>
+                            <button class="heatmap-filter-btn" data-filter="improving">Mejorando</button>
+                            <button class="heatmap-filter-btn" data-filter="declining">Declinando</button>
                         </div>
 
                         <!-- Options -->
@@ -2012,6 +2025,7 @@
             loadEstados();
             initEventListeners();
             initCSPSafeEventListeners();
+            setupHeatmapFilters(); // Setup historic tab filters
         });
 
         // Add CSP-safe event listeners
@@ -2999,9 +3013,155 @@
                 tbody.appendChild(row);
             });
             
-            console.log('✅ CAS periods heatmap rendered with', sortedGroups.length, 'groups and', sortedPeriods.length, 'periods');
+            // Calculate EPL CAS averages - RESTORED from dashboard-ios-complete
+            const eplAverages = {};
+            let eplOverallSum = 0;
+            let eplOverallCount = 0;
+            
+            sortedPeriods.forEach(periodo => {
+                let periodSum = 0;
+                let periodCount = 0;
+                
+                sortedGroups.forEach(group => {
+                    const periodData = group.periodos && group.periodos[periodo];
+                    if (periodData && periodData.promedio > 0) {
+                        periodSum += parseFloat(periodData.promedio);
+                        periodCount++;
+                    }
+                });
+                
+                eplAverages[periodo] = periodCount > 0 ? periodSum / periodCount : null;
+                if (eplAverages[periodo] !== null) {
+                    eplOverallSum += eplAverages[periodo];
+                    eplOverallCount++;
+                }
+            });
+            
+            // Add EPL CAS row - RESTORED EXACTLY
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-cas-row';
+            eplRow.style.cssText = 'background: #007AFF; color: white; font-weight: bold;';
+            
+            const eplLabelCell = document.createElement('td');
+            eplLabelCell.style.cssText = 'padding: 12px 8px; font-weight: 700; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: #007AFF; z-index: 6; color: white;';
+            eplLabelCell.innerHTML = `<div style="color: white; font-weight: bold;">PROMEDIO EPL CAS</div>`;
+            eplRow.appendChild(eplLabelCell);
+            
+            let lastValidEpl = null;
+            const showDifferences = document.getElementById('showDifferences')?.checked ?? true;
+            
+            sortedPeriods.forEach((periodo, index) => {
+                const cell = document.createElement('td');
+                cell.style.cssText = 'padding: 12px 8px; text-align: center; border-bottom: 1px solid #dee2e6; background: #007AFF; color: white;';
+                
+                if (eplAverages[periodo] !== null) {
+                    const promedio = eplAverages[periodo];
+                    let cellContent = `<div style="color: white; font-weight: bold;">${promedio.toFixed(1)}%</div>`;
+                    
+                    if (showDifferences && lastValidEpl !== null) {
+                        const diff = promedio - lastValidEpl;
+                        const diffSign = diff > 0 ? '+' : '';
+                        const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                        cellContent += `<div style="font-size: 0.7rem; color: rgba(255,255,255,0.9);">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                    }
+                    
+                    cell.innerHTML = cellContent;
+                    lastValidEpl = promedio;
+                } else {
+                    cell.innerHTML = '<div style="color: rgba(255,255,255,0.7);">-</div>';
+                }
+                
+                eplRow.appendChild(cell);
+            });
+            
+            // EPL Average cell
+            const eplOverallAverage = eplOverallCount > 0 ? eplOverallSum / eplOverallCount : 0;
+            const eplAvgCell = document.createElement('td');
+            eplAvgCell.style.cssText = 'padding: 12px 8px; text-align: center; font-weight: 700; border-bottom: 1px solid #dee2e6; background: #0051D5; color: white;';
+            eplAvgCell.innerHTML = `${eplOverallAverage.toFixed(1)}%`;
+            eplAvgCell.title = `Promedio general EPL CAS: ${eplOverallAverage.toFixed(2)}%`;
+            eplRow.appendChild(eplAvgCell);
+            
+            tbody.appendChild(eplRow);
+            
+            console.log('✅ CAS periods heatmap rendered with', sortedGroups.length, 'groups,', sortedPeriods.length, 'periods, and EPL CAS row');
         }
         
+        // Setup heatmap filters - RESTORED from dashboard-ios-complete
+        function setupHeatmapFilters() {
+            document.querySelectorAll('.heatmap-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.heatmap-filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    const filter = btn.dataset.filter;
+                    heatmapCurrentFilter = filter;
+                    console.log('🔥 Heatmap filter changed to:', filter);
+                    
+                    // Re-render with filter (if data exists)
+                    if (heatmapPeriodsData) {
+                        renderHeatmapWithFilter(heatmapPeriodsData, filter);
+                    }
+                });
+            });
+            
+            const showDifferencesToggle = document.getElementById('showDifferences');
+            if (showDifferencesToggle) {
+                showDifferencesToggle.addEventListener('change', () => {
+                    console.log('🔄 Show differences toggle:', showDifferencesToggle.checked);
+                    if (heatmapPeriodsData) {
+                        renderHeatmapWithFilter(heatmapPeriodsData, heatmapCurrentFilter || 'all');
+                    }
+                });
+            }
+        }
+
+        // Render heatmap with filters - RESTORED functionality
+        function renderHeatmapWithFilter(data, filter = 'all') {
+            let filteredGroups = [...data.groups];
+            
+            // Apply filters
+            switch(filter) {
+                case 'critical':
+                    filteredGroups = data.groups.filter(g => (g.promedio_general || 0) < 80);
+                    break;
+                case 'improving':
+                    // Groups with positive trend in latest period
+                    filteredGroups = data.groups.filter(g => {
+                        const periods = data.periods.sort((a, b) => {
+                            const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
+                            return order.indexOf(a) - order.indexOf(b);
+                        });
+                        if (periods.length < 2) return false;
+                        const latest = g.periodos[periods[periods.length - 1]];
+                        const previous = g.periodos[periods[periods.length - 2]];
+                        return latest && previous && (latest.promedio > previous.promedio);
+                    });
+                    break;
+                case 'declining':
+                    // Groups with negative trend in latest period
+                    filteredGroups = data.groups.filter(g => {
+                        const periods = data.periods.sort((a, b) => {
+                            const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
+                            return order.indexOf(a) - order.indexOf(b);
+                        });
+                        if (periods.length < 2) return false;
+                        const latest = g.periodos[periods[periods.length - 1]];
+                        const previous = g.periodos[periods[periods.length - 2]];
+                        return latest && previous && (latest.promedio < previous.promedio);
+                    });
+                    break;
+                default: // 'all'
+                    filteredGroups = data.groups;
+            }
+            
+            console.log(`🔍 Filtered groups (${filter}):`, filteredGroups.length, 'of', data.groups.length);
+            
+            // Render with filtered data
+            const modifiedData = { ...data, groups: filteredGroups };
+            renderCASPeriodsHeatmap(modifiedData);
+        }
+
         // Heat class helper function
         function getHeatClass(value) {
             const perf = parseFloat(value) || 0;
