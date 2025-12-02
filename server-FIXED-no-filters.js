@@ -58,8 +58,8 @@ app.get('/health', async (req, res) => {
         
         res.json({ 
             status: 'healthy',
-            service: 'El Pollo Loco Dashboard - NO FILTERS VERSION',
-            version: 'fixed-no-date-filters',
+            service: 'El Pollo Loco Dashboard - HISTORIC TAB FIXED',
+            version: 'historic-tab-complete-fixed',
             database: 'connected_to_neon',
             server_time: dbCheck.rows[0].server_time,
             total_records: dbCheck.rows[0].total_records,
