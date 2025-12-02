@@ -2,11 +2,11 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="light-content">
-    <title>El Pollo Loco CAS - Dashboard FUNCIONANDO</title>
+    <title>El Pollo Loco CAS - Dashboard Completo</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -16,312 +16,1651 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        :root {
+            /* iOS System Colors */
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-red: #FF3B30;
+            --ios-yellow: #FFCC00;
+            --ios-orange: #FF9500;
+            --ios-gray: #8E8E93;
+            --ios-gray-2: #AEAEB2;
+            --ios-gray-3: #C7C7CC;
+            --ios-gray-4: #D1D1D6;
+            --ios-gray-5: #E5E5EA;
+            --ios-gray-6: #F2F2F7;
+            --ios-background: #F2F2F7;
+            --ios-secondary-background: #FFFFFF;
+            --ios-grouped-background: #F2F2F7;
+            --ios-label: #000000;
+            --ios-secondary-label: #3C3C43;
+            --ios-tertiary-label: #3C3C43;
+            --ios-quaternary-label: #3C3C43;
+            --ios-separator: rgba(60, 60, 67, 0.12);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
-            background: #f2f2f7;
-            color: #000;
-            line-height: 1.47;
-            font-size: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+            background: var(--ios-background);
+            color: var(--ios-label);
+            line-height: 1.47059;
+            font-size: 17px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* Fix tab bar overlap */
+            padding-bottom: calc(80px + env(safe-area-inset-bottom));
         }
 
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .header h1 {
-            font-size: 28px;
-            font-weight: 600;
-            color: #1d1d1f;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            color: #86868b;
-            font-size: 16px;
-        }
-
-        .filters {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .filters h3 {
-            margin-bottom: 15px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .filter-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .filter-group {
+        /* Navigation Bar */
+        .nav-bar {
+            background: rgba(242, 242, 247, 0.94);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 0.5px solid var(--ios-separator);
+            padding: 0 16px;
+            height: 44px;
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .filter-group label {
-            font-size: 14px;
-            font-weight: 500;
-            color: #1d1d1f;
-            margin-bottom: 8px;
-        }
-
-        .filter-group select {
-            padding: 10px 12px;
-            border: 1px solid #d1d1d6;
-            border-radius: 8px;
-            font-size: 16px;
-            background: white;
-            color: #1d1d1f;
-        }
-
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-
-        .kpi-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .kpi-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: #007aff;
-            margin-bottom: 8px;
-        }
-
-        .kpi-label {
-            font-size: 14px;
-            color: #86868b;
-            font-weight: 500;
-        }
-
-        .tabs {
-            background: white;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .tab-buttons {
-            display: flex;
-            border-bottom: 1px solid #d1d1d6;
-        }
-
-        .tab-button {
+        .nav-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+            text-align: center;
             flex: 1;
-            padding: 15px;
+        }
+
+        .nav-button {
+            color: var(--ios-blue);
+            font-size: 17px;
+            font-weight: 400;
             background: none;
             border: none;
-            font-size: 16px;
-            font-weight: 500;
+            padding: 8px;
             cursor: pointer;
-            border-bottom: 3px solid transparent;
-            transition: all 0.2s;
         }
 
-        .tab-button.active {
-            color: #007aff;
-            border-bottom-color: #007aff;
+        /* Large Title */
+        .large-title-container {
+            background: var(--ios-background);
+            padding: 8px 16px 0;
         }
 
-        .tab-content {
-            padding: 20px;
+        .large-title {
+            font-size: 34px;
+            font-weight: 700;
+            color: var(--ios-label);
+            margin-bottom: 8px;
         }
 
-        .tab-pane {
+        /* Map Fullscreen Button */
+        .map-fullscreen-btn {
+            position: absolute;
+            top: 8px;
+            right: 16px;
+            background: var(--ios-secondary-background);
+            border: 0.5px solid var(--ios-separator);
+            border-radius: 8px;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--ios-blue);
+        }
+
+        .map-fullscreen-btn:hover {
+            background: var(--ios-gray-6);
+            transform: scale(1.05);
+        }
+
+        .map-fullscreen-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Segmented Control */
+        .segmented-control {
+            background: rgba(118, 118, 128, 0.12);
+            border-radius: 9px;
+            padding: 2px;
+            display: flex;
+            margin: 16px;
+            height: 32px;
+        }
+
+        .segment {
+            flex: 1;
+            background: transparent;
+            border: none;
+            border-radius: 7px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ios-label);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            padding: 0 12px;
+        }
+
+        .segment.active {
+            background: var(--ios-secondary-background);
+            box-shadow: 0 3px 8px 0 rgba(0,0,0,0.12), 0 3px 1px 0 rgba(0,0,0,0.04);
+        }
+
+        /* Summary Cards */
+        .summary-container {
+            padding: 0 16px 16px;
+        }
+
+        .summary-card {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .summary-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .summary-label {
+            font-size: 15px;
+            color: var(--ios-secondary-label);
+        }
+
+        .summary-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ios-label);
+        }
+
+        .summary-subtitle {
+            font-size: 13px;
+            color: var(--ios-tertiary-label);
+            margin-top: 2px;
+        }
+
+        /* List Sections */
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-header {
+            padding: 6px 16px 6px 16px;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--ios-tertiary-label);
+            text-transform: uppercase;
+            letter-spacing: -0.08px;
+        }
+
+        .list-container {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px;
+            overflow: hidden;
+        }
+
+        .list-item {
+            padding: 11px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 0.5px solid var(--ios-separator);
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+
+        .list-item:active {
+            background-color: var(--ios-gray-5);
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .list-item-main {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .rank-1 { background: var(--ios-green); }
+        .rank-2 { background: var(--ios-blue); }
+        .rank-3 { background: var(--ios-orange); }
+        .rank-good { background: var(--ios-gray); }
+        .rank-warning { background: var(--ios-yellow); color: var(--ios-label); }
+        .rank-critical { background: var(--ios-red); }
+
+        .list-item-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .list-item-title {
+            font-size: 17px;
+            font-weight: 400;
+            color: var(--ios-label);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .list-item-subtitle {
+            font-size: 13px;
+            color: var(--ios-secondary-label);
+            margin-top: 1px;
+        }
+
+        .list-item-end {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .list-item-value {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+        }
+
+        .list-item-trend {
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        .trend-up { color: var(--ios-green); }
+        .trend-down { color: var(--ios-red); }
+
+        /* Chart Container */
+        .chart-section {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px 16px;
+            padding: 16px;
+            overflow: hidden;
+        }
+
+        .chart-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 16px;
+        }
+
+        .chart-container {
+            height: 300px;
+            position: relative;
+        }
+
+        /* FASE 3: Tooltip personalizado */
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border: 0.5px solid var(--ios-separator);
+        }
+        
+        .custom-popup .leaflet-popup-content {
+            margin: 12px 16px;
+            line-height: 1.4;
+        }
+        
+        .custom-popup .leaflet-popup-tip {
+            background: rgba(255, 255, 255, 0.95);
+            border: 0.5px solid var(--ios-separator);
+        }
+
+        /* Map Container */
+        .map-container {
+            height: 75vh; /* Increased from 65vh - maximized for mobile */
+            max-height: 700px; /* Increased from 600px for larger screens */
+            min-height: 350px; /* Increased minimum for better usability */
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            z-index: 1; /* Keep map below modals */
+            transition: height 0.3s ease;
+        }
+        
+        .map-container.collapsed {
+            height: 200px; /* Increased from 150px for better visibility */
+        }
+
+        .map-container.fullscreen {
+            height: calc(100vh - 140px); /* Full screen minus headers and tabs */
+            max-height: none;
+        }
+        
+        /* Ensure Leaflet controls stay within reasonable z-index */
+        .leaflet-control {
+            z-index: 10 !important;
+        }
+        
+        .leaflet-pane {
+            z-index: 1 !important;
+        }
+        
+        /* Collapsible Map Section */
+        .map-section-wrapper {
+            position: relative;
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        .map-drag-handle {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 44px;
+            background: var(--ios-secondary-background);
+            border-top: 0.5px solid var(--ios-separator);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            z-index: 400; /* Higher than Leaflet controls */
+            touch-action: none;
+        }
+        
+        .map-drag-handle:active {
+            cursor: grabbing;
+            background: var(--ios-gray-6);
+        }
+        
+        .drag-indicator {
+            width: 36px;
+            height: 5px;
+            background: var(--ios-gray-3);
+            border-radius: 2.5px;
+        }
+        
+        .map-list-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+            background: var(--ios-background);
+        }
+        
+        .map-list-container.expanded {
+            max-height: 25vh; /* Reduced to prevent tab bar overlap */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .map-hint {
+            position: absolute;
+            bottom: 54px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 13px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        
+        .map-hint.show {
+            opacity: 1;
+        }
+        
+        /* Clickable Estado Styling */
+        .clickable-estado {
+            cursor: pointer;
+            transition: background-color 0.1s ease;
+        }
+        
+        .clickable-estado:hover {
+            background-color: var(--ios-gray-6);
+        }
+        
+        .clickable-estado:active {
+            background-color: var(--ios-gray-5);
+            transform: scale(0.98);
+        }
+
+        /* Tab Views */
+        .tab-view {
             display: none;
         }
 
-        .tab-pane.active {
+        .tab-view.active {
             display: block;
         }
 
-        .data-table {
+        /* Tab Bar */
+        .tab-bar {
+            background: rgba(255, 255, 255, 0.94);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-top: 0.5px solid var(--ios-separator);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 49px;
+            display: flex;
+            /* Add safe area support */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+            padding: 0 2px;
+        }
+
+        .tab {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: opacity 0.1s ease;
+        }
+
+        .tab:active {
+            opacity: 0.7;
+        }
+
+        .tab-icon {
+            font-size: 20px;
+            margin-bottom: 1px;
+        }
+
+        .tab-label {
+            font-size: 10px;
+            color: var(--ios-gray);
+        }
+
+        .tab.active .tab-label {
+            color: var(--ios-blue);
+        }
+
+        .tab.active .tab-icon {
+            color: var(--ios-blue);
+        }
+
+        /* Content with tab bar spacing */
+        .content {
+            padding-bottom: 49px;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: flex-end;
+            z-index: 9999; /* Higher than any Leaflet element */
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--ios-secondary-background);
+            border-radius: 14px 14px 0 0;
             width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding-bottom: env(safe-area-inset-bottom);
+            animation: slideUp 0.3s ease-out;
         }
 
-        .data-table th,
-        .data-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #f0f0f0;
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
         }
 
-        .data-table th {
+        .modal-header {
+            padding: 16px;
+            border-bottom: 0.5px solid var(--ios-separator);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .modal-title {
+            font-size: 17px;
             font-weight: 600;
-            background: #f9f9f9;
-            color: #1d1d1f;
+            color: var(--ios-label);
         }
 
-        .performance-badge {
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
+        .modal-close {
+            color: var(--ios-blue);
+            font-size: 17px;
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .modal-content {
+            padding: 16px;
+        }
+
+        /* Filter Pills */
+        .filter-pills {
+            display: flex;
+            gap: 8px;
+            padding: 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .filter-pills::-webkit-scrollbar {
+            display: none;
+        }
+
+        .filter-pill {
+            background: var(--ios-gray-5);
+            border: none;
+            border-radius: 16px;
+            padding: 6px 16px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-label);
+            white-space: nowrap;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill.active {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        /* Alert Card */
+        .alert-card {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px 12px;
+            padding: 16px;
+            border-left: 4px solid var(--ios-red);
+        }
+
+        .alert-card.warning {
+            border-left-color: var(--ios-yellow);
+        }
+
+        .alert-card.info {
+            border-left-color: var(--ios-blue);
+        }
+
+        .alert-title {
+            font-size: 17px;
             font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 4px;
         }
 
-        .performance-excellent {
-            background: #d4edda;
-            color: #155724;
+        .alert-description {
+            font-size: 15px;
+            color: var(--ios-secondary-label);
         }
 
-        .performance-good {
-            background: #fff3cd;
-            color: #856404;
+        .alert-time {
+            font-size: 13px;
+            color: var(--ios-tertiary-label);
+            margin-top: 8px;
         }
 
-        .performance-critical {
-            background: #f8d7da;
-            color: #721c24;
-        }
-
-        #map {
-            height: 500px;
-            width: 100%;
-            border-radius: 12px;
-            margin-top: 15px;
-        }
-
+        /* Loading State */
         .loading {
             text-align: center;
             padding: 40px;
-            color: #86868b;
+            color: var(--ios-gray);
         }
 
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            padding: 15px;
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--ios-gray-4);
+            border-top-color: var(--ios-gray);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* HEATMAP STYLES - Exact from historico-v2.html with iOS adaptations */
+        .heatmap-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            white-space: nowrap;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+
+        /* Heatmap Controls */
+        .heatmap-controls {
+            margin-bottom: 1rem;
+        }
+
+        .heatmap-options {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 0.5px solid var(--ios-separator);
+        }
+
+        /* Toggle Switch */
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+            color: var(--ios-label);
+        }
+
+        .toggle-option input[type="checkbox"] {
+            display: none;
+        }
+
+        .toggle-slider {
+            position: relative;
+            width: 44px;
+            height: 26px;
+            background: var(--ios-gray-4);
+            border-radius: 13px;
+            transition: background-color 0.2s ease;
+        }
+
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+
+        .toggle-option input[type="checkbox"]:checked + .toggle-slider {
+            background: var(--ios-blue);
+        }
+
+        .toggle-option input[type="checkbox"]:checked + .toggle-slider::before {
+            transform: translateX(18px);
+        }
+
+        /* EPL CAS Row Styles */
+        .epl-cas-row {
+            background: linear-gradient(135deg, #FF6B35, #FF8C42) !important;
+            color: white !important;
+            font-weight: 600 !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 15 !important;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5) !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+
+        .epl-cas-row td {
+            color: white !important;
+            font-weight: 600 !important;
+        }
+
+        /* Trend Indicators */
+        .trend-indicator {
+            font-size: 0.625rem;
+            display: block;
+            margin-top: 0.125rem;
+        }
+
+        .diff-value {
+            font-size: 0.625rem;
+            display: block;
+            margin-top: 0.125rem;
+        }
+
+        .diff-positive {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .diff-negative {
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .heatmap-filters {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .heatmap-filter-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--ios-gray-4);
             border-radius: 8px;
-            margin: 15px 0;
+            background: var(--ios-secondary-background);
+            color: var(--ios-label);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: fit-content;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
 
+        .heatmap-filter-btn i {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .heatmap-filter-btn:active {
+            transform: scale(0.95);
+        }
+
+        .heatmap-filter-btn.active {
+            background: var(--ios-blue);
+            color: white;
+            border-color: var(--ios-blue);
+        }
+
+        .heatmap-container {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            overflow-x: auto;
+        }
+
+        .heatmap-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+            background: var(--ios-secondary-background);
+        }
+
+        .heatmap-table th {
+            background: var(--ios-gray-6);
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 0.75rem;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 0.5px solid var(--ios-separator);
+            color: var(--ios-label);
+        }
+
+        .heatmap-table th:first-child {
+            position: sticky;
+            left: 0;
+            background: var(--ios-gray-6);
+            z-index: 11;
+            text-align: left;
+            min-width: 120px;
+        }
+
+        .heatmap-table td {
+            padding: 0.5rem;
+            text-align: center;
+            border-bottom: 0.5px solid var(--ios-separator);
+            position: relative;
+            font-weight: 600;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            touch-action: manipulation;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .heatmap-table td:first-child {
+            position: sticky;
+            left: 0;
+            background: var(--ios-secondary-background);
+            font-weight: 600;
+            font-size: 0.75rem;
+            text-align: left;
+            border-right: 0.5px solid var(--ios-separator);
+            z-index: 9;
+            color: var(--ios-label);
+        }
+
+        .heatmap-table tbody tr:hover {
+            background: var(--ios-gray-6);
+            transform: translateX(2px);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .heatmap-table tbody tr:active {
+            background: var(--ios-gray-5);
+            transform: translateX(0) scale(0.995);
+        }
+
+        .heatmap-table td:active {
+            transform: scale(0.95);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Heat colors - EXACT from historico-v2.html */
+        .heat-excelente { 
+            background: linear-gradient(135deg, #00b894, #55efc4); 
+            color: white;
+        }
+
+        .heat-muy-bueno { 
+            background: linear-gradient(135deg, #00cec9, #74b9ff); 
+            color: white;
+        }
+
+        .heat-bueno { 
+            background: linear-gradient(135deg, #74b9ff, #a29bfe); 
+            color: white;
+        }
+
+        .heat-regular { 
+            background: linear-gradient(135deg, #fdcb6e, #f39c12); 
+            color: white;
+        }
+
+        .heat-critico { 
+            background: linear-gradient(135deg, #d63031, #e17055); 
+            color: white;
+        }
+
+        .heat-none {
+            background: var(--ios-gray-5);
+            color: var(--ios-gray);
+        }
+
+        /* Heatmap Colors */
+        .heat-excellent {
+            background-color: #1e7e34 !important;
+            color: white !important;
+        }
+        
+        .heat-very-good {
+            background-color: #28a745 !important;
+            color: white !important;
+        }
+        
+        .heat-good {
+            background-color: #7bc96f !important;
+            color: white !important;
+        }
+        
+        .heat-average {
+            background-color: #ffc107 !important;
+            color: #333 !important;
+        }
+        
+        .heat-below-average {
+            background-color: #fd7e14 !important;
+            color: white !important;
+        }
+        
+        .heat-poor {
+            background-color: #dc3545 !important;
+            color: white !important;
+        }
+        
+        .heat-critical {
+            background-color: #721c24 !important;
+            color: white !important;
+        }
+        
+        .heat-none {
+            background-color: #f8f9fa !important;
+            color: #6c757d !important;
+        }
+        
+        /* Heatmap table styles */
+        .heatmap-table th {
+            font-weight: 600;
+            font-size: 12px;
+        }
+        
+        .heatmap-table td {
+            transition: transform 0.2s ease;
+        }
+        
+        .heatmap-table td:hover {
+            transform: scale(1.05);
+            z-index: 100;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        /* Mobile optimizations */
         @media (max-width: 768px) {
-            .filter-row {
-                grid-template-columns: 1fr;
+            /* Heatmap mobile styles */
+            .heatmap-table {
+                font-size: 0.75rem;
             }
             
-            .kpi-grid {
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            .heatmap-table th,
+            .heatmap-table td {
+                padding: 0.4rem 0.25rem;
+            }
+
+            /* Map mobile optimization */
+            .map-container {
+                height: 80vh !important; /* Increased from 70vh - maximized for mobile */
+                min-height: 400px !important; /* Increased minimum height */
             }
             
-            .tab-buttons {
-                flex-wrap: wrap;
+            .map-container.fullscreen {
+                height: calc(100vh - 100px) !important; /* Reduced header space */
             }
             
-            .tab-button {
-                min-width: 50%;
+            .map-list-container.expanded {
+                max-height: 18vh !important; /* Further reduced to prevent tab overlap */
+            }
+            
+            .large-title-container {
+                position: relative; /* Ensure button positioning works */
+            }
+
+            .map-fullscreen-btn {
+                top: 4px;
+                right: 8px;
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: landscape) {
+            .map-container {
+                height: 85vh !important; /* Maximized for landscape mode */
+            }
+            
+            .map-list-container.expanded {
+                max-height: 15vh !important; /* Very compact for landscape to avoid tabs */
+            }
+        }
+
+        /* Tablet and larger screens */
+        @media (min-width: 769px) {
+            .map-container.fullscreen {
+                height: calc(100vh - 160px) !important;
+            }
+        }
+            
+            .heatmap-table td:first-child,
+            .heatmap-table th:first-child {
+                min-width: 80px;
+                font-size: 0.7rem;
+            }
+
+            .heatmap-filters {
+                gap: 0.25rem;
+            }
+
+            .heatmap-filter-btn {
+                padding: 0.4rem 0.75rem;
+                font-size: 0.7rem;
+            }
+
+            .legend-item {
+                font-size: 0.7rem;
+            }
+        }
+
+        /* Trend Chart */
+        .trend-chart {
+            height: 200px;
+            margin-bottom: 16px;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: var(--ios-gray-6);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--ios-label);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: var(--ios-secondary-label);
+            margin-top: 4px;
+        }
+
+        /* Horizontal Chart Styles */
+        .chart-toggle {
+            display: flex;
+            justify-content: center;
+            margin: 16px;
+        }
+
+        .toggle-button {
+            background: var(--ios-gray-5);
+            border: none;
+            border-radius: 16px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--ios-label);
+            cursor: pointer;
+            margin: 0 4px;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-button.active {
+            background: var(--ios-blue);
+            color: white;
+        }
+
+        .horizontal-chart-container {
+            background: var(--ios-secondary-background);
+            border-radius: 10px;
+            margin: 0 16px 16px;
+            padding: 16px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+        }
+
+        .horizontal-chart-title {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 16px;
+        }
+
+        .horizontal-bar-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background-color 0.1s ease;
+        }
+
+        .horizontal-bar-item:active {
+            background-color: var(--ios-gray-5);
+        }
+
+        .horizontal-bar-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .bar-rank {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+            margin-right: 12px;
+        }
+
+        .bar-rank.rank-1 { background: var(--ios-green); }
+        .bar-rank.rank-2 { background: var(--ios-blue); }
+        .bar-rank.rank-3 { background: var(--ios-orange); }
+        .bar-rank.rank-good { background: var(--ios-gray); }
+        .bar-rank.rank-warning { background: var(--ios-yellow); color: var(--ios-label); }
+        .bar-rank.rank-critical { background: var(--ios-red); }
+
+        .bar-content {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .bar-label {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-label);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .bar-container {
+            position: relative;
+            height: 8px;
+            background: var(--ios-gray-5);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+
+        .bar-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        .bar-fill.excellent { 
+            background: linear-gradient(90deg, var(--ios-green), #28a745);
+            box-shadow: 0 2px 4px rgba(52, 199, 89, 0.3);
+        }
+        .bar-fill.good { 
+            background: linear-gradient(90deg, var(--ios-blue), #0056b3);
+            box-shadow: 0 2px 4px rgba(0, 122, 255, 0.3);
+        }
+        .bar-fill.regular { 
+            background: linear-gradient(90deg, var(--ios-yellow), #e6b800);
+            box-shadow: 0 2px 4px rgba(255, 204, 0, 0.3);
+        }
+        .bar-fill.critical { 
+            background: linear-gradient(90deg, var(--ios-red), #d32f2f);
+            box-shadow: 0 2px 4px rgba(255, 59, 48, 0.3);
+        }
+
+        .bar-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .bar-subtitle {
+            font-size: 12px;
+            color: var(--ios-secondary-label);
+        }
+
+        .bar-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-left: 8px;
+        }
+
+        .view-mode-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 0 16px 8px;
+        }
+
+        .view-mode-toggle {
+            display: flex;
+            background: rgba(118, 118, 128, 0.12);
+            border-radius: 8px;
+            padding: 2px;
+        }
+
+        .view-mode-button {
+            background: transparent;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--ios-label);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .view-mode-button.active {
+            background: var(--ios-secondary-background);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 375px) {
+            .large-title {
+                font-size: 28px;
+            }
+            
+            .summary-value {
+                font-size: 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Header -->
-        <div class="header">
-            <h1>🍗 El Pollo Loco CAS</h1>
-            <p>Dashboard de Supervisiones Operativas - <span id="last-update">Cargando...</span></p>
+    <!-- Navigation Bar -->
+    <nav class="nav-bar">
+        <button class="nav-button" data-action="showFilters">Filtrar</button>
+        <div class="nav-title" id="nav-title">Dashboard CAS</div>
+        <button class="nav-button" data-action="refreshData">Actualizar</button>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="content">
+        <!-- Dashboard Tab -->
+        <div id="dashboard-view" class="tab-view active">
+            <!-- Large Title -->
+            <div class="large-title-container">
+                <h1 class="large-title">El Pollo Loco</h1>
+            </div>
+
+            <!-- Segmented Control -->
+            <div class="segmented-control">
+                <button class="segment active" data-view="general">General</button>
+                <button class="segment" data-view="grupos">Grupos</button>
+                <button class="segment" data-view="criticos">Críticos</button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="summary-container">
+                <div class="summary-card">
+                    <div class="summary-row">
+                        <div>
+                            <div class="summary-label">Performance General</div>
+                            <div class="summary-subtitle">Período: <span id="current-period">NL-T3 / FOR-S2</span></div>
+                        </div>
+                        <div class="summary-value" id="performance-general">--%</div>
+                    </div>
+                </div>
+                
+                <div class="summary-card">
+                    <div class="summary-row">
+                        <div>
+                            <div class="summary-label">Total Supervisiones</div>
+                        </div>
+                        <div class="summary-value" id="total-supervisiones">--</div>
+                    </div>
+                    <div class="summary-row">
+                        <div>
+                            <div class="summary-label">Grupos Operativos</div>
+                        </div>
+                        <div class="summary-value" id="total-grupos">--</div>
+                    </div>
+                    <div class="summary-row">
+                        <div>
+                            <div class="summary-label">Sucursales</div>
+                        </div>
+                        <div class="summary-value" id="total-sucursales">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View Mode Toggle -->
+            <div class="view-mode-container">
+                <div class="section-header" style="margin: 0;">VISTA DE DATOS</div>
+                <div class="view-mode-toggle">
+                    <button class="view-mode-button active" data-mode="list">Lista</button>
+                    <button class="view-mode-button" data-mode="chart">Gráficas</button>
+                </div>
+            </div>
+
+            <!-- General View -->
+            <div id="general-view">
+                <!-- Chart Section -->
+                <div class="chart-section">
+                    <h3 class="chart-title">Distribución de Performance</h3>
+                    <div class="chart-container">
+                        <canvas id="performanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Rankings -->
+                <div class="section">
+                    <div class="section-header">TOP PERFORMERS</div>
+                    <div class="list-container" id="top-performers">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando datos...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">NECESITAN ATENCIÓN</div>
+                    <div class="list-container" id="critical-performers">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando datos...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horizontal Charts View -->
+            <div id="charts-view" style="display: none;">
+                <!-- Charts view eliminates duplication - general-view already has Performance chart -->
+                <div class="section">
+                    <div class="section-header">VISTA DE GRÁFICAS</div>
+                    <div style="padding: 40px; text-align: center; color: var(--ios-gray); font-size: 0.9rem;">
+                        Las gráficas principales se muestran en la vista General.
+                        <br>Esta vista se mantiene para futura expansión.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Groups View -->
+            <div id="grupos-view" style="display: none;">
+                <!-- Lista de Grupos -->
+                <div class="view-content list-view">
+                    <div class="section">
+                        <div class="section-header">TODOS LOS GRUPOS</div>
+                        <div class="list-container" id="all-groups">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando datos...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Gráficas de Grupos -->
+                <div class="view-content chart-view" style="display: none;">
+                    <div class="horizontal-chart-container">
+                        <h3 class="horizontal-chart-title">Todos los Grupos (20)</h3>
+                        <div id="grupos-chart-completa">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando gráfica completa...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Critical View -->
+            <div id="criticos-view" style="display: none;">
+                <!-- Chart Section -->
+                <div class="chart-section">
+                    <h3 class="chart-title">Grupos Críticos Detalle</h3>
+                    <div class="chart-container">
+                        <canvas id="criticalChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">REQUIEREN INTERVENCIÓN INMEDIATA</div>
+                    <div class="list-container" id="critical-detail">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando datos...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- Filters -->
-        <div class="filters">
-            <h3>🔍 Filtros</h3>
-            <div class="filter-row">
-                <div class="filter-group">
-                    <label for="estado-filter">Estado</label>
-                    <select id="estado-filter">
-                        <option value="">Todos los estados</option>
-                    </select>
+        <!-- Mapa Tab -->
+        <div id="mapa-view" class="tab-view">
+            <div class="large-title-container">
+                <h1 class="large-title">Mapa de Sucursales</h1>
+                <button class="map-fullscreen-btn" id="map-fullscreen-btn" data-action="toggleMapFullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+            </div>
+
+            <div class="map-section-wrapper">
+                <div class="map-container" id="map"></div>
+                <div class="map-hint" id="map-hint">Desliza para ver estados</div>
+                <div class="map-drag-handle" id="map-drag-handle">
+                    <div class="drag-indicator"></div>
                 </div>
-                <div class="filter-group">
-                    <label for="grupo-filter">Grupo Operativo</label>
-                    <select id="grupo-filter">
+                <div class="map-list-container" id="map-list-container">
+                    <!-- States List Only -->
+                    <div class="section">
+                        <div class="section-header">SUCURSALES POR ESTADO</div>
+                        <div class="list-container" id="sucursales-por-estado">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando sucursales...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Histórico Tab -->
+        <div id="historico-view" class="tab-view">
+            <div class="large-title-container">
+                <h1 class="large-title">Histórico</h1>
+            </div>
+
+
+            <!-- Histórico Heatmap Section -->
+            <div class="section">
+                <div class="section-header">HISTÓRICO</div>
+                <div class="heatmap-container">
+                    <!-- Heatmap Controls -->
+                    <div class="heatmap-controls">
+                        <!-- Legend -->
+                        <div class="heatmap-legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #FF3030;"></div>
+                                <span>Crítico (< 70%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #FF9500;"></div>
+                                <span>Bajo (70-79%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #FFCC00;"></div>
+                                <span>Regular (80-89%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #34C759;"></div>
+                                <span>Bueno (90-94%)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: #007AFF;"></div>
+                                <span>Excelente (≥95%)</span>
+                            </div>
+                        </div>
+
+                        <!-- Heatmap Filters -->
+                        <div class="heatmap-filters">
+                            <button class="heatmap-filter-btn active" data-filter="all">Todos los Grupos</button>
+                            <button class="heatmap-filter-btn" data-filter="critical">Críticos <80%</button>
+                            <button class="heatmap-filter-btn" data-filter="improving">Mejorando</button>
+                            <button class="heatmap-filter-btn" data-filter="declining">Declinando</button>
+                        </div>
+
+                        <!-- Options -->
+                        <div class="heatmap-options">
+                            <label class="toggle-option">
+                                <input type="checkbox" id="showDifferences" checked>
+                                <span class="toggle-slider"></span>
+                                <span class="toggle-label">Mostrar diferencias</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Heatmap Grid -->
+                    <div class="heatmap-grid" id="heatmap-grid">
+                        <table class="heatmap-table">
+                            <thead>
+                                <tr id="heatmapHeader">
+                                    <th>Grupo Operativo</th>
+                                    <!-- Periods will be dynamically added -->
+                                </tr>
+                            </thead>
+                            <tbody id="heatmapBody">
+                                <tr>
+                                    <td colspan="100%" class="loading">
+                                        <div class="spinner"></div>
+                                        Cargando datos históricos...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas Tab -->
+        <div id="alertas-view" class="tab-view">
+            <div class="large-title-container">
+                <h1 class="large-title">Alertas</h1>
+            </div>
+
+            <div id="alertas-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Cargando alertas...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+        <div class="tab active" data-tab="dashboard">
+            <div class="tab-icon"><i class="fas fa-chart-bar"></i></div>
+            <div class="tab-label">Dashboard</div>
+        </div>
+        <div class="tab" data-tab="mapa">
+            <div class="tab-icon"><i class="fas fa-map-pin"></i></div>
+            <div class="tab-label">Mapa</div>
+        </div>
+        <div class="tab" data-tab="historico">
+            <div class="tab-icon"><i class="fas fa-chart-line"></i></div>
+            <div class="tab-label">Histórico</div>
+        </div>
+        <div class="tab" data-tab="alertas">
+            <div class="tab-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="tab-label">Alertas</div>
+        </div>
+    </div>
+
+    <!-- Filter Modal -->
+    <div class="modal-overlay" id="filterModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Filtros</h3>
+                <button class="modal-close" data-action="closeFilters">Listo</button>
+            </div>
+            <div class="modal-content">
+                <div class="section">
+                    <div class="section-header">PERÍODO CAS</div>
+                    <div class="filter-pills" id="periodo-filters">
+                        <button class="filter-pill active" data-value="all">Todos</button>
+                        <button class="filter-pill" data-value="nl_t3">NL-T3</button>
+                        <button class="filter-pill" data-value="for_s2">FOR-S2</button>
+                        <button class="filter-pill" data-value="nl_t2">NL-T2</button>
+                        <button class="filter-pill" data-value="for_s1">FOR-S1</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">PERFORMANCE</div>
+                    <div class="filter-pills" id="performance-filters">
+                        <button class="filter-pill active" data-value="all">Todos</button>
+                        <button class="filter-pill" data-value="excellent">≥90%</button>
+                        <button class="filter-pill" data-value="good">80-89%</button>
+                        <button class="filter-pill" data-value="regular">70-79%</button>
+                        <button class="filter-pill" data-value="critical"><70%</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">ESTADO</div>
+                    <div class="filter-pills" id="estado-filters">
+                        <button class="filter-pill active" data-value="all">Todos</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-header">GRUPO OPERATIVO</div>
+                    <select id="grupo-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--ios-gray-4); font-size: 16px;">
                         <option value="">Todos los grupos</option>
                     </select>
                 </div>
-                <div class="filter-group">
-                    <label for="performance-filter">Performance</label>
-                    <select id="performance-filter">
-                        <option value="">Todos</option>
-                        <option value="critical">Críticos (<70%)</option>
-                        <option value="good">Buenos (70-89%)</option>
-                        <option value="excellent">Excelentes (≥90%)</option>
-                    </select>
-                </div>
             </div>
         </div>
+    </div>
 
-        <!-- KPIs -->
-        <div class="kpi-grid" id="kpi-grid">
-            <div class="loading">Cargando KPIs...</div>
-        </div>
-
-        <!-- Tabs -->
-        <div class="tabs">
-            <div class="tab-buttons">
-                <button class="tab-button active" onclick="showTab('grupos')">👥 Grupos</button>
-                <button class="tab-button" onclick="showTab('mapa')">🗺️ Mapa</button>
-                <button class="tab-button" onclick="showTab('historico')">📈 Histórico</button>
-                <button class="tab-button" onclick="showTab('areas')">📋 Áreas</button>
+    <!-- Group Detail Modal -->
+    <div class="modal-overlay" id="groupDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Detalle del Grupo</h3>
+                <button class="modal-close" data-action="closeGroupDetail">Cerrar</button>
             </div>
-            
-            <div class="tab-content">
-                <!-- Grupos Tab -->
-                <div id="grupos-tab" class="tab-pane active">
-                    <h3>Grupos Operativos</h3>
-                    <div id="grupos-content">
-                        <div class="loading">Cargando grupos operativos...</div>
+            <div class="modal-content">
+                <div class="group-detail">
+                    <div class="detail-header">
+                        <div class="detail-title" id="detail-group-name"></div>
+                        <div class="detail-performance" id="detail-performance"></div>
+                        <div class="detail-meta" id="detail-meta"></div>
                     </div>
-                </div>
-
-                <!-- Mapa Tab -->
-                <div id="mapa-tab" class="tab-pane">
-                    <h3>Mapa de Sucursales</h3>
-                    <div id="mapa-content">
-                        <div id="map"></div>
-                    </div>
-                </div>
-
-                <!-- Histórico Tab -->
-                <div id="historico-tab" class="tab-pane">
-                    <h3>Análisis Histórico</h3>
-                    <div id="historico-content">
-                        <canvas id="historico-chart"></canvas>
-                    </div>
-                </div>
-
-                <!-- Areas Tab -->
-                <div id="areas-tab" class="tab-pane">
-                    <h3>Áreas de Evaluación</h3>
-                    <div id="areas-content">
-                        <div class="loading">Cargando áreas de evaluación...</div>
+                    <div class="section">
+                        <div class="section-header">SUCURSALES DEL GRUPO</div>
+                        <div class="list-container" id="group-sucursales">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Cargando sucursales...
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -329,419 +1668,2005 @@
     </div>
 
     <script>
-        // Global variables
-        let allData = {
-            kpis: {},
-            grupos: [],
-            mapa: [],
-            historico: [],
-            areas: [],
-            filtros: {}
+        // Global data
+        let allGroups = [];
+        let allGroupsComplete = []; // Complete list of groups without filters
+        let allSucursales = [];
+        let mapData = [];
+        let currentView = 'general';
+        let currentTab = 'dashboard';
+        let currentViewMode = 'list'; // 'list' or 'chart'
+        let currentFilters = {
+            periodo: 'all',
+            performance: 'all',
+            estado: 'all',
+            grupo: ''
         };
-        
+        let kpiData = {};
         let map = null;
-        let historicoChart = null;
+        let mapExpanded = false;
         
-        // API Base URL
-        const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:10000/api' : '/api';
-        
-        // Initialize dashboard
-        async function init() {
-            console.log('🚀 Iniciando dashboard...');
+        // Charts
+        let performanceChart = null;
+        let criticalChart = null;
+
+        // API Base URL - SOLO ACTUALIZADO PUERTO
+        const API_BASE = window.location.hostname === 'localhost' 
+            ? 'http://localhost:10000/api' 
+            : '/api';
+
+        // HEATMAP FUNCTIONS - Exact from historico-v2.html
+        let heatmapPeriodsData = null;
+        let heatmapCurrentFilter = 'all';
+
+        // Load heatmap data - SAME endpoint as historico-v2
+        async function loadHeatmapData() {
             try {
-                await loadFilters();
-                await loadKPIs();
-                await loadGrupos();
-                await loadMapa();
-                await loadHistorico();
-                await loadAreas();
-                console.log('✅ Dashboard inicializado correctamente');
+                console.log('🔥 Loading heatmap data...');
+                
+                // Apply current filters from dashboard
+                let endpoint = '/api/heatmap-periods/all';
+                if (currentFilters.estado && currentFilters.estado !== 'all') {
+                    endpoint += `?estado=${encodeURIComponent(currentFilters.estado)}`;
+                }
+                
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`Heatmap API error: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                if (data.success) {
+                    heatmapPeriodsData = data.data;
+                    console.log('✅ Heatmap data loaded:', heatmapPeriodsData.groups.length, 'groups');
+                    renderHeatmap();
+                    setupHeatmapFilters();
+                } else {
+                    throw new Error(data.error || 'Failed to load heatmap data');
+                }
             } catch (error) {
-                console.error('❌ Error inicializando dashboard:', error);
-                showError('Error inicializando dashboard: ' + error.message);
+                console.error('❌ Error loading heatmap:', error);
+                showHeatmapError(error.message);
             }
         }
 
-        // Load filters data
-        async function loadFilters() {
-            try {
-                const response = await fetch(`${API_BASE}/filtros`);
-                if (!response.ok) throw new Error('Error cargando filtros');
+        // Render heatmap table - COMPLETE logic from historico-v2 with EPL CAS and differences
+        function renderHeatmap(filter = 'all') {
+            if (!heatmapPeriodsData || !heatmapPeriodsData.groups) {
+                showHeatmapError('No hay datos disponibles');
+                return;
+            }
+
+            const heatmapBody = document.getElementById('heatmapBody');
+            const heatmapHeader = document.getElementById('heatmapHeader');
+            if (!heatmapBody || !heatmapHeader) return;
+
+            console.log('🔥 Rendering heatmap with filter:', filter);
+
+            // Apply filters - EXACT from historico-v2
+            let filteredGroups = heatmapPeriodsData.groups.slice();
+            
+            switch(filter) {
+                case 'critical':
+                    filteredGroups = filteredGroups.filter(group => group.promedio_general < 80);
+                    break;
+                case 'improving':
+                    filteredGroups = filteredGroups.filter(group => {
+                        const periods = heatmapPeriodsData.periods;
+                        if (periods.length < 2) return false;
+                        const periodValues = periods.map(p => group.periodos[p]?.promedio || 0).filter(v => v > 0);
+                        if (periodValues.length < 2) return false;
+                        return periodValues[periodValues.length - 1] > periodValues[periodValues.length - 2];
+                    });
+                    break;
+                case 'declining':
+                    filteredGroups = filteredGroups.filter(group => {
+                        const periods = heatmapPeriodsData.periods;
+                        if (periods.length < 2) return false;
+                        const periodValues = periods.map(p => group.periodos[p]?.promedio || 0).filter(v => v > 0);
+                        if (periodValues.length < 2) return false;
+                        return periodValues[periodValues.length - 1] < periodValues[periodValues.length - 2];
+                    });
+                    break;
+                default: // 'all'
+                    break;
+            }
+
+            const periods = heatmapPeriodsData.periods || [];
+            const expectedColumns = periods.length + 2; // periods + grupo + promedio
+
+            // Update header with periods
+            heatmapHeader.innerHTML = '<th>Grupo Operativo</th>';
+            periods.forEach(period => {
+                const th = document.createElement('th');
+                th.textContent = period;
+                heatmapHeader.appendChild(th);
+            });
+            const avgTh = document.createElement('th');
+            avgTh.textContent = 'Prom';
+            heatmapHeader.appendChild(avgTh);
+
+            // Clear table body
+            heatmapBody.innerHTML = '';
+
+            // Calculate EPL CAS averages for each period
+            const eplAverages = {};
+            let eplOverallSum = 0;
+            let eplOverallCount = 0;
+
+            periods.forEach(periodo => {
+                let periodSum = 0;
+                let periodCount = 0;
                 
-                const data = await response.json();
-                allData.filtros = data;
-                
-                // Populate estado filter
-                const estadoSelect = document.getElementById('estado-filter');
-                data.estados.forEach(estado => {
-                    const option = document.createElement('option');
-                    option.value = estado;
-                    option.textContent = estado;
-                    estadoSelect.appendChild(option);
+                heatmapPeriodsData.groups.forEach(group => {
+                    const periodData = group.periodos[periodo];
+                    if (periodData && periodData.promedio > 0) {
+                        periodSum += periodData.promedio;
+                        periodCount++;
+                    }
                 });
                 
-                // Populate grupo filter  
-                const grupoSelect = document.getElementById('grupo-filter');
-                data.grupos.forEach(grupo => {
-                    const option = document.createElement('option');
-                    option.value = grupo;
-                    option.textContent = grupo;
-                    grupoSelect.appendChild(option);
+                eplAverages[periodo] = periodCount > 0 ? periodSum / periodCount : null;
+                if (eplAverages[periodo] !== null) {
+                    eplOverallSum += eplAverages[periodo];
+                    eplOverallCount++;
+                }
+            });
+
+            const eplOverallAverage = eplOverallCount > 0 ? eplOverallSum / eplOverallCount : 0;
+
+            // Add EPL CAS row (fixed at top)
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-cas-row';
+
+            // EPL CAS label
+            const eplLabelCell = document.createElement('td');
+            eplLabelCell.innerHTML = `<div style="color: black; font-weight: bold;">PROMEDIO EPL CAS</div>`;
+            eplRow.appendChild(eplLabelCell);
+
+            // EPL period values
+            let lastValidEpl = null;
+            const showDifferences = document.getElementById('showDifferences')?.checked ?? true;
+            
+            periods.forEach((periodo, index) => {
+                const cell = document.createElement('td');
+                cell.style.textAlign = 'center';
+                
+                if (eplAverages[periodo] !== null) {
+                    const promedio = parseFloat(eplAverages[periodo]) || 0;
+                    let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
+                    
+                    // Add difference if enabled and there's a previous value
+                    if (showDifferences && lastValidEpl !== null) {
+                        const diff = parseFloat(promedio - lastValidEpl) || 0;
+                        const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                        const diffSign = diff > 0 ? '+' : '';
+                        const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                        cellContent += `<div class="${diffClass}" style="font-size: 0.7rem; color: rgba(255,255,255,0.9);">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                    }
+                    
+                    cell.innerHTML = cellContent;
+                    cell.title = `EPL CAS - ${periodo}: ${promedio.toFixed(2)}%`;
+                    lastValidEpl = promedio;
+                } else {
+                    cell.innerHTML = '<div>-</div>';
+                    cell.title = `EPL CAS - ${periodo}: Sin datos`;
+                }
+                
+                eplRow.appendChild(cell);
+            });
+
+            // EPL overall average (no need for extra columns)
+            const eplAvgCell = document.createElement('td');
+            eplAvgCell.style.textAlign = 'center';
+            const eplAvg = parseFloat(eplOverallAverage) || 0;
+            eplAvgCell.textContent = `${eplAvg.toFixed(1)}%`;
+            eplAvgCell.title = `EPL CAS Promedio General: ${eplAvg.toFixed(2)}%`;
+            eplRow.appendChild(eplAvgCell);
+
+            // Add EPL row first
+            heatmapBody.appendChild(eplRow);
+
+            // Sort groups by average performance (descending) - EXACT from historico-v2
+            const sortedGroups = filteredGroups
+                .sort((a, b) => b.promedio_general - a.promedio_general);
+
+            // Populate table with groups
+            sortedGroups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const nameCell = document.createElement('td');
+                nameCell.textContent = group.grupo;
+                nameCell.style.fontWeight = '600';
+                nameCell.style.position = 'sticky';
+                nameCell.style.left = '0';
+                nameCell.style.background = 'var(--ios-secondary-background)';
+                nameCell.style.zIndex = '5';
+                row.appendChild(nameCell);
+
+                // Period cells
+                let lastValidValue = null;
+                
+                periods.forEach((periodo, index) => {
+                    const cell = document.createElement('td');
+                    cell.style.textAlign = 'center';
+                    cell.style.position = 'relative';
+                    const periodData = group.periodos[periodo];
+                    
+                    if (periodData && periodData.promedio !== null && periodData.promedio > 0) {
+                        const performance = parseFloat(periodData.promedio) || 0;
+                        let cellContent = `<div style="font-weight: 600;">${performance.toFixed(1)}%</div>`;
+                        
+                        // Add difference if enabled and there's a previous value
+                        if (showDifferences && lastValidValue !== null) {
+                            const diff = parseFloat(performance - lastValidValue) || 0;
+                            const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
+                            const diffSign = diff > 0 ? '+' : '';
+                            const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                            cellContent += `<div class="${diffClass}" style="font-size: 0.7rem;">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                        } else if (!showDifferences) {
+                            // Show evaluations count when not showing differences
+                            cellContent += `<div style="font-size: 0.7rem; opacity: 0.8;">${periodData.evaluaciones} eval.</div>`;
+                        }
+                        
+                        cell.innerHTML = cellContent;
+                        cell.className = getHeatClass(performance);
+                        cell.title = `${group.grupo} - ${periodo}: ${performance.toFixed(2)}% (${periodData.evaluaciones} evaluaciones)`;
+                        lastValidValue = performance;
+                    } else {
+                        cell.innerHTML = '<div>-</div>';
+                        cell.className = 'heat-none';
+                        cell.title = `${group.grupo} - ${periodo}: Sin datos`;
+                    }
+                    
+                    row.appendChild(cell);
                 });
-                
-                // Add event listeners
-                estadoSelect.addEventListener('change', applyFilters);
-                grupoSelect.addEventListener('change', applyFilters);
-                document.getElementById('performance-filter').addEventListener('change', applyFilters);
-                
-                console.log('✅ Filtros cargados:', data.grupos.length, 'grupos,', data.estados.length, 'estados');
-            } catch (error) {
-                console.error('❌ Error cargando filtros:', error);
-                throw error;
+
+                // Average cell
+                const avgCell = document.createElement('td');
+                avgCell.style.textAlign = 'center';
+                const promedio = parseFloat(group.promedio_general) || 0;
+                avgCell.className = getHeatClass(promedio);
+                avgCell.style.fontWeight = '600';
+                avgCell.textContent = `${promedio.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${promedio.toFixed(2)}%`;
+                row.appendChild(avgCell);
+
+                heatmapBody.appendChild(row);
+            });
+
+            console.log('✅ Heatmap rendered with', sortedGroups.length, 'groups and EPL CAS row');
+        }
+
+        // Get heat class - EXACT from historico-v2
+        function getHeatClass(performance) {
+            if (performance >= 95) return 'heat-excelente';
+            if (performance >= 91) return 'heat-muy-bueno';
+            if (performance >= 87) return 'heat-bueno';
+            if (performance >= 82) return 'heat-regular';
+            return 'heat-critico';
+        }
+
+        // Map fullscreen toggle
+        function toggleMapFullscreen() {
+            const mapContainer = document.getElementById('map');
+            const fullscreenBtn = document.getElementById('map-fullscreen-btn');
+            const mapListContainer = document.getElementById('map-list-container');
+            
+            if (mapContainer.classList.contains('fullscreen')) {
+                // Exit fullscreen
+                mapContainer.classList.remove('fullscreen');
+                fullscreenBtn.innerHTML = '<i class="fas fa-expand"></i>';
+                mapListContainer.style.display = 'block';
+                console.log('🗺️ Exiting map fullscreen mode');
+            } else {
+                // Enter fullscreen
+                mapContainer.classList.add('fullscreen');
+                fullscreenBtn.innerHTML = '<i class="fas fa-compress"></i>';
+                mapListContainer.style.display = 'none';
+                console.log('🗺️ Entering map fullscreen mode');
+            }
+            
+            // Trigger map resize to adjust to new container size
+            if (typeof map !== 'undefined' && map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 300); // Wait for transition to complete
             }
         }
 
-        // Load KPIs
-        async function loadKPIs() {
-            try {
-                const response = await fetch(`${API_BASE}/kpis`);
-                if (!response.ok) throw new Error('Error cargando KPIs');
-                
-                const data = await response.json();
-                allData.kpis = data;
-                
-                // Render KPIs
-                const kpiGrid = document.getElementById('kpi-grid');
-                kpiGrid.innerHTML = `
-                    <div class="kpi-card">
-                        <div class="kpi-value">${data.total_supervisiones}</div>
-                        <div class="kpi-label">Total Supervisiones</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${data.promedio_general}%</div>
-                        <div class="kpi-label">Promedio General</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${data.sucursales_evaluadas}</div>
-                        <div class="kpi-label">Sucursales Evaluadas</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${data.total_grupos}</div>
-                        <div class="kpi-label">Grupos Operativos</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-value">${data.supervisiones_criticas}</div>
-                        <div class="kpi-label">Supervisiones Críticas</div>
-                    </div>
+        // Update map statistics (removed - no longer needed)
+        function updateMapStats() {
+            // Stats section removed to maximize map space
+            // Only "SUCURSALES POR ESTADO" list remains
+            console.log('📊 Map stats section removed for better space utilization');
+        }
+
+        // Setup heatmap filters - EXACT from historico-v2
+        function setupHeatmapFilters() {
+            document.querySelectorAll('.heatmap-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const filter = btn.dataset.filter;
+                    heatmapCurrentFilter = filter;
+                    renderHeatmap(filter);
+                });
+            });
+
+            // Setup differences toggle
+            const showDifferencesToggle = document.getElementById('showDifferences');
+            if (showDifferencesToggle) {
+                showDifferencesToggle.addEventListener('change', () => {
+                    console.log('🔄 Toggle differences:', showDifferencesToggle.checked);
+                    renderHeatmap(heatmapCurrentFilter || 'all');
+                });
+            }
+        }
+
+        // Show heatmap error
+        function showHeatmapError(message) {
+            const heatmapBody = document.getElementById('heatmapBody');
+            if (heatmapBody) {
+                heatmapBody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: var(--ios-red);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 1.5rem; margin-bottom: 1rem;"></i>
+                            <br>${message}
+                        </td>
+                    </tr>
                 `;
-                
-                // Update last update time
-                document.getElementById('last-update').textContent = 
-                    'Última actualización: ' + new Date(data.ultima_evaluacion).toLocaleDateString();
-                
-                console.log('✅ KPIs cargados:', data.total_supervisiones, 'supervisiones');
-            } catch (error) {
-                console.error('❌ Error cargando KPIs:', error);
-                throw error;
             }
         }
 
-        // Load grupos
-        async function loadGrupos() {
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllGroupsOnce(); // Load complete groups list first
+            loadData();
+            loadEstados();
+            initEventListeners();
+            initCSPSafeEventListeners();
+            setupHeatmapFilters(); // Setup historic tab filters
+        });
+
+        // Add CSP-safe event listeners
+        function initCSPSafeEventListeners() {
+            // Navigation buttons and modal actions
+            document.querySelectorAll('[data-action]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const action = this.dataset.action;
+                    if (action === 'showFilters') showFilters();
+                    else if (action === 'refreshData') refreshData();
+                    else if (action === 'toggleMapFullscreen') toggleMapFullscreen();
+                    else if (action === 'closeFilters') closeFilters();
+                    else if (action === 'closeGroupDetail') closeGroupDetail();
+                });
+            });
+
+            // View switches
+            document.querySelectorAll('[data-view]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    switchView(this.dataset.view);
+                });
+            });
+
+            // View mode toggles
+            document.querySelectorAll('[data-mode]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    switchViewMode(this.dataset.mode);
+                });
+            });
+
+            // Tab switches
+            document.querySelectorAll('[data-tab]').forEach(tab => {
+                tab.addEventListener('click', function() {
+                    switchTab(this.dataset.tab);
+                });
+            });
+            
+            // Group detail clicks - Need to re-add after UI updates
+            addGroupDetailListeners();
+        }
+
+        // Add group detail event listeners (needs to be called after UI updates)
+        function addGroupDetailListeners() {
+            document.querySelectorAll('[data-group-detail]').forEach(item => {
+                item.addEventListener('click', function() {
+                    showGroupDetail(this.dataset.groupDetail);
+                });
+            });
+            
+            // Add zoom to estado listeners
+            document.querySelectorAll('[data-zoom-estado]').forEach(item => {
+                item.addEventListener('click', function() {
+                    zoomToEstado(this.dataset.zoomEstado);
+                });
+            });
+        }
+
+        // Load all groups once without filters
+        async function loadAllGroupsOnce() {
             try {
                 const response = await fetch(`${API_BASE}/grupos`);
-                if (!response.ok) throw new Error('Error cargando grupos');
+                const groupsData = await response.json();
                 
-                const data = await response.json();
-                allData.grupos = data;
-                renderGrupos(data);
-                console.log('✅ Grupos cargados:', data.length, 'grupos');
+                if (groupsData && groupsData.length > 0) {
+                    allGroupsComplete = groupsData.map((group, index) => ({
+                        rank: index + 1,
+                        name: group.grupo || group.grupo_operativo || 'Sin nombre',
+                        performance: parseFloat(group.promedio || 0),
+                        sucursales: parseInt(group.sucursales || 0),
+                        supervisiones: parseInt(group.supervisiones || 0)
+                    }));
+                }
             } catch (error) {
-                console.error('❌ Error cargando grupos:', error);
-                throw error;
+                console.error('Error loading all groups:', error);
+                allGroupsComplete = [];
             }
         }
 
-        // Render grupos
-        function renderGrupos(grupos) {
-            const content = document.getElementById('grupos-content');
-            if (!grupos || grupos.length === 0) {
-                content.innerHTML = '<div class="error">No hay datos de grupos disponibles</div>';
-                return;
+        // Load data from API
+        async function loadData() {
+            try {
+                showLoading();
+                
+                // Clear previous data to avoid showing stale information
+                allGroups = [];
+                updateUI(); // Show empty state while loading
+                
+                // Load KPIs
+                const kpiResponse = await fetch(`${API_BASE}/kpis${buildQueryString()}`);
+                kpiData = await kpiResponse.json();
+                updateKPIs();
+
+                // Load Groups
+                const groupsResponse = await fetch(`${API_BASE}/grupos${buildQueryString()}`);
+                const groupsData = await groupsResponse.json();
+                
+                // Check if we have data
+                if (groupsData && groupsData.length > 0) {
+                    // Process groups data
+                    allGroups = groupsData.map((group, index) => ({
+                        rank: index + 1,
+                        name: group.grupo || group.grupo_operativo || 'Sin nombre',
+                        performance: parseFloat(group.promedio || 0),
+                        sucursales: parseInt(group.sucursales || 0),
+                        supervisiones: parseInt(group.supervisiones || 0),
+                        trend: parseFloat(group.promedio || 0) - (kpiData.promedio_general || 87.92)
+                    }));
+                } else {
+                    // No data found with current filters
+                    allGroups = [];
+                    showNoDataMessage();
+                }
+
+                // Populate grupo select
+                populateGroupSelect();
+                
+                updateUI();
+                initCharts();
+                
+                hideLoading();
+            } catch (error) {
+                console.error('Error loading data:', error);
+                showError('Error al cargar los datos');
+                hideLoading();
+            }
+        }
+
+        async function loadEstados() {
+            try {
+                const response = await fetch(`${API_BASE}/estados`);
+                const estados = await response.json();
+                
+                const estadoFilters = document.getElementById('estado-filters');
+                estados.forEach(estado => {
+                    const button = document.createElement('button');
+                    button.className = 'filter-pill';
+                    button.dataset.value = estado.estado;
+                    button.textContent = estado.estado;
+                    estadoFilters.appendChild(button);
+                });
+            } catch (error) {
+                console.error('Error loading estados:', error);
+            }
+        }
+
+        async function loadMapData() {
+            try {
+                // Clear previous map data
+                mapData = [];
+                
+                const response = await fetch(`${API_BASE}/mapa${buildQueryString()}`);
+                const data = await response.json();
+                
+                // Validate response
+                if (data && Array.isArray(data) && data.length > 0) {
+                    mapData = data;
+                } else {
+                    // Fallback: try to use sucursales-ranking data with mock coordinates
+                    console.log('Map data empty, using sucursales data with mock coordinates');
+                    await loadMapDataFallback();
+                    return;
+                }
+                
+                initMap();
+                updateMapStats();
+            } catch (error) {
+                console.error('Error loading map data:', error);
+                // Try fallback
+                await loadMapDataFallback();
+            }
+        }
+        
+        async function loadMapDataFallback() {
+            try {
+                console.log('🔄 Map fallback: using /api/mapa endpoint');
+                const response = await fetch(`${API_BASE}/mapa${buildQueryString()}`);
+                const sucursales = await response.json();
+                
+                if (sucursales && sucursales.length > 0) {
+                    // /api/mapa already has real coordinates as lat/lng
+                    mapData = sucursales;
+                } else {
+                    mapData = [];
+                }
+                
+                initMap();
+                updateMapStats();
+            } catch (error) {
+                console.error('Error loading fallback map data:', error);
+                mapData = [];
+                updateContainer('sucursales-por-estado', 
+                    '<div style="padding: 40px; text-align: center; color: var(--ios-red);">Error al cargar datos del mapa</div>'
+                );
+            }
+        }
+
+        function buildQueryString() {
+            const params = new URLSearchParams();
+            
+            if (currentFilters.periodo && currentFilters.periodo !== 'all') {
+                params.append('periodoCas', currentFilters.periodo);
             }
             
-            const table = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Grupo</th>
-                            <th>Sucursales</th>
-                            <th>Supervisiones</th>
-                            <th>Promedio</th>
-                            <th>Estado</th>
-                            <th>Última Evaluación</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${grupos.map(grupo => `
-                            <tr>
-                                <td><strong>${grupo.grupo}</strong></td>
-                                <td>${grupo.sucursales}</td>
-                                <td>${grupo.supervisiones}</td>
-                                <td>
-                                    <span class="performance-badge ${getPerformanceClass(grupo.promedio)}">
-                                        ${grupo.promedio}%
-                                    </span>
-                                </td>
-                                <td>${grupo.estado}</td>
-                                <td>${new Date(grupo.ultima_evaluacion).toLocaleDateString()}</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            content.innerHTML = table;
-        }
-
-        // Load mapa
-        async function loadMapa() {
-            try {
-                const response = await fetch(`${API_BASE}/mapa`);
-                if (!response.ok) throw new Error('Error cargando datos del mapa');
-                
-                const data = await response.json();
-                allData.mapa = data;
-                console.log('✅ Datos del mapa cargados:', data.length, 'sucursales');
-            } catch (error) {
-                console.error('❌ Error cargando mapa:', error);
-                throw error;
+            if (currentFilters.grupo) {
+                params.append('grupo', currentFilters.grupo);
             }
-        }
 
-        // Load historico
-        async function loadHistorico() {
-            try {
-                const response = await fetch(`${API_BASE}/historico`);
-                if (!response.ok) throw new Error('Error cargando datos históricos');
-                
-                const data = await response.json();
-                allData.historico = data;
-                console.log('✅ Datos históricos cargados:', data.length, 'data points');
-            } catch (error) {
-                console.error('❌ Error cargando histórico:', error);
-                throw error;
-            }
-        }
-
-        // Load areas
-        async function loadAreas() {
-            try {
-                const response = await fetch(`${API_BASE}/areas`);
-                if (!response.ok) throw new Error('Error cargando áreas');
-                
-                const data = await response.json();
-                allData.areas = data.areas || [];
-                renderAreas(allData.areas);
-                console.log('✅ Áreas cargadas:', allData.areas.length, 'áreas');
-            } catch (error) {
-                console.error('❌ Error cargando áreas:', error);
-                throw error;
-            }
-        }
-
-        // Render areas
-        function renderAreas(areas) {
-            const content = document.getElementById('areas-content');
-            if (!areas || areas.length === 0) {
-                content.innerHTML = '<div class="error">No hay datos de áreas disponibles</div>';
-                return;
+            if (currentFilters.estado && currentFilters.estado !== 'all') {
+                params.append('estado', currentFilters.estado);
             }
             
-            const table = `
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Área de Evaluación</th>
-                            <th>Supervisiones</th>
-                            <th>Sucursales</th>
-                            <th>Grupos</th>
-                            <th>Promedio</th>
-                            <th>Rango</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${areas.map(area => `
-                            <tr>
-                                <td><strong>${area.area_evaluacion}</strong></td>
-                                <td>${area.supervisiones_reales}</td>
-                                <td>${area.sucursales_evaluadas}</td>
-                                <td>${area.grupos_operativos}</td>
-                                <td>
-                                    <span class="performance-badge ${getPerformanceClass(area.promedio_area)}">
-                                        ${area.promedio_area}%
-                                    </span>
-                                </td>
-                                <td>${area.minimo_porcentaje}% - ${area.maximo_porcentaje}%</td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            `;
-            content.innerHTML = table;
+            const queryString = params.toString();
+            return queryString ? `?${queryString}` : '';
         }
 
-        // Show tab
-        function showTab(tabName) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-pane').forEach(pane => {
-                pane.classList.remove('active');
+        function updateKPIs() {
+            document.getElementById('performance-general').textContent = 
+                kpiData.promedio_general ? `${parseFloat(kpiData.promedio_general).toFixed(2)}%` : '--%';
+            document.getElementById('total-supervisiones').textContent = 
+                kpiData.total_supervisiones || '--';
+            document.getElementById('total-grupos').textContent = 
+                kpiData.total_grupos || '--';
+            document.getElementById('total-sucursales').textContent = 
+                kpiData.total_sucursales || '--';
+        }
+
+        function populateGroupSelect() {
+            const select = document.getElementById('grupo-select');
+            const currentValue = select.value; // Save current selection
+            
+            select.innerHTML = '<option value="">Todos los grupos</option>';
+            
+            // Use complete list instead of filtered list
+            allGroupsComplete.forEach(group => {
+                const option = document.createElement('option');
+                option.value = group.name;
+                option.textContent = `${group.name} (${group.performance.toFixed(2)}%)`;
+                select.appendChild(option);
             });
             
-            // Remove active class from all buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                button.classList.remove('active');
-            });
+            // Restore selection if it still exists
+            if (currentValue) {
+                select.value = currentValue;
+            }
+        }
+
+        function updateUI() {
+            // Apply performance filter
+            let filteredGroups = filterGroups();
+
+            // Update top performers
+            const topPerformers = filteredGroups.slice(0, 5);
+            updateContainer('top-performers', topPerformers.map(group => createListItem(group)).join(''));
+
+            // Update critical performers
+            const criticalPerformers = filteredGroups.filter(g => g.performance < 80);
+            updateContainer('critical-performers', 
+                criticalPerformers.length > 0 
+                    ? criticalPerformers.map(group => createListItem(group)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay grupos críticos</div>'
+            );
+
+            // Update all groups
+            updateContainer('all-groups', filteredGroups.map(group => createListItem(group)).join(''));
+
+            // Update critical detail
+            updateContainer('critical-detail', 
+                criticalPerformers.length > 0 
+                    ? criticalPerformers.map(group => createListItem(group, true)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay grupos críticos</div>'
+            );
+
+            // Update charts
+            updateCharts(filteredGroups);
             
-            // Show selected tab
-            document.getElementById(tabName + '-tab').classList.add('active');
+            // Update horizontal charts if in chart view
+            if (currentViewMode === 'chart') {
+                updateHorizontalCharts(filteredGroups);
+            }
+            
+            // Re-add event listeners for group detail clicks after UI update
+            addGroupDetailListeners();
+        }
+
+        function filterGroups() {
+            let filtered = allGroups;
+            
+            if (currentFilters.performance !== 'all') {
+                filtered = filtered.filter(g => {
+                    switch(currentFilters.performance) {
+                        case 'excellent': return g.performance >= 90;
+                        case 'good': return g.performance >= 80 && g.performance < 90;
+                        case 'regular': return g.performance >= 70 && g.performance < 80;
+                        case 'critical': return g.performance < 70;
+                    }
+                });
+            }
+
+            return filtered;
+        }
+
+        function updateContainer(id, content) {
+            const container = document.getElementById(id);
+            if (container) {
+                container.innerHTML = content;
+            }
+        }
+
+        function createListItem(group, detailed = false) {
+            const rankClass = group.rank <= 3 ? `rank-${group.rank}` : 
+                             group.performance >= 90 ? 'rank-good' : 
+                             group.performance >= 70 ? 'rank-warning' : 'rank-critical';
+            
+            const trendClass = group.trend >= 0 ? 'trend-up' : 'trend-down';
+            const trendSymbol = group.trend >= 0 ? '↑' : '↓';
+
+            return `
+                <div class="list-item" data-group-detail="${group.name}">
+                    <div class="list-item-main">
+                        <div class="list-item-number ${rankClass}">${group.rank}</div>
+                        <div class="list-item-content">
+                            <div class="list-item-title">${group.name}</div>
+                            <div class="list-item-subtitle">${group.sucursales} sucursales • ${group.supervisiones} supervisiones</div>
+                        </div>
+                    </div>
+                    <div class="list-item-end">
+                        <div class="list-item-value">${group.performance.toFixed(2)}%</div>
+                        <div class="list-item-trend ${trendClass}">${trendSymbol} ${Math.abs(group.trend).toFixed(2)}%</div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            
+            // Update toggle buttons
+            document.querySelectorAll('.view-mode-button').forEach(btn => btn.classList.remove('active'));
             event.target.classList.add('active');
             
-            // Special handling for map
-            if (tabName === 'mapa' && !map) {
-                initMap();
-            }
-            
-            // Special handling for historico chart
-            if (tabName === 'historico' && !historicoChart) {
-                renderHistoricoChart();
-            }
-        }
-
-        // Initialize map
-        function initMap() {
-            if (map) return;
-            
-            map = L.map('map').setView([25.6866, -100.3161], 6);
-            
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
-            
-            // Add markers
-            allData.mapa.forEach(sucursal => {
-                const marker = L.marker([sucursal.lat, sucursal.lng]).addTo(map);
-                marker.bindPopup(`
-                    <div style="min-width: 200px;">
-                        <h4>${sucursal.nombre}</h4>
-                        <p><strong>Grupo:</strong> ${sucursal.grupo}</p>
-                        <p><strong>Performance:</strong> ${sucursal.performance}%</p>
-                        <p><strong>Supervisiones:</strong> ${sucursal.total_supervisiones}</p>
-                        <p><strong>Ubicación:</strong> ${sucursal.ciudad}, ${sucursal.estado}</p>
-                        <p><strong>Última:</strong> ${new Date(sucursal.ultima_evaluacion).toLocaleDateString()}</p>
-                    </div>
-                `);
-            });
-            
-            console.log('✅ Mapa inicializado con', allData.mapa.length, 'marcadores');
-        }
-
-        // Render historico chart
-        function renderHistoricoChart() {
-            if (historicoChart) return;
-            
-            const ctx = document.getElementById('historico-chart').getContext('2d');
-            
-            // Group data by month
-            const monthlyData = {};
-            allData.historico.forEach(item => {
-                const month = new Date(item.mes).toLocaleDateString('es-ES', { year: 'numeric', month: 'short' });
-                if (!monthlyData[month]) {
-                    monthlyData[month] = [];
+            if (mode === 'list') {
+                // Vista Lista
+                document.getElementById('general-view').style.display = 'block';
+                document.getElementById('charts-view').style.display = 'none';
+                
+                // En vista Grupos: mostrar lista
+                const gruposList = document.querySelector('#grupos-view .list-view');
+                const gruposChart = document.querySelector('#grupos-view .chart-view');
+                if (gruposList) gruposList.style.display = 'block';
+                if (gruposChart) gruposChart.style.display = 'none';
+            } else {
+                // Vista Gráficas
+                document.getElementById('general-view').style.display = 'none';
+                document.getElementById('charts-view').style.display = 'block';
+                initCharts(); // Initialize Chart.js chart in charts view
+                
+                // En vista Grupos: mostrar gráficas
+                const gruposList = document.querySelector('#grupos-view .list-view');
+                const gruposChart = document.querySelector('#grupos-view .chart-view');
+                if (gruposList) gruposList.style.display = 'none';
+                if (gruposChart) {
+                    gruposChart.style.display = 'block';
+                    updateGruposChart(filterGroups());
                 }
-                monthlyData[month].push(item.promedio);
-            });
+            }
+        }
+
+        function updateGruposChart(filteredGroups) {
+            // Gráfica de TODOS los grupos para vista Grupos
+            updateContainer('grupos-chart-completa', 
+                filteredGroups.length > 0 
+                    ? filteredGroups.map(group => createHorizontalBar(group)).join('')
+                    : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
+            );
             
-            const labels = Object.keys(monthlyData).sort();
-            const data = labels.map(month => {
-                const values = monthlyData[month];
-                return values.reduce((a, b) => a + b, 0) / values.length;
-            });
+            // Animar barras
+            setTimeout(() => {
+                document.querySelectorAll('#grupos-chart-completa .bar-fill').forEach(bar => {
+                    const width = bar.dataset.width;
+                    bar.style.width = width + '%';
+                });
+            }, 100);
+        }
+
+        function updateHorizontalCharts(filteredGroups) {
+            // FUNCIÓN MANTENIDA PERO SIMPLIFICADA - Solo anima barras existentes
+            setTimeout(() => {
+                document.querySelectorAll('.bar-fill').forEach(bar => {
+                    const width = bar.dataset.width;
+                    bar.style.width = width + '%';
+                });
+            }, 100);
+        }
+
+        function createHorizontalBar(group) {
+            const rankClass = group.rank <= 3 ? `rank-${group.rank}` : 
+                             group.performance >= 90 ? 'rank-good' : 
+                             group.performance >= 70 ? 'rank-warning' : 'rank-critical';
             
-            historicoChart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Promedio Mensual (%)',
-                        data: data,
-                        borderColor: '#007aff',
-                        backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + '%';
+            const barClass = group.performance >= 90 ? 'excellent' : 
+                            group.performance >= 80 ? 'good' : 
+                            group.performance >= 70 ? 'regular' : 'critical';
+            
+            const trendClass = group.trend >= 0 ? 'trend-up' : 'trend-down';
+            const trendSymbol = group.trend >= 0 ? '↑' : '↓';
+
+            return `
+                <div class="horizontal-bar-item" data-group-detail="${group.name}">
+                    <div class="bar-rank ${rankClass}">${group.rank}</div>
+                    <div class="bar-content">
+                        <div class="bar-label">${group.name}</div>
+                        <div class="bar-container">
+                            <div class="bar-fill ${barClass}" data-width="${group.performance}" style="width: 0%;"></div>
+                        </div>
+                        <div class="bar-details">
+                            <div class="bar-subtitle">${group.sucursales} sucursales • ${group.supervisiones} supervisiones</div>
+                            <div style="display: flex; align-items: center;">
+                                <span class="bar-value">${group.performance.toFixed(2)}%</span>
+                                <span class="list-item-trend ${trendClass}" style="font-size: 12px; margin-left: 8px;">
+                                    ${trendSymbol} ${Math.abs(group.trend).toFixed(2)}%
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function initCharts() {
+            // Performance distribution chart
+            const ctx1 = document.getElementById('performanceChart');
+            if (ctx1 && !performanceChart) {
+                const excellent = allGroups.filter(g => g.performance >= 90).length;
+                const good = allGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+                const regular = allGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+                const critical = allGroups.filter(g => g.performance < 70).length;
+
+                performanceChart = new Chart(ctx1, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'],
+                        datasets: [{
+                            data: [excellent, good, regular, critical],
+                            backgroundColor: ['#34C759', '#007AFF', '#FFCC00', '#FF3B30'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    font: { family: '-apple-system', size: 13 },
+                                    color: '#3C3C43'
                                 }
                             }
                         }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
+                    }
+                });
+            }
+
+        }
+
+        function updateCharts(filteredGroups) {
+            // Calculate data
+            const excellent = filteredGroups.filter(g => g.performance >= 90).length;
+            const good = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+            const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+            const critical = filteredGroups.filter(g => g.performance < 70).length;
+
+            // Update performance chart
+            if (performanceChart) {
+                performanceChart.data.datasets[0].data = [excellent, good, regular, critical];
+                performanceChart.update();
+            }
+
+            // SEGURIDAD: Destruir critical chart SIEMPRE antes de recrear
+            if (criticalChart) {
+                criticalChart.destroy();
+                criticalChart = null;
+            }
+
+            // Critical chart for criticos view
+            if (currentView === 'criticos' && !criticalChart) {
+                const ctx2 = document.getElementById('criticalChart');
+                if (ctx2) {
+                    const criticalData = filteredGroups.filter(g => g.performance < 80);
+                    if (criticalData.length > 0) {
+                        criticalChart = new Chart(ctx2, {
+                            type: 'bar',
+                            data: {
+                                labels: criticalData.map(g => g.name),
+                                datasets: [{
+                                    data: criticalData.map(g => g.performance),
+                                    backgroundColor: criticalData.map(g => 
+                                        g.performance >= 70 ? '#FFCC00' : '#FF3B30'
+                                    ),
+                                    borderWidth: 0,
+                                    borderRadius: 4
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: false } },
+                                scales: {
+                                    x: {
+                                        beginAtZero: true,
+                                        max: 100,
+                                        grid: { color: 'rgba(60, 60, 67, 0.12)' },
+                                        ticks: { font: { family: '-apple-system', size: 11 }, color: '#8E8E93' }
+                                    },
+                                    y: {
+                                        grid: { display: false },
+                                        ticks: { font: { family: '-apple-system', size: 13 }, color: '#3C3C43' }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function initMap() {
+            // Clear existing markers if map exists
+            if (map) {
+                map.eachLayer(function(layer) {
+                    if (layer instanceof L.CircleMarker) {
+                        map.removeLayer(layer);
+                    }
+                });
+            }
+
+            // Check if we have map data
+            if (mapData.length === 0) {
+                updateContainer('sucursales-por-estado', 
+                    '<div style="padding: 40px; text-align: center; color: var(--ios-gray);">No hay datos de ubicación con los filtros seleccionados</div>'
+                );
+                return;
+            }
+
+            // Initialize map if not exists
+            if (!map) {
+                map = L.map('map').setView([25.6866, -100.3161], 6);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: 'Map data © OpenStreetMap contributors'
+                }).addTo(map);
+            }
+
+            // Add markers
+            mapData.forEach(point => {
+                if (point.lat && point.lng) {
+                    const color = point.performance >= 90 ? 'green' : 
+                                  point.performance >= 80 ? 'blue' : 
+                                  point.performance >= 70 ? 'orange' : 'red';
+                    
+                    L.circleMarker([point.lat, point.lng], {
+                        radius: 8,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 2,
+                        opacity: 1,
+                        fillOpacity: 0.8
+                    }).addTo(map)
+                    .bindPopup(createBasicTooltip(point), { 
+                        maxWidth: 300,
+                        className: 'custom-popup'
+                    })
+                    .on('popupopen', (e) => {
+                        // Cargar datos enriquecidos cuando se abre el popup
+                        enrichTooltipContent(point, e.popup);
+                    });
+                }
+            });
+
+            // Update sucursales list
+            updateSucursalesList();
+            
+            // Re-add event listeners for estados after updating the list
+            setTimeout(() => addGroupDetailListeners(), 100);
+            
+            // Initialize collapsible only after map is ready
+            if (currentTab === 'mapa') {
+                setTimeout(() => {
+                    initMapCollapsible();
+                }, 100);
+            }
+        }
+
+        function updateSucursalesList() {
+            console.log('🔄 updateSucursalesList called, mapData length:', mapData.length);
+            
+            if (mapData.length === 0) {
+                console.log('⚠️ No mapData available');
+                return;
+            }
+
+            // Group by estado
+            const byEstado = mapData.reduce((acc, point) => {
+                const estado = point.estado || 'Sin Estado';
+                if (!acc[estado]) {
+                    acc[estado] = [];
+                }
+                acc[estado].push(point);
+                return acc;
+            }, {});
+
+            // Create HTML for sucursales by estado
+            const html = Object.entries(byEstado)
+                .map(([estado, sucursales]) => {
+                    const avgPerformance = sucursales.reduce((sum, s) => sum + parseFloat(s.performance || 0), 0) / sucursales.length;
+                    const performanceColor = avgPerformance >= 90 ? 'var(--ios-green)' : 
+                                           avgPerformance >= 80 ? 'var(--ios-blue)' : 
+                                           avgPerformance >= 70 ? 'var(--ios-yellow)' : 'var(--ios-red)';
+                    return `
+                        <div class="list-item clickable-estado" data-estado="${estado}" data-zoom-estado="${estado}">
+                            <div class="list-item-content">
+                                <div class="list-item-title">📍 ${estado}</div>
+                                <div class="list-item-subtitle">${sucursales.length} sucursales • ${avgPerformance.toFixed(2)}% promedio</div>
+                            </div>
+                            <div class="list-item-end">
+                                <div class="list-item-value" style="color: ${performanceColor};">${avgPerformance.toFixed(1)}%</div>
+                                <div class="list-item-trend" style="font-size: 12px; color: var(--ios-gray);">${sucursales.length} 📍</div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join('');
+
+            console.log('🎯 Generated estados:', Object.keys(byEstado));
+            console.log('📝 Generated HTML length:', html.length);
+            
+            updateContainer('sucursales-por-estado', html);
+        }
+
+        async function loadTrendData() {
+            try {
+                console.log('📊 Loading historical data...');
+                
+                // Load heatmap data for historical view
+                loadHeatmapData();
+            } catch (error) {
+                console.error('Error loading historical data:', error);
+            }
+        }
+
+
+        async function loadAlertas() {
+            try {
+                const alertas = [];
+                
+                // Generate alerts based on data
+                const criticalGroups = allGroups.filter(g => g.performance < 70);
+                const decliningGroups = allGroups.filter(g => g.trend < -5);
+                
+                criticalGroups.forEach(group => {
+                    alertas.push({
+                        type: 'critical',
+                        title: `Grupo Crítico: ${group.name}`,
+                        description: `Performance de ${group.performance.toFixed(2)}% requiere atención inmediata`,
+                        time: 'Hace 2 horas'
+                    });
+                });
+
+                decliningGroups.forEach(group => {
+                    alertas.push({
+                        type: 'warning',
+                        title: `Tendencia Negativa: ${group.name}`,
+                        description: `Decline de ${Math.abs(group.trend).toFixed(2)}% vs promedio general`,
+                        time: 'Hace 4 horas'
+                    });
+                });
+
+                // Add some system alerts
+                alertas.push({
+                    type: 'info',
+                    title: 'Actualización del Sistema',
+                    description: 'Datos actualizados correctamente desde Neon PostgreSQL',
+                    time: 'Hace 1 hora'
+                });
+
+                const alertasHTML = alertas.map(alerta => `
+                    <div class="alert-card ${alerta.type}">
+                        <div class="alert-title">${alerta.title}</div>
+                        <div class="alert-description">${alerta.description}</div>
+                        <div class="alert-time">${alerta.time}</div>
+                    </div>
+                `).join('');
+
+                updateContainer('alertas-container', alertasHTML);
+            } catch (error) {
+                console.error('Error loading alertas:', error);
+            }
+        }
+
+        // View switching
+        function switchView(view) {
+            currentView = view;
+            
+            // Update segments
+            document.querySelectorAll('.segment').forEach(s => s.classList.remove('active'));
+            event.target.classList.add('active');
+
+            // Hide all views
+            document.getElementById('general-view').style.display = 'none';
+            document.getElementById('grupos-view').style.display = 'none';
+            document.getElementById('criticos-view').style.display = 'none';
+
+            // Show selected view
+            document.getElementById(`${view}-view`).style.display = 'block';
+
+            if (view === 'criticos') {
+                updateCharts(allGroups);
+            }
+        }
+
+        // Tab switching
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update tab bar
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+
+            // Hide all views
+            document.querySelectorAll('.tab-view').forEach(view => {
+                view.classList.remove('active');
+            });
+
+            // Show selected view
+            document.getElementById(`${tab}-view`).classList.add('active');
+
+            // Update nav title
+            const titles = {
+                dashboard: 'Dashboard CAS',
+                mapa: 'Mapa',
+                historico: 'Histórico', 
+                alertas: 'Alertas'
+            };
+            document.getElementById('nav-title').textContent = titles[tab];
+
+            // Load specific data for each tab
+            if (tab === 'mapa') {
+                loadMapData();
+                // Initialize collapsible after a short delay to ensure DOM is ready
+                setTimeout(() => {
+                    initMapCollapsible();
+                }, 200);
+            } else if (tab === 'historico') {
+                loadHistoricoData();
+            } else if (tab === 'alertas') {
+                loadAlertas();
+            }
+        }
+
+        // Modals
+        function showFilters() {
+            document.getElementById('filterModal').classList.add('active');
+        }
+
+        function closeFilters() {
+            document.getElementById('filterModal').classList.remove('active');
+        }
+
+        function resetFilters() {
+            // Reset all filters to default
+            currentFilters = {
+                periodo: 'all',
+                performance: 'all',
+                estado: 'all',
+                grupo: ''
+            };
+
+            // Reset UI
+            document.querySelectorAll('.filter-pill').forEach(pill => {
+                pill.classList.remove('active');
+                if (pill.dataset.value === 'all') {
+                    pill.classList.add('active');
+                }
+            });
+
+            // Reset grupo select
+            const grupoSelect = document.getElementById('grupo-select');
+            if (grupoSelect) grupoSelect.value = '';
+
+            // Reload data
+            loadData();
+            if (currentTab === 'mapa') loadMapData();
+        }
+
+        async function showGroupDetail(groupName) {
+            const group = allGroups.find(g => g.name === groupName);
+            if (!group) return;
+
+            // Update detail modal
+            document.getElementById('detail-group-name').textContent = group.name;
+            document.getElementById('detail-performance').textContent = group.performance.toFixed(2) + '%';
+            document.getElementById('detail-performance').style.color = 
+                group.performance >= 90 ? '#34C759' :
+                group.performance >= 80 ? '#007AFF' :
+                group.performance >= 70 ? '#FFCC00' : '#FF3B30';
+            document.getElementById('detail-meta').textContent = 
+                `${group.sucursales} sucursales • ${group.supervisiones} supervisiones`;
+
+            // Load sucursales
+            try {
+                const response = await fetch(`${API_BASE}/sucursales-ranking?grupo=${encodeURIComponent(groupName)}`);
+                const sucursales = await response.json();
+                
+                updateContainer('group-sucursales',
+                    sucursales.length > 0 
+                        ? sucursales.map((suc, index) => `
+                            <div class="list-item">
+                                <div class="list-item-main">
+                                    <div class="list-item-number rank-good">${index + 1}</div>
+                                    <div class="list-item-content">
+                                        <div class="list-item-title">${suc.sucursal || suc.location_name || 'Sucursal'}</div>
+                                        <div class="list-item-subtitle">${suc.estado} • ${suc.evaluaciones || suc.supervisiones} evaluaciones</div>
+                                    </div>
+                                </div>
+                                <div class="list-item-end">
+                                    <div class="list-item-value">${parseFloat(suc.promedio).toFixed(2)}%</div>
+                                </div>
+                            </div>
+                        `).join('')
+                        : '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay datos disponibles</div>'
+                );
+            } catch (error) {
+                console.error('Error loading sucursales:', error);
+                updateContainer('group-sucursales', 
+                    '<div style="padding: 20px; text-align: center; color: var(--ios-red);">Error al cargar sucursales</div>'
+                );
+            }
+
+            document.getElementById('groupDetailModal').classList.add('active');
+        }
+
+        function closeGroupDetail() {
+            document.getElementById('groupDetailModal').classList.remove('active');
+        }
+
+        // Load historical data using CAS periods
+        async function loadHistoricoData() {
+            try {
+                console.log('📊 Loading CAS periods data...');
+                const response = await fetch(`${API_BASE}/heatmap-periods/all`);
+                if (!response.ok) throw new Error('Error cargando datos de períodos CAS');
+                
+                const data = await response.json();
+                console.log('📊 Raw API response:', data);
+                
+                if (data.success) {
+                    console.log('✅ CAS periods data loaded:', data.data.groups.length, 'groups,', data.data.periods.length, 'periods');
+                    console.log('📊 Periods:', data.data.periods);
+                    console.log('📊 First group sample:', data.data.groups[0]);
+                    renderCASPeriodsHeatmap(data.data);
+                } else {
+                    throw new Error('Error en respuesta de períodos CAS');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading CAS periods:', error);
+                const container = document.querySelector('.heatmap-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 32px; color: #666;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <p>Error cargando períodos CAS</p>
+                            <p style="font-size: 14px; opacity: 0.7;">${error.message}</p>
+                        </div>
+                    `;
+                }
+            }
+        }
+        
+        // Render CAS periods heatmap
+        function renderCASPeriodsHeatmap(data) {
+            const container = document.querySelector('.heatmap-container');
+            if (!container) {
+                console.error('❌ Heatmap container not found');
+                return;
+            }
+            
+            const { periods, groups } = data;
+            
+            // Sort periods in CAS order: T1 → T2 → T3 → T4 → FOR-S1 → FOR-S2
+            const sortedPeriods = periods.sort((a, b) => {
+                // Orden CAS definitivo: Locales primero, luego Foráneas
+                const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            
+            // Sort groups by general average descending
+            const sortedGroups = groups.sort((a, b) => (b.promedio_general || 0) - (a.promedio_general || 0));
+            
+            // Clear existing content
+            container.innerHTML = `
+                <div style="padding: 16px; background: #f2f2f7; border-radius: 12px; margin: 8px;">
+                    <h3 style="margin-bottom: 16px; color: #1d1d1f; text-align: center;">
+                        📊 Períodos CAS por Grupo Operativo
+                    </h3>
+                    <p style="color: #666; font-size: 14px; text-align: center; margin-bottom: 20px;">
+                        📊 Períodos CAS 2025 • Promedio consolidado por Grupo Operativo<br>
+                        🏠 Locales: T1 (12Mar-16Abr) • T2 (11Jun-18Ago) • T3 (19Ago-9Oct) • T4 (10Oct-31Dic)<br>
+                        🌎 Foráneas: FOR-S1 (10Abr-9Jun) • FOR-S2 (30Jul-31Dic)
+                    </p>
+                    <div style="overflow-x: auto; background: white; border-radius: 8px; padding: 16px;">
+                        <table class="heatmap-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 12px 8px; text-align: left; background: #f8f9fa; border-bottom: 2px solid #dee2e6; position: sticky; left: 0; background: #f8f9fa; z-index: 10; min-width: 140px;">
+                                        Grupo Operativo
+                                    </th>
+                                    ${sortedPeriods.map(period => `
+                                        <th style="padding: 12px 8px; text-align: center; background: #f8f9fa; border-bottom: 2px solid #dee2e6; min-width: 80px;">
+                                            ${period}
+                                        </th>
+                                    `).join('')}
+                                    <th style="padding: 12px 8px; text-align: center; background: #e3f2fd; border-bottom: 2px solid #2196f3; font-weight: 700; min-width: 80px;">
+                                        Promedio
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="historico-heatmap-tbody">
+                                <!-- Rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            const tbody = document.getElementById('historico-heatmap-tbody');
+            if (!tbody) {
+                console.error('❌ Tbody not found for heatmap');
+                return;
+            }
+            
+            // Render each group
+            sortedGroups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const nameCell = document.createElement('td');
+                nameCell.style.cssText = 'padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: white; z-index: 5;';
+                nameCell.textContent = group.grupo || 'Sin nombre';
+                row.appendChild(nameCell);
+                
+                // Period cells
+                sortedPeriods.forEach(period => {
+                    const cell = document.createElement('td');
+                    cell.style.cssText = 'padding: 12px 8px; text-align: center; border-bottom: 1px solid #dee2e6; position: relative;';
+                    
+                    const periodData = group.periodos && group.periodos[period];
+                    if (periodData && periodData.promedio > 0) {
+                        const performance = parseFloat(periodData.promedio) || 0;
+                        cell.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 2px;">${performance.toFixed(1)}%</div>
+                            <div style="font-size: 10px; opacity: 0.7;">${periodData.evaluaciones || 0} eval.</div>
+                        `;
+                        cell.className = getHeatClass(performance);
+                        cell.title = `${group.grupo} - ${period}: ${performance.toFixed(2)}% (${periodData.evaluaciones || 0} evaluaciones)`;
+                    } else {
+                        cell.innerHTML = '<div style="color: #999;">-</div>';
+                        cell.style.background = '#f8f9fa';
+                        cell.title = `${group.grupo} - ${period}: Sin datos`;
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Average cell
+                const avgCell = document.createElement('td');
+                avgCell.style.cssText = 'padding: 12px 8px; text-align: center; font-weight: 700; border-bottom: 1px solid #dee2e6; background: #e3f2fd;';
+                const promedio = parseFloat(group.promedio_general) || 0;
+                avgCell.innerHTML = `${promedio.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${promedio.toFixed(2)}%`;
+                row.appendChild(avgCell);
+                
+                tbody.appendChild(row);
+            });
+            
+            // Calculate EPL CAS averages - RESTORED from dashboard-ios-complete
+            const eplAverages = {};
+            let eplOverallSum = 0;
+            let eplOverallCount = 0;
+            
+            sortedPeriods.forEach(periodo => {
+                let periodSum = 0;
+                let periodCount = 0;
+                
+                sortedGroups.forEach(group => {
+                    const periodData = group.periodos && group.periodos[periodo];
+                    if (periodData && periodData.promedio > 0) {
+                        periodSum += parseFloat(periodData.promedio);
+                        periodCount++;
+                    }
+                });
+                
+                eplAverages[periodo] = periodCount > 0 ? periodSum / periodCount : null;
+                if (eplAverages[periodo] !== null) {
+                    eplOverallSum += eplAverages[periodo];
+                    eplOverallCount++;
+                }
+            });
+            
+            // Add EPL CAS row - RESTORED EXACTLY
+            const eplRow = document.createElement('tr');
+            eplRow.className = 'epl-cas-row';
+            eplRow.style.cssText = 'background: #007AFF; color: white; font-weight: bold;';
+            
+            const eplLabelCell = document.createElement('td');
+            eplLabelCell.style.cssText = 'padding: 12px 8px; font-weight: 700; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: #007AFF; z-index: 6; color: white;';
+            eplLabelCell.innerHTML = `<div style="color: white; font-weight: bold;">PROMEDIO EPL CAS</div>`;
+            eplRow.appendChild(eplLabelCell);
+            
+            let lastValidEpl = null;
+            const showDifferences = document.getElementById('showDifferences')?.checked ?? true;
+            
+            sortedPeriods.forEach((periodo, index) => {
+                const cell = document.createElement('td');
+                cell.style.cssText = 'padding: 12px 8px; text-align: center; border-bottom: 1px solid #dee2e6; background: #007AFF; color: white;';
+                
+                if (eplAverages[periodo] !== null) {
+                    const promedio = eplAverages[periodo];
+                    let cellContent = `<div style="color: white; font-weight: bold;">${promedio.toFixed(1)}%</div>`;
+                    
+                    if (showDifferences && lastValidEpl !== null) {
+                        const diff = promedio - lastValidEpl;
+                        const diffSign = diff > 0 ? '+' : '';
+                        const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
+                        cellContent += `<div style="font-size: 0.7rem; color: rgba(255,255,255,0.9);">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                    }
+                    
+                    cell.innerHTML = cellContent;
+                    lastValidEpl = promedio;
+                } else {
+                    cell.innerHTML = '<div style="color: rgba(255,255,255,0.7);">-</div>';
+                }
+                
+                eplRow.appendChild(cell);
+            });
+            
+            // EPL Average cell
+            const eplOverallAverage = eplOverallCount > 0 ? eplOverallSum / eplOverallCount : 0;
+            const eplAvgCell = document.createElement('td');
+            eplAvgCell.style.cssText = 'padding: 12px 8px; text-align: center; font-weight: 700; border-bottom: 1px solid #dee2e6; background: #0051D5; color: white;';
+            eplAvgCell.innerHTML = `${eplOverallAverage.toFixed(1)}%`;
+            eplAvgCell.title = `Promedio general EPL CAS: ${eplOverallAverage.toFixed(2)}%`;
+            eplRow.appendChild(eplAvgCell);
+            
+            tbody.appendChild(eplRow);
+            
+            console.log('✅ CAS periods heatmap rendered with', sortedGroups.length, 'groups,', sortedPeriods.length, 'periods, and EPL CAS row');
+        }
+        
+        // Setup heatmap filters - RESTORED from dashboard-ios-complete
+        function setupHeatmapFilters() {
+            document.querySelectorAll('.heatmap-filter-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.heatmap-filter-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    const filter = btn.dataset.filter;
+                    heatmapCurrentFilter = filter;
+                    console.log('🔥 Heatmap filter changed to:', filter);
+                    
+                    // Re-render with filter (if data exists)
+                    if (heatmapPeriodsData) {
+                        renderHeatmapWithFilter(heatmapPeriodsData, filter);
+                    }
+                });
+            });
+            
+            const showDifferencesToggle = document.getElementById('showDifferences');
+            if (showDifferencesToggle) {
+                showDifferencesToggle.addEventListener('change', () => {
+                    console.log('🔄 Show differences toggle:', showDifferencesToggle.checked);
+                    if (heatmapPeriodsData) {
+                        renderHeatmapWithFilter(heatmapPeriodsData, heatmapCurrentFilter || 'all');
+                    }
+                });
+            }
+        }
+
+        // Render heatmap with filters - RESTORED functionality
+        function renderHeatmapWithFilter(data, filter = 'all') {
+            let filteredGroups = [...data.groups];
+            
+            // Apply filters
+            switch(filter) {
+                case 'critical':
+                    filteredGroups = data.groups.filter(g => (g.promedio_general || 0) < 80);
+                    break;
+                case 'improving':
+                    // Groups with positive trend in latest period
+                    filteredGroups = data.groups.filter(g => {
+                        const periods = data.periods.sort((a, b) => {
+                            const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
+                            return order.indexOf(a) - order.indexOf(b);
+                        });
+                        if (periods.length < 2) return false;
+                        const latest = g.periodos[periods[periods.length - 1]];
+                        const previous = g.periodos[periods[periods.length - 2]];
+                        return latest && previous && (latest.promedio > previous.promedio);
+                    });
+                    break;
+                case 'declining':
+                    // Groups with negative trend in latest period
+                    filteredGroups = data.groups.filter(g => {
+                        const periods = data.periods.sort((a, b) => {
+                            const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
+                            return order.indexOf(a) - order.indexOf(b);
+                        });
+                        if (periods.length < 2) return false;
+                        const latest = g.periodos[periods[periods.length - 1]];
+                        const previous = g.periodos[periods[periods.length - 2]];
+                        return latest && previous && (latest.promedio < previous.promedio);
+                    });
+                    break;
+                default: // 'all'
+                    filteredGroups = data.groups;
+            }
+            
+            console.log(`🔍 Filtered groups (${filter}):`, filteredGroups.length, 'of', data.groups.length);
+            
+            // Render with filtered data
+            const modifiedData = { ...data, groups: filteredGroups };
+            renderCASPeriodsHeatmap(modifiedData);
+        }
+
+        // Heat class helper function
+        function getHeatClass(value) {
+            const perf = parseFloat(value) || 0;
+            if (perf >= 95) return 'heat-excellent';
+            if (perf >= 90) return 'heat-very-good'; 
+            if (perf >= 85) return 'heat-good';
+            if (perf >= 80) return 'heat-average';
+            if (perf >= 70) return 'heat-below-average';
+            if (perf >= 60) return 'heat-poor';
+            return 'heat-critical';
+        }
+
+        function refreshData() {
+            loadData();
+            if (currentTab === 'mapa') loadMapData();
+            if (currentTab === 'historico') loadHistoricoData(); // Now loads historical data only
+            if (currentTab === 'alertas') loadAlertas();
+        }
+
+        function showLoading() {
+            // Add loading states to containers
+        }
+
+        function hideLoading() {
+            // Remove loading states
+        }
+
+        function showError(message) {
+            alert(message);
+        }
+
+        function showNoDataMessage() {
+            const noDataHTML = '<div style="padding: 40px; text-align: center; color: var(--ios-gray);">No se encontraron datos con los filtros seleccionados</div>';
+            
+            // Update all containers with no data message
+            updateContainer('top-performers', noDataHTML);
+            updateContainer('critical-performers', noDataHTML);
+            updateContainer('all-groups', noDataHTML);
+            updateContainer('critical-detail', noDataHTML);
+            // Referencias a gráficas eliminadas para evitar repetición
+        }
+
+        // Event Listeners
+        function initEventListeners() {
+            // Filter pills - Using event delegation for dynamic content
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('filter-pill')) {
+                    const container = e.target.closest('.filter-pills');
+                    if (container) {
+                        const filterType = container.id.replace('-filters', '');
+                        const value = e.target.dataset.value;
+                        
+                        // Update active state
+                        container.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+                        e.target.classList.add('active');
+                        
+                        // Update filter
+                        currentFilters[filterType] = value;
+                        
+                        // If changing estado, reset grupo
+                        if (filterType === 'estado' && currentFilters.grupo) {
+                            currentFilters.grupo = '';
+                            const grupoSelect = document.getElementById('grupo-select');
+                            if (grupoSelect) grupoSelect.value = '';
+                        }
+                        
+                        // Reload data with new filters
+                        loadData();
+                        
+                        // If on map tab, reload map data
+                        if (currentTab === 'mapa') {
+                            loadMapData();
                         }
                     }
                 }
             });
+
+            // Grupo select
+            document.getElementById('grupo-select').addEventListener('change', function(e) {
+                currentFilters.grupo = e.target.value;
+                loadData();
+            });
+
+            // Close modal on background click
+            document.querySelectorAll('.modal-overlay').forEach(modal => {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === this) {
+                        this.classList.remove('active');
+                    }
+                });
+            });
+        }
+        
+        // FASE 3: Tooltip Básico
+        function createBasicTooltip(point) {
+            const sucursalName = point.nombre || point.sucursal || point.location_name || 'Sucursal';
+            const estado = point.estado || 'Estado';
+            const grupoOperativo = point.grupo || point.grupo_operativo || 'Grupo no disponible';
+            const performance = point.performance || point.promedio || 0;
             
-            console.log('✅ Gráfico histórico renderizado');
+            const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+            
+            return `
+                <div style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; min-width: 280px; max-width: 320px;">
+                    <strong style="color: #1d1d1f; font-size: 16px;">📍 ${sucursalName}</strong><br>
+                    <span id="grupo-info-${uniqueId}" style="color: #86868b; font-size: 14px;">${estado} • ${grupoOperativo}</span><br>
+                    <div style="margin: 8px 0; padding: 8px; background: ${performance >= 90 ? '#d1f2eb' : performance >= 80 ? '#d6eaf8' : performance >= 70 ? '#fef9e7' : '#fadbd8'}; border-radius: 6px;">
+                        <span id="performance-${uniqueId}" style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
+                            🎯 Performance General: ${performance || 'N/A'}%
+                        </span>
+                        <div id="tendencia-${uniqueId}" style="font-size: 13px; color: #666; margin-top: 4px;">
+                            📊 Cargando tendencia...
+                        </div>
+                    </div>
+                    <div id="areas-criticas-${uniqueId}" style="margin-top: 8px; font-size: 13px;">
+                        🔍 Cargando áreas críticas...
+                    </div>
+                    <div id="fecha-supervision-${uniqueId}" style="margin-top: 6px; font-size: 12px; color: #86868b;">
+                        📅 Cargando fecha...
+                    </div>
+                </div>
+            `;
         }
 
-        // Apply filters
-        async function applyFilters() {
-            const estado = document.getElementById('estado-filter').value;
-            const grupo = document.getElementById('grupo-filter').value;
-            const performance = document.getElementById('performance-filter').value;
+        // FASE 3: Enriquecer Tooltip con Datos Reales
+        async function enrichTooltipContent(point, popup) {
+            const sucursalName = point.nombre || point.sucursal || point.location_name || 'Sucursal';
+            const estado = point.estado || 'Estado';
+            const grupoOperativo = point.grupo || point.grupo_operativo || 'Grupo no disponible';
             
-            console.log('🔍 Aplicando filtros:', { estado, grupo, performance });
+            const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
             
-            // Reload data with filters
             try {
-                await loadKPIs();
-                await loadGrupos();
-                // Note: Add filter parameters to API calls when needed
+                console.log('🎯 Enriqueciendo tooltip para:', sucursalName);
+                
+                const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`);
+                const data = await response.json();
+                
+                console.log('📊 Datos recibidos:', data);
+                
+                if (data.success) {
+                    // ACTUALIZAR PERFORMANCE CON VALOR CORRECTO DEL ANÁLISIS
+                    const performanceElement = document.getElementById(`performance-${uniqueId}`);
+                    if (performanceElement && data.performance_general.actual) {
+                        const actualPerformance = data.performance_general.actual;
+                        const performanceColor = actualPerformance >= 90 ? '#27ae60' : 
+                                                actualPerformance >= 80 ? '#3498db' : 
+                                                actualPerformance >= 70 ? '#f39c12' : '#e74c3c';
+                        
+                        // Actualizar performance con valor correcto
+                        performanceElement.innerHTML = `🎯 Performance General: ${actualPerformance}%`;
+                        performanceElement.style.color = performanceColor;
+                        
+                        // Actualizar color del contenedor también
+                        const container = performanceElement.parentElement;
+                        if (container) {
+                            const bgColor = actualPerformance >= 90 ? '#d1f2eb' : 
+                                          actualPerformance >= 80 ? '#d6eaf8' : 
+                                          actualPerformance >= 70 ? '#fef9e7' : '#fadbd8';
+                            container.style.background = bgColor;
+                        }
+                    }
+                    
+                    // ACTUALIZAR GRUPO OPERATIVO SI ESTÁ DISPONIBLE
+                    const grupoInfoElement = document.getElementById(`grupo-info-${uniqueId}`);
+                    if (grupoInfoElement && data.grupo_operativo && data.grupo_operativo !== 'Grupo no disponible') {
+                        grupoInfoElement.innerHTML = `${estado} • ${data.grupo_operativo}`;
+                    }
+                    
+                    // Actualizar tendencia
+                    const tendenciaElement = document.getElementById(`tendencia-${uniqueId}`);
+                    if (tendenciaElement && data.performance_general.anterior > 0) {
+                        const cambio = data.performance_general.cambio;
+                        const anterior = data.performance_general.anterior;
+                        const actual = data.performance_general.actual;
+                        const fallbackText = data.periodos.es_fallback ? ' (último disponible)' : '';
+                        
+                        // Debug: Log valores para investigar discrepancia
+                        console.log(`🔍 DEBUG Tendencia - Actual: ${actual}%, Anterior: ${anterior}%, Cambio: ${cambio}`);
+                        
+                        tendenciaElement.innerHTML = `
+                            ${data.performance_general.tendencia} ${cambio > 0 ? '+' : ''}${cambio} pts vs ${data.periodos.anterior} (${anterior}%)${fallbackText}
+                        `;
+                    } else if (tendenciaElement) {
+                        const fallbackText = data.periodos.es_fallback ? ' (último disponible)' : '';
+                        tendenciaElement.innerHTML = `📊 Período: ${data.periodos.actual}${fallbackText}`;
+                    }
+                    
+                    // Actualizar áreas críticas
+                    const areasElement = document.getElementById(`areas-criticas-${uniqueId}`);
+                    if (areasElement) {
+                        if (data.areas_criticas.length > 0) {
+                            const areasHTML = data.areas_criticas.slice(0, 3).map((area, index) => {
+                                const fallbackIndicator = area.nota ? ' *' : '';
+                                return `<div style="margin: 2px 0; font-size: 12px;">
+                                    ${index + 1}. ${area.area_evaluacion.substring(0, 20)}${area.area_evaluacion.length > 20 ? '...' : ''}: 
+                                    <span style="color: #e74c3c; font-weight: 600;">${area.score_actual}%</span>
+                                    <span style="color: #666;">${area.tendencia}${fallbackIndicator}</span>
+                                </div>`;
+                            }).join('');
+                            
+                            const fallbackNote = data.metadata.areas_con_fallback > 0 ? 
+                                '<div style="font-size: 10px; color: #86868b; margin-top: 4px;">* Último período disponible</div>' : '';
+                            
+                            areasElement.innerHTML = `
+                                <div style="font-weight: 600; color: #1d1d1f; margin-bottom: 4px;">🎯 Áreas de Oportunidad (<80%):</div>
+                                ${areasHTML}
+                                ${fallbackNote}
+                            `;
+                        } else {
+                            areasElement.innerHTML = `
+                                <div style="color: #27ae60; font-weight: 600;">✅ Sin áreas críticas detectadas</div>
+                            `;
+                        }
+                    }
+                    
+                    // Actualizar fecha
+                    const fechaElement = document.getElementById(`fecha-supervision-${uniqueId}`);
+                    if (fechaElement && data.ultima_supervision) {
+                        const fecha = new Date(data.ultima_supervision);
+                        const fechaFormateada = fecha.toLocaleDateString('es-MX', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric'
+                        });
+                        fechaElement.innerHTML = `📅 Última supervisión: ${fechaFormateada}`;
+                    } else if (fechaElement) {
+                        fechaElement.innerHTML = `📅 Sin fecha de supervisión disponible`;
+                    }
+                    
+                    console.log('✅ Tooltip enriquecido completado');
+                } else {
+                    console.log('⚠️ API response no exitosa:', data);
+                }
             } catch (error) {
-                console.error('❌ Error aplicando filtros:', error);
+                console.error('❌ Error enriqueciendo tooltip:', error);
+                
+                // Mostrar mensaje de error en tooltip
+                const tendenciaElement = document.getElementById(`tendencia-${uniqueId}`);
+                if (tendenciaElement) {
+                    tendenciaElement.innerHTML = '⚠️ Error cargando datos adicionales';
+                }
             }
         }
 
-        // Utility functions
-        function getPerformanceClass(percentage) {
-            const perf = parseFloat(percentage);
-            if (perf >= 90) return 'performance-excellent';
-            if (perf >= 70) return 'performance-good';
-            return 'performance-critical';
+        // PASO 2: Zoom Inteligente por Estado - Basado en Sucursales Reales
+        window.zoomToEstado = function(estado) {
+            console.log('🎯 zoomToEstado called with:', estado);
+            console.log('🗺️ Map instance:', map);
+            
+            if (!map) {
+                console.error('❌ Map not initialized');
+                return;
+            }
+            
+            // Calcular centro basado en sucursales reales del estado
+            const sucursalesEstado = mapData.filter(point => point.estado === estado);
+            console.log(`📍 Sucursales encontradas en ${estado}:`, sucursalesEstado.length);
+            
+            if (sucursalesEstado.length > 0) {
+                // Calcular centro geográfico real de las sucursales
+                const lats = sucursalesEstado.map(s => parseFloat(s.latitud)).filter(lat => !isNaN(lat));
+                const lngs = sucursalesEstado.map(s => parseFloat(s.longitud)).filter(lng => !isNaN(lng));
+                
+                if (lats.length > 0 && lngs.length > 0) {
+                    const centerLat = lats.reduce((sum, lat) => sum + lat, 0) / lats.length;
+                    const centerLng = lngs.reduce((sum, lng) => sum + lng, 0) / lngs.length;
+                    
+                    // Calcular zoom inteligente basado en dispersión
+                    const latRange = Math.max(...lats) - Math.min(...lats);
+                    const lngRange = Math.max(...lngs) - Math.min(...lngs);
+                    const maxRange = Math.max(latRange, lngRange);
+                    
+                    let smartZoom;
+                    if (maxRange > 3) smartZoom = 7;      // Estado muy disperso
+                    else if (maxRange > 1.5) smartZoom = 8;  // Disperso
+                    else if (maxRange > 0.8) smartZoom = 9;  // Moderado  
+                    else if (maxRange > 0.3) smartZoom = 10; // Concentrado
+                    else smartZoom = 11;                     // Muy concentrado
+                    
+                    console.log(`📊 Centro calculado: [${centerLat.toFixed(4)}, ${centerLng.toFixed(4)}]`);
+                    console.log(`📊 Rango: ${maxRange.toFixed(3)}, Zoom: ${smartZoom}`);
+                    
+                    // Smooth zoom al centro real
+                    map.flyTo([centerLat, centerLng], smartZoom, {
+                        animate: true,
+                        duration: 1.5
+                    });
+                    
+                    // Popup con información real del estado
+                    setTimeout(() => {
+                        const avgPerformance = sucursalesEstado.reduce((sum, s) => sum + parseFloat(s.promedio), 0) / sucursalesEstado.length;
+                        
+                        L.popup()
+                            .setLatLng([centerLat, centerLng])
+                            .setContent(`
+                                <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                                    <strong>${estado}</strong><br>
+                                    <span style="color: #666;">${sucursalesEstado.length} sucursales</span><br>
+                                    <span style="font-weight: 600; color: ${avgPerformance >= 90 ? '#34C759' : avgPerformance >= 80 ? '#007AFF' : avgPerformance >= 70 ? '#FFCC00' : '#FF3B30'};">
+                                        ${avgPerformance.toFixed(1)}% promedio
+                                    </span><br>
+                                    <span style="font-size: 12px; color: #666;">Centro calculado: ${sucursalesEstado.length} puntos</span>
+                                </div>
+                            `)
+                            .openOn(map);
+                            
+                        setTimeout(() => map.closePopup(), 3000);
+                    }, 1600);
+                    
+                    return; // Salir temprano con zoom inteligente
+                }
+            }
+            
+            // Fallback: coordenadas fijas si no hay sucursales o fallan coordenadas
+            console.log(`⚠️ Fallback a coordenadas fijas para ${estado}`);
+            const estadoBounds = {
+                'Aguascalientes': { lat: 21.8853, lng: -102.2916, zoom: 10 },
+                'Baja California': { lat: 30.8406, lng: -115.2838, zoom: 7 },
+                'Baja California Sur': { lat: 24.1442, lng: -110.3261, zoom: 8 },
+                'Campeche': { lat: 19.8301, lng: -90.5349, zoom: 8 },
+                'Chiapas': { lat: 16.7569, lng: -93.1292, zoom: 8 },
+                'Chihuahua': { lat: 28.6330, lng: -106.0691, zoom: 7 },
+                'Coahuila': { lat: 27.0587, lng: -101.7068, zoom: 7 },
+                'Colima': { lat: 19.2452, lng: -103.7240, zoom: 10 },
+                'Durango': { lat: 24.0277, lng: -104.6532, zoom: 8 },
+                'Guanajuato': { lat: 21.0190, lng: -101.2574, zoom: 9 },
+                'Guerrero': { lat: 17.4392, lng: -99.5451, zoom: 8 },
+                'Hidalgo': { lat: 20.0911, lng: -98.7624, zoom: 9 },
+                'Jalisco': { lat: 20.6597, lng: -103.3496, zoom: 8 },
+                'México': { lat: 19.2808, lng: -99.7550, zoom: 9 },
+                'Estado de México': { lat: 19.2808, lng: -99.7550, zoom: 9 },
+                'Michoacán': { lat: 19.5665, lng: -101.7068, zoom: 8 },
+                'Morelos': { lat: 18.6813, lng: -99.1013, zoom: 10 },
+                'Nayarit': { lat: 21.7514, lng: -104.8455, zoom: 9 },
+                'Nuevo León': { lat: 25.5922, lng: -99.9962, zoom: 9 },
+                'Oaxaca': { lat: 17.0732, lng: -96.7266, zoom: 8 },
+                'Puebla': { lat: 19.0414, lng: -98.2063, zoom: 9 },
+                'Querétaro': { lat: 20.5888, lng: -100.3899, zoom: 10 },
+                'Quintana Roo': { lat: 19.1817, lng: -87.4653, zoom: 8 },
+                'San Luis Potosí': { lat: 22.1565, lng: -100.9855, zoom: 8 },
+                'Sinaloa': { lat: 25.1721, lng: -107.4795, zoom: 8 },
+                'Sonora': { lat: 29.2972, lng: -110.3309, zoom: 7 },
+                'Tabasco': { lat: 17.8409, lng: -92.6189, zoom: 9 },
+                'Tamaulipas': { lat: 24.2669, lng: -98.8363, zoom: 8 },
+                'Tlaxcala': { lat: 19.3139, lng: -98.2404, zoom: 11 },
+                'Veracruz': { lat: 19.1738, lng: -96.1342, zoom: 8 },
+                'Yucatán': { lat: 20.7099, lng: -89.0943, zoom: 8 },
+                'Zacatecas': { lat: 22.7709, lng: -102.5832, zoom: 8 },
+                'Ciudad de México': { lat: 19.4326, lng: -99.1332, zoom: 11 },
+                'CDMX': { lat: 19.4326, lng: -99.1332, zoom: 11 }
+            };
+            
+            // Get estado bounds
+            const bounds = estadoBounds[estado];
+            if (!bounds) {
+                console.warn(`❌ No bounds found for estado: "${estado}"`);
+                console.log('📋 Available estados:', Object.keys(estadoBounds));
+                console.log('📊 Estados in mapData:', [...new Set(mapData.map(p => p.estado))]);
+                return;
+            }
+            
+            console.log('✅ Found bounds for:', estado, bounds);
+            
+            // Smooth zoom and pan to estado
+            map.flyTo([bounds.lat, bounds.lng], bounds.zoom, {
+                animate: true,
+                duration: 1.5 // 1.5 seconds animation
+            });
+            
+            // Optional: Show a temporary popup with estado info
+            setTimeout(() => {
+                const estadoSucursales = mapData.filter(point => point.estado === estado);
+                if (estadoSucursales.length > 0) {
+                    const avgPerformance = estadoSucursales.reduce((sum, s) => sum + parseFloat(s.promedio), 0) / estadoSucursales.length;
+                    
+                    L.popup()
+                        .setLatLng([bounds.lat, bounds.lng])
+                        .setContent(`
+                            <div style="text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                                <strong>${estado}</strong><br>
+                                <span style="color: #666;">${estadoSucursales.length} sucursales</span><br>
+                                <span style="font-weight: 600; color: ${avgPerformance >= 90 ? '#34C759' : avgPerformance >= 80 ? '#007AFF' : avgPerformance >= 70 ? '#FFCC00' : '#FF3B30'};">
+                                    ${avgPerformance.toFixed(1)}% promedio
+                                </span>
+                            </div>
+                        `)
+                        .openOn(map);
+                        
+                    // Auto-close popup after 3 seconds
+                    setTimeout(() => {
+                        map.closePopup();
+                    }, 3000);
+                }
+            }, 1600); // Show popup after zoom animation completes
+        };
+        
+        // Also create function declaration for compatibility
+        function zoomToEstado(estado) {
+            return window.zoomToEstado(estado);
         }
 
-        function showError(message) {
-            document.body.insertAdjacentHTML('afterbegin', 
-                `<div class="error" style="margin: 20px; position: fixed; top: 0; left: 50%; transform: translateX(-50%); z-index: 1000;">
-                    ${message}
-                    <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; font-size: 18px; cursor: pointer;">&times;</button>
-                </div>`
-            );
+        function initMapCollapsible() {
+            const dragHandle = document.getElementById('map-drag-handle');
+            const mapContainer = document.querySelector('.map-container');
+            const mapListContainer = document.getElementById('map-list-container');
+            const mapHint = document.getElementById('map-hint');
+            
+            if (!dragHandle || !mapContainer || !mapListContainer) return;
+            
+            // Prevent multiple initializations
+            if (dragHandle.dataset.initialized === 'true') return;
+            dragHandle.dataset.initialized = 'true';
+            
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            
+            // Show hint when hovering over handle
+            dragHandle.addEventListener('mouseenter', () => {
+                if (!mapExpanded) {
+                    mapHint.classList.add('show');
+                }
+            });
+            
+            dragHandle.addEventListener('mouseleave', () => {
+                mapHint.classList.remove('show');
+            });
+            
+            // Touch events for mobile
+            dragHandle.addEventListener('touchstart', handleStart, { passive: false });
+            dragHandle.addEventListener('touchmove', handleMove, { passive: false });
+            dragHandle.addEventListener('touchend', handleEnd);
+            
+            // Mouse events for desktop testing
+            dragHandle.addEventListener('mousedown', handleStart);
+            dragHandle.addEventListener('mousemove', handleMove);
+            dragHandle.addEventListener('mouseup', handleEnd);
+            dragHandle.addEventListener('mouseleave', handleEnd);
+            
+            function handleStart(e) {
+                e.stopPropagation(); // Prevent conflicts with map
+                isDragging = true;
+                startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                dragHandle.style.cursor = 'grabbing';
+            }
+            
+            function handleMove(e) {
+                if (!isDragging) return;
+                
+                e.preventDefault();
+                currentY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                const deltaY = startY - currentY;
+                
+                // If dragged up more than 50px, expand
+                if (deltaY > 50 && !mapExpanded) {
+                    expandMap();
+                }
+                // If dragged down more than 50px, collapse
+                else if (deltaY < -50 && mapExpanded) {
+                    collapseMap();
+                }
+            }
+            
+            function handleEnd() {
+                isDragging = false;
+                dragHandle.style.cursor = 'grab';
+            }
+            
+            // Click to toggle
+            dragHandle.addEventListener('click', () => {
+                if (mapExpanded) {
+                    collapseMap();
+                } else {
+                    expandMap();
+                }
+            });
+            
+            function expandMap() {
+                mapExpanded = true;
+                mapContainer.classList.add('collapsed');
+                mapListContainer.classList.add('expanded');
+                mapHint.classList.remove('show');
+                
+                // Resize map after transition
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 300);
+            }
+            
+            function collapseMap() {
+                mapExpanded = false;
+                mapContainer.classList.remove('collapsed');
+                mapListContainer.classList.remove('expanded');
+                
+                // Resize map after transition
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 300);
+            }
         }
-
-        // Initialize when page loads
-        document.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html>
