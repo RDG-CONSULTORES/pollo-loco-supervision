@@ -447,41 +447,41 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
             paramIndex++;
         }
         
-        // Generate periods based on fechas de corte
+        // Generate periods with proper CAS classification (Locales vs Foráneas)
         const query = `
-            WITH periods_data AS (
-                SELECT 
-                    grupo_normalizado as grupo,
+            WITH group_classification AS (
+                SELECT DISTINCT 
+                    grupo_normalizado,
                     CASE 
-                        -- NL-T4 (Locales): 10/Oct/2025 → 31/Dic/2025
-                        WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
-                        -- NL-T3 (Locales): 19/Ago/2025 → 09/Oct/2025  
-                        WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
-                        -- FOR-S2 (Foráneas): 30/Jul/2025 → 31/Dic/2025
-                        WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
-                        -- NL-T2 (Locales): 11/Jun/2025 → 18/Ago/2025
-                        WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
-                        -- FOR-S1 (Foráneas): 10/Abr/2025 → 09/Jun/2025
-                        WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                        -- NL-T1 (Locales): 12/Mar/2025 → 16/Abr/2025
-                        WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
-                        ELSE 'Otro'
+                        -- LOCALES: Nuevo León + Saltillo = Solo T1, T2, T3, T4
+                        WHEN estado_final IN ('Nuevo León') OR grupo_normalizado ILIKE '%saltillo%' THEN 'LOCAL'
+                        -- FORÁNEAS: Todas las demás = Solo FOR-S1, FOR-S2  
+                        ELSE 'FORANEA' 
+                    END as tipo_grupo
+                FROM supervision_normalized_view
+            ),
+            periods_data AS (
+                SELECT 
+                    s.grupo_normalizado as grupo,
+                    gc.tipo_grupo,
+                    CASE 
+                        -- GRUPOS LOCALES: Solo períodos trimestrales T1-T4
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
+                        -- GRUPOS FORÁNEAS: Solo períodos semestrales FOR-S1, FOR-S2
+                        WHEN gc.tipo_grupo = 'FORANEA' AND s.fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
+                        WHEN gc.tipo_grupo = 'FORANEA' AND s.fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                        ELSE NULL -- Excluir períodos incorrectos para el tipo de grupo
                     END as periodo,
-                    ROUND(AVG(porcentaje), 2) as promedio,
+                    ROUND(AVG(s.porcentaje), 2) as promedio,
                     COUNT(*) as evaluaciones
-                FROM supervision_normalized_view 
-                ${whereClause}
-                GROUP BY grupo, 
-                CASE 
-                    WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
-                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
-                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
-                    ELSE 'Otro'
-                END
-                HAVING COUNT(*) > 0
+                FROM supervision_normalized_view s
+                JOIN group_classification gc ON s.grupo_normalizado = gc.grupo_normalizado
+                WHERE s.porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
+                GROUP BY s.grupo_normalizado, gc.tipo_grupo, periodo
+                HAVING periodo IS NOT NULL AND COUNT(*) > 0
             ),
             group_averages AS (
                 SELECT 
@@ -502,27 +502,67 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
         
         const result = await pool.query(query, params);
         
-        // Get distinct periods
+        // Get distinct periods using same CAS classification logic
         const periodsQuery = `
-            SELECT DISTINCT 
-                CASE 
-                    WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
-                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
-                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
-                    ELSE 'Otro'
-                END as periodo
-            FROM supervision_normalized_view 
-            ${whereClause}
-            ORDER BY periodo
+            WITH group_classification AS (
+                SELECT DISTINCT 
+                    grupo_normalizado,
+                    CASE 
+                        WHEN estado_final IN ('Nuevo León') OR grupo_normalizado ILIKE '%saltillo%' THEN 'LOCAL'
+                        ELSE 'FORANEA' 
+                    END as tipo_grupo
+                FROM supervision_normalized_view
+            ),
+            period_list AS (
+                SELECT DISTINCT 
+                    CASE 
+                        -- GRUPOS LOCALES: Solo T1-T4
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
+                        WHEN gc.tipo_grupo = 'LOCAL' AND s.fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
+                        -- GRUPOS FORÁNEAS: Solo FOR-S1, FOR-S2
+                        WHEN gc.tipo_grupo = 'FORANEA' AND s.fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
+                        WHEN gc.tipo_grupo = 'FORANEA' AND s.fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                        ELSE NULL
+                    END as periodo
+                FROM supervision_normalized_view s
+                JOIN group_classification gc ON s.grupo_normalizado = gc.grupo_normalizado
+                WHERE s.porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
+            )
+            SELECT periodo FROM period_list WHERE periodo IS NOT NULL ORDER BY periodo
         `;
         
         const periodsResult = await pool.query(periodsQuery, params);
         const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'Otro');
         
+        // Log group classification for verification
+        const classificationQuery = `
+            SELECT 
+                grupo_normalizado,
+                CASE 
+                    WHEN estado_final IN ('Nuevo León') OR grupo_normalizado ILIKE '%saltillo%' THEN 'LOCAL'
+                    ELSE 'FORANEA' 
+                END as tipo_grupo,
+                estado_final
+            FROM supervision_normalized_view 
+            GROUP BY grupo_normalizado, estado_final 
+            ORDER BY tipo_grupo, grupo_normalizado
+        `;
+        const classificationResult = await pool.query(classificationQuery);
+        
         console.log(`✅ Heatmap data: ${result.rows.length} grupos, ${periods.length} períodos`);
+        console.log(`📊 CAS Classification:`);
+        
+        const locales = classificationResult.rows.filter(r => r.tipo_grupo === 'LOCAL');
+        const foraneas = classificationResult.rows.filter(r => r.tipo_grupo === 'FORANEA');
+        
+        console.log(`   🏠 LOCALES (${locales.length}): Solo T1-T4`);
+        locales.forEach(g => console.log(`      • ${g.grupo_normalizado} (${g.estado_final})`));
+        
+        console.log(`   🌎 FORÁNEAS (${foraneas.length}): Solo FOR-S1, FOR-S2`);
+        foraneas.slice(0, 5).forEach(g => console.log(`      • ${g.grupo_normalizado} (${g.estado_final})`));
+        if (foraneas.length > 5) console.log(`      • ...y ${foraneas.length - 5} grupos más`);
         
         res.json({
             success: true,
