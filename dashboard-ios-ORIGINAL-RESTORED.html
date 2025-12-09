@@ -4393,9 +4393,10 @@
                         year: 'numeric'
                     });
                     
-                    const performanceColor = evaluacion.performance >= 90 ? 'var(--ios-green)' :
-                                           evaluacion.performance >= 80 ? 'var(--ios-blue)' :
-                                           evaluacion.performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
+                    const performance = parseFloat(evaluacion.performance) || 0;
+                    const performanceColor = performance >= 90 ? 'var(--ios-green)' :
+                                           performance >= 80 ? 'var(--ios-blue)' :
+                                           performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
                     
                     return `
                         <div class="evaluation-item">
@@ -4405,7 +4406,7 @@
                                 <div class="evaluation-subtitle">${evaluacion.supervisor || 'Supervisor'} • ${evaluacion.areas_evaluadas || 0} áreas</div>
                             </div>
                             <div class="evaluation-performance" style="color: ${performanceColor};">
-                                ${evaluacion.performance.toFixed(1)}%
+                                ${performance.toFixed(1)}%
                             </div>
                         </div>
                     `;
@@ -4433,13 +4434,15 @@
             
             const areasHTML = areas.length > 0 ?
                 areas.map(area => {
-                    const performanceColor = area.performance >= 90 ? 'var(--ios-green)' :
-                                           area.performance >= 80 ? 'var(--ios-blue)' :
-                                           area.performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
+                    const performance = parseFloat(area.performance) || 0;
+                    const performanceColor = performance >= 90 ? 'var(--ios-green)' :
+                                           performance >= 80 ? 'var(--ios-blue)' :
+                                           performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
                     
-                    const trendIcon = area.trend > 0 ? '📈' : area.trend < 0 ? '📉' : '➡️';
-                    const trendText = area.trend > 0 ? `+${area.trend.toFixed(1)}%` :
-                                     area.trend < 0 ? `${area.trend.toFixed(1)}%` : 'Estable';
+                    const trend = parseFloat(area.trend) || 0;
+                    const trendIcon = trend > 0 ? '📈' : trend < 0 ? '📉' : '➡️';
+                    const trendText = trend > 0 ? `+${trend.toFixed(1)}%` :
+                                     trend < 0 ? `${trend.toFixed(1)}%` : 'Estable';
                     
                     return `
                         <div class="area-item">
@@ -4448,7 +4451,7 @@
                                 <div class="area-subtitle">${area.evaluaciones} evaluaciones • ${trendIcon} ${trendText}</div>
                             </div>
                             <div class="area-performance" style="color: ${performanceColor};">
-                                ${area.performance.toFixed(1)}%
+                                ${performance.toFixed(1)}%
                             </div>
                         </div>
                     `;
