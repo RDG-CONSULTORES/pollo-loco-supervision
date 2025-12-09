@@ -105,10 +105,14 @@ app.get('/api/kpis', async (req, res) => {
             paramIndex++;
         }
         
+        // Handle both single and multiple grupos
         if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
-            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
-            params.push(req.query.grupo);
-            paramIndex++;
+            const grupos = Array.isArray(req.query.grupo) ? req.query.grupo : [req.query.grupo];
+            if (grupos.length > 0) {
+                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                params.push(...grupos);
+            }
         }
         
         const query = `
@@ -194,10 +198,14 @@ app.get('/api/mapa', async (req, res) => {
         const params = [];
         let paramIndex = 1;
         
+        // Handle both single and multiple grupos
         if (grupo && grupo !== 'undefined' && grupo !== 'null') {
-            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
-            params.push(grupo);
-            paramIndex++;
+            const grupos = Array.isArray(grupo) ? grupo : [grupo];
+            if (grupos.length > 0) {
+                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                params.push(...grupos);
+            }
         }
         
         if (estado && estado !== 'undefined' && estado !== 'null') {
@@ -253,10 +261,14 @@ app.get('/api/historico', async (req, res) => {
         // Show ALL data from February 2025 onwards
         whereClause += ` AND fecha_supervision >= '2025-02-01'`;
         
+        // Handle both single and multiple grupos
         if (grupo && grupo !== 'undefined' && grupo !== 'null') {
-            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
-            params.push(grupo);
-            paramIndex++;
+            const grupos = Array.isArray(grupo) ? grupo : [grupo];
+            if (grupos.length > 0) {
+                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                params.push(...grupos);
+            }
         }
         
         const query = `
@@ -399,10 +411,14 @@ app.get('/api/grupos', async (req, res) => {
             paramIndex++;
         }
         
+        // Handle both single and multiple grupos
         if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
-            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
-            params.push(req.query.grupo);
-            paramIndex++;
+            const grupos = Array.isArray(req.query.grupo) ? req.query.grupo : [req.query.grupo];
+            if (grupos.length > 0) {
+                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                params.push(...grupos);
+            }
         }
         
         const query = `
@@ -557,10 +573,14 @@ app.get('/api/areas', async (req, res) => {
             paramIndex++;
         }
         
+        // Handle both single and multiple grupos
         if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
-            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
-            params.push(req.query.grupo);
-            paramIndex++;
+            const grupos = Array.isArray(req.query.grupo) ? req.query.grupo : [req.query.grupo];
+            if (grupos.length > 0) {
+                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                params.push(...grupos);
+            }
         }
         
         const query = `

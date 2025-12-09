@@ -1876,7 +1876,8 @@
             periodo: 'all',
             performance: 'all',
             estado: 'all',
-            grupo: ''
+            grupo: '',
+            grupos: []  // Support for multiple group selection
         };
         let kpiData = {};
         let map = null;
@@ -1886,9 +1887,9 @@
         let performanceChart = null;
         let criticalChart = null;
 
-        // API Base URL - Updated for backend server
+        // Simplified API URL - single server for everything
         const API_BASE = window.location.hostname === 'localhost' 
-            ? 'http://localhost:3001/api' 
+            ? 'http://localhost:3000/api' 
             : '/api';
 
         // HEATMAP FUNCTIONS - Exact from historico-v2.html
@@ -1900,11 +1901,8 @@
             try {
                 console.log('🔥 Loading heatmap data...');
                 
-                // Apply current filters from dashboard
-                let endpoint = '/api/heatmap-periods/all';
-                if (currentFilters.estado && currentFilters.estado !== 'all') {
-                    endpoint += `?estado=${encodeURIComponent(currentFilters.estado)}`;
-                }
+                // Apply current filters from dashboard using buildQueryString
+                const endpoint = `${API_BASE}/heatmap-periods/all${buildQueryString()}`;
                 
                 const response = await fetch(endpoint);
                 if (!response.ok) {
@@ -2527,6 +2525,13 @@
             
             // Reload data with new group selection
             loadData();
+            
+            // Update other tabs if they are currently active
+            if (currentTab === 'mapa') {
+                loadMapData();
+            } else if (currentTab === 'tendencias') {
+                loadHeatmapData();
+            }
         }
 
         function updateUI() {
