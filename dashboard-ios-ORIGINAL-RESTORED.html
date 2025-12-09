@@ -202,6 +202,18 @@
             margin-bottom: 35px;
         }
 
+        /* Section styling in modals */
+        .modal-content .section {
+            margin-bottom: 24px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: var(--ios-secondary-background);
+        }
+
+        .modal-content .section:last-child {
+            margin-bottom: 0;
+        }
+
         .section-header {
             padding: 12px 16px 8px 16px;
             font-size: 13px;
@@ -579,29 +591,83 @@
         }
 
         .modal-header {
-            padding: 16px;
+            padding: 20px 16px 16px;
             border-bottom: 0.5px solid var(--ios-separator);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            position: relative;
+            z-index: 2;
         }
 
         .modal-title {
             font-size: 17px;
             font-weight: 600;
             color: var(--ios-label);
+            flex: 1;
+            text-align: center;
         }
 
         .modal-close {
             color: var(--ios-blue);
             font-size: 17px;
+            font-weight: 600;
             background: none;
             border: none;
             cursor: pointer;
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            min-height: 44px;
+            min-width: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-close:active {
+            background: rgba(0, 122, 255, 0.1);
+            transform: scale(0.95);
         }
 
         .modal-content {
-            padding: 16px;
+            padding: 0 0 env(safe-area-inset-bottom);
+            max-height: calc(75vh - 80px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Enhanced modal interactions */
+        .modal-overlay {
+            touch-action: none;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .modal-overlay.active {
+            animation: modalBackdropFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalBackdropFadeIn {
+            from { 
+                background: rgba(0,0,0,0);
+            }
+            to { 
+                background: rgba(0,0,0,0.4);
+            }
+        }
+
+        /* Pull to dismiss hint */
+        .modal::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.02));
+            pointer-events: none;
         }
 
         /* Enhanced Filter Pills */
@@ -3086,11 +3152,13 @@
                 // Check if we have data
                 if (groupsData && groupsData.length > 0) {
                     // Process groups data
-                    allGroups = groupsData.map(g => ({
-                        name: g.grupo_operativo || g.grupo,
-                        performance: parseFloat(g.promedio) || 0,
-                        stores: parseInt(g.sucursales) || 0,
-                        supervisions: parseInt(g.supervisiones) || 0,
+                    allGroups = groupsData.map((g, index) => ({
+                        rank: index + 1,
+                        name: g.grupo_operativo || g.grupo || 'Sin nombre',
+                        performance: parseFloat(g.promedio || 0),
+                        sucursales: parseInt(g.sucursales || 0),
+                        supervisiones: parseInt(g.supervisiones || 0),
+                        trend: parseFloat(g.promedio || 0) - (kpiData.promedio_general || 87.92),
                         lastEvaluation: g.ultima_evaluacion,
                         estado: g.estado
                     }));
@@ -3629,13 +3697,76 @@
             }
         }
 
-        // Modals
+        // Enhanced Modals with Apple-style UX
         function showFilters() {
-            document.getElementById('filterModal').classList.add('active');
+            const modal = document.getElementById('filterModal');
+            modal.classList.add('active');
+            
+            // Add swipe-to-dismiss support
+            addSwipeToDismiss(modal);
         }
-
+        
         function closeFilters() {
             document.getElementById('filterModal').classList.remove('active');
+        }
+        
+        function addSwipeToDismiss(modalOverlay) {
+            const modal = modalOverlay.querySelector('.modal');
+            let startY = 0;
+            let currentY = 0;
+            let isDragging = false;
+            let initialHeight = 0;
+            
+            // Touch start
+            modal.addEventListener('touchstart', (e) => {
+                if (e.target.closest('.modal-header') || e.target.classList.contains('modal')) {
+                    startY = e.touches[0].clientY;
+                    initialHeight = modal.getBoundingClientRect().height;
+                    isDragging = true;
+                    modal.style.transition = 'none';
+                }
+            }, { passive: true });
+            
+            // Touch move
+            modal.addEventListener('touchmove', (e) => {
+                if (!isDragging) return;
+                
+                currentY = e.touches[0].clientY;
+                const deltaY = currentY - startY;
+                
+                // Only allow dragging down
+                if (deltaY > 0) {
+                    const progress = Math.min(deltaY / (initialHeight * 0.3), 1);
+                    const translateY = deltaY;
+                    const opacity = 1 - (progress * 0.4);
+                    
+                    modal.style.transform = `translateY(${translateY}px)`;
+                    modalOverlay.style.background = `rgba(0,0,0,${0.4 * opacity})`;
+                }
+            }, { passive: true });
+            
+            // Touch end
+            modal.addEventListener('touchend', (e) => {
+                if (!isDragging) return;
+                
+                const deltaY = currentY - startY;
+                const threshold = initialHeight * 0.2; // 20% of modal height
+                
+                modal.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                
+                if (deltaY > threshold) {
+                    // Dismiss modal
+                    closeFilters();
+                } else {
+                    // Snap back
+                    modal.style.transform = 'translateY(0)';
+                    modalOverlay.style.background = 'rgba(0,0,0,0.4)';
+                }
+                
+                isDragging = false;
+                startY = 0;
+                currentY = 0;
+            }, { passive: true });
         }
 
         function resetFilters() {
