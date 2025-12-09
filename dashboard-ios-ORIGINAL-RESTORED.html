@@ -40,6 +40,28 @@
             --ios-tertiary-label: #3C3C43;
             --ios-quaternary-label: #3C3C43;
             --ios-separator: rgba(60, 60, 67, 0.12);
+
+            /* EPL CAS Performance Colors - Standard System */
+            --epl-excelente: linear-gradient(135deg, #00b894 0%, #55efc4 100%);
+            --epl-muy-bueno: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
+            --epl-bueno: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
+            --epl-regular: linear-gradient(135deg, #fdcb6e 0%, #f39c12 100%);
+            --epl-critico: linear-gradient(135deg, #d63031 0%, #e17055 100%);
+            --epl-sin-datos: #E5E5EA;
+            
+            /* EPL CAS Solid Colors */
+            --epl-excelente-solid: #00b894;
+            --epl-muy-bueno-solid: #0984e3;
+            --epl-bueno-solid: #6c5ce7;
+            --epl-regular-solid: #e17055;
+            --epl-critico-solid: #d63031;
+            
+            /* EPL CAS Light Variants */
+            --epl-excelente-light: rgba(0, 184, 148, 0.1);
+            --epl-muy-bueno-light: rgba(9, 132, 227, 0.1);
+            --epl-bueno-light: rgba(108, 92, 231, 0.1);
+            --epl-regular-light: rgba(253, 203, 110, 0.1);
+            --epl-critico-light: rgba(214, 48, 49, 0.1);
         }
 
         body {
@@ -1078,12 +1100,19 @@
             margin-top: 0.125rem;
         }
 
+        /* Legacy diff styles - Updated to match new system */
         .diff-positive {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(0, 184, 148, 0.25);
+            border-radius: 3px;
+            padding: 1px 4px;
         }
 
         .diff-negative {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(214, 48, 49, 0.25);
+            border-radius: 3px;
+            padding: 1px 4px;
         }
 
         /* HEATMAP STYLES - Complete working version from dashboard-ios-complete.html */
@@ -1193,8 +1222,12 @@
             margin-top: 0.125rem;
         }
 
+        /* Second legacy diff styles - Updated to match new system */
         .diff-positive {
-            color: rgba(255, 255, 255, 0.9);
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(0, 184, 148, 0.25);
+            border-radius: 3px;
+            padding: 1px 4px;
         }
 
         /* Multi-Select Groups Styles */
@@ -1501,76 +1534,82 @@
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* Heat colors - EXACT from historico-v2.html */
+        /* EPL CAS Standard Heat Colors - Unified System */
         .heat-excelente { 
-            background: linear-gradient(135deg, #00b894, #55efc4); 
+            background: var(--epl-excelente);
             color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         .heat-muy-bueno { 
-            background: linear-gradient(135deg, #00cec9, #74b9ff); 
+            background: var(--epl-muy-bueno);
             color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         .heat-bueno { 
-            background: linear-gradient(135deg, #74b9ff, #a29bfe); 
+            background: var(--epl-bueno);
             color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         .heat-regular { 
-            background: linear-gradient(135deg, #fdcb6e, #f39c12); 
+            background: var(--epl-regular);
             color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         .heat-critico { 
-            background: linear-gradient(135deg, #d63031, #e17055); 
+            background: var(--epl-critico);
             color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
         }
 
         .heat-none {
-            background: var(--ios-gray-5);
+            background: var(--epl-sin-datos);
             color: var(--ios-gray);
+            font-weight: 400;
         }
 
-        /* Heatmap Colors */
-        .heat-excellent {
-            background-color: #1e7e34 !important;
-            color: white !important;
+        /* Enhanced Difference Indicators */
+        .diff-positive {
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(0, 184, 148, 0.25);
+            border-radius: 3px;
+            padding: 1px 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
         }
-        
-        .heat-very-good {
-            background-color: #28a745 !important;
-            color: white !important;
+
+        .diff-negative {
+            color: rgba(255, 255, 255, 0.95);
+            background: rgba(214, 48, 49, 0.25);
+            border-radius: 3px;
+            padding: 1px 4px;
+            font-size: 0.7rem;
+            font-weight: 500;
         }
-        
-        .heat-good {
-            background-color: #7bc96f !important;
-            color: white !important;
+
+        /* EPL CAS Row Styling */
+        .epl-cas-row {
+            background: linear-gradient(135deg, #2d3436 0%, #636e72 100%);
+            color: white;
+            font-weight: 700;
+            border: 2px solid var(--ios-blue);
+            position: sticky;
+            top: 44px;
+            z-index: 10;
         }
-        
-        .heat-average {
-            background-color: #ffc107 !important;
-            color: #333 !important;
-        }
-        
-        .heat-below-average {
-            background-color: #fd7e14 !important;
-            color: white !important;
-        }
-        
-        .heat-poor {
-            background-color: #dc3545 !important;
-            color: white !important;
-        }
-        
-        .heat-critical {
-            background-color: #721c24 !important;
-            color: white !important;
-        }
-        
-        .heat-none {
-            background-color: #f8f9fa !important;
-            color: #6c757d !important;
+
+        .epl-cas-row td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: none;
         }
         
         /* Heatmap table styles */
@@ -2607,7 +2646,10 @@
 
             // EPL CAS label
             const eplLabelCell = document.createElement('td');
-            eplLabelCell.innerHTML = `<div style="color: black; font-weight: bold;">PROMEDIO EPL CAS</div>`;
+            eplLabelCell.innerHTML = `<div style="display: flex; align-items: center; justify-content: center;">
+                <i class="fas fa-star" style="margin-right: 8px; color: #FFD700;"></i>
+                <span style="font-weight: 700; font-size: 0.9rem;">PROMEDIO EPL CAS</span>
+            </div>`;
             eplRow.appendChild(eplLabelCell);
 
             // EPL period values
@@ -2620,7 +2662,9 @@
                 
                 if (eplAverages[periodo] !== null) {
                     const promedio = parseFloat(eplAverages[periodo]) || 0;
-                    let cellContent = `<div>${promedio.toFixed(1)}%</div>`;
+                    const performanceClass = getHeatClass(promedio);
+                    
+                    let cellContent = `<div style="font-weight: 700; font-size: 0.95rem;">${promedio.toFixed(1)}%</div>`;
                     
                     // Add difference if enabled and there's a previous value
                     if (showDifferences && lastValidEpl !== null) {
@@ -2628,26 +2672,30 @@
                         const diffClass = diff > 0 ? 'diff-positive' : 'diff-negative';
                         const diffSign = diff > 0 ? '+' : '';
                         const trendArrow = diff > 0 ? '↗' : diff < 0 ? '↘' : '→';
-                        cellContent += `<div class="${diffClass}" style="font-size: 0.7rem; color: rgba(255,255,255,0.9);">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
+                        cellContent += `<div class="${diffClass}">${trendArrow} ${diffSign}${diff.toFixed(1)}%</div>`;
                     }
                     
                     cell.innerHTML = cellContent;
-                    cell.title = `EPL CAS - ${periodo}: ${promedio.toFixed(2)}%`;
+                    cell.className = performanceClass;
+                    cell.title = `EPL CAS - ${periodo}: ${promedio.toFixed(2)}% (${performanceClass.replace('heat-', '').toUpperCase()})`;
                     lastValidEpl = promedio;
                 } else {
-                    cell.innerHTML = '<div>-</div>';
+                    cell.innerHTML = '<div style="font-weight: 500;">-</div>';
+                    cell.className = 'heat-none';
                     cell.title = `EPL CAS - ${periodo}: Sin datos`;
                 }
                 
                 eplRow.appendChild(cell);
             });
 
-            // EPL overall average (no need for extra columns)
+            // EPL overall average with performance styling
             const eplAvgCell = document.createElement('td');
             eplAvgCell.style.textAlign = 'center';
             const eplAvg = parseFloat(eplOverallAverage) || 0;
-            eplAvgCell.textContent = `${eplAvg.toFixed(1)}%`;
-            eplAvgCell.title = `EPL CAS Promedio General: ${eplAvg.toFixed(2)}%`;
+            const eplOverallClass = getHeatClass(eplAvg);
+            eplAvgCell.innerHTML = `<div style="font-weight: 700; font-size: 0.95rem;">${eplAvg.toFixed(1)}%</div>`;
+            eplAvgCell.className = eplOverallClass;
+            eplAvgCell.title = `EPL CAS Promedio General: ${eplAvg.toFixed(2)}% (${eplOverallClass.replace('heat-', '').toUpperCase()})`;
             eplRow.appendChild(eplAvgCell);
 
             // Add EPL row first
@@ -2725,13 +2773,16 @@
             console.log('✅ Heatmap rendered with', sortedGroups.length, 'groups and EPL CAS row');
         }
 
-        // Get heat class - EXACT from historico-v2
+        // EPL CAS Standard Performance Classification
         function getHeatClass(performance) {
-            if (performance >= 95) return 'heat-excelente';
-            if (performance >= 91) return 'heat-muy-bueno';
-            if (performance >= 87) return 'heat-bueno';
-            if (performance >= 82) return 'heat-regular';
-            return 'heat-critico';
+            const perf = parseFloat(performance) || 0;
+            
+            if (perf >= 92) return 'heat-excelente';     // ≥92% - Excelente
+            if (perf >= 87) return 'heat-muy-bueno';     // 87-91% - Muy Bueno  
+            if (perf >= 82) return 'heat-bueno';         // 82-86% - Bueno
+            if (perf >= 77) return 'heat-regular';       // 77-81% - Regular
+            if (perf > 0)   return 'heat-critico';       // 1-76% - Crítico
+            return 'heat-none';                          // 0% - Sin datos
         }
 
         // Map fullscreen toggle
@@ -3666,12 +3717,12 @@
 
         function createHorizontalBar(group) {
             const rankClass = group.rank <= 3 ? `rank-${group.rank}` : 
-                             group.performance >= 90 ? 'rank-good' : 
-                             group.performance >= 70 ? 'rank-warning' : 'rank-critical';
+                             group.performance >= 92 ? 'rank-good' : 
+                             group.performance >= 77 ? 'rank-warning' : 'rank-critical';
             
-            const barClass = group.performance >= 90 ? 'excellent' : 
-                            group.performance >= 80 ? 'good' : 
-                            group.performance >= 70 ? 'regular' : 'critical';
+            // Use EPL CAS standard classification for bar colors
+            const performanceClass = getHeatClass(group.performance);
+            const barClass = performanceClass.replace('heat-', '');
             
             const trendClass = group.trend >= 0 ? 'trend-up' : 'trend-down';
             const trendSymbol = group.trend >= 0 ? '↑' : '↓';
@@ -3699,21 +3750,28 @@
         }
 
         function initCharts() {
-            // Performance distribution chart
+            // Performance distribution chart with EPL CAS standards
             const ctx1 = document.getElementById('performanceChart');
             if (ctx1 && !performanceChart) {
-                const excellent = allGroups.filter(g => g.performance >= 90).length;
-                const good = allGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
-                const regular = allGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
-                const critical = allGroups.filter(g => g.performance < 70).length;
+                const excellent = allGroups.filter(g => g.performance >= 92).length;
+                const muyBueno = allGroups.filter(g => g.performance >= 87 && g.performance < 92).length;
+                const bueno = allGroups.filter(g => g.performance >= 82 && g.performance < 87).length;
+                const regular = allGroups.filter(g => g.performance >= 77 && g.performance < 82).length;
+                const critical = allGroups.filter(g => g.performance < 77).length;
 
                 performanceChart = new Chart(ctx1, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'],
+                        labels: ['Excelentes ≥92%', 'Muy Buenos 87-91%', 'Buenos 82-86%', 'Regulares 77-81%', 'Críticos <77%'],
                         datasets: [{
-                            data: [excellent, good, regular, critical],
-                            backgroundColor: ['#34C759', '#007AFF', '#FFCC00', '#FF3B30'],
+                            data: [excellent, muyBueno, bueno, regular, critical],
+                            backgroundColor: [
+                                'var(--epl-excelente-solid)',
+                                'var(--epl-muy-bueno-solid)', 
+                                'var(--epl-bueno-solid)',
+                                'var(--epl-regular-solid)',
+                                'var(--epl-critico-solid)'
+                            ],
                             borderWidth: 0
                         }]
                     },
@@ -3737,15 +3795,24 @@
         }
 
         function updateCharts(filteredGroups) {
-            // Calculate data
-            const excellent = filteredGroups.filter(g => g.performance >= 90).length;
-            const good = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
-            const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
-            const critical = filteredGroups.filter(g => g.performance < 70).length;
+            // Calculate data using EPL CAS standard thresholds
+            const excellent = filteredGroups.filter(g => g.performance >= 92).length;
+            const muyBueno = filteredGroups.filter(g => g.performance >= 87 && g.performance < 92).length;
+            const bueno = filteredGroups.filter(g => g.performance >= 82 && g.performance < 87).length;
+            const regular = filteredGroups.filter(g => g.performance >= 77 && g.performance < 82).length;
+            const critical = filteredGroups.filter(g => g.performance < 77).length;
 
-            // Update performance chart
+            // Update performance chart with EPL CAS categories
             if (performanceChart) {
-                performanceChart.data.datasets[0].data = [excellent, good, regular, critical];
+                performanceChart.data.labels = ['Excelentes ≥92%', 'Muy Buenos 87-91%', 'Buenos 82-86%', 'Regulares 77-81%', 'Críticos <77%'];
+                performanceChart.data.datasets[0].data = [excellent, muyBueno, bueno, regular, critical];
+                performanceChart.data.datasets[0].backgroundColor = [
+                    'var(--epl-excelente-solid)',
+                    'var(--epl-muy-bueno-solid)', 
+                    'var(--epl-bueno-solid)',
+                    'var(--epl-regular-solid)',
+                    'var(--epl-critico-solid)'
+                ];
                 performanceChart.update();
             }
 
@@ -3755,11 +3822,11 @@
                 criticalChart = null;
             }
 
-            // Critical chart for criticos view
+            // Critical chart for criticos view using EPL CAS standards
             if (currentView === 'criticos' && !criticalChart) {
                 const ctx2 = document.getElementById('criticalChart');
                 if (ctx2) {
-                    const criticalData = filteredGroups.filter(g => g.performance < 80);
+                    const criticalData = filteredGroups.filter(g => g.performance < 82);
                     if (criticalData.length > 0) {
                         criticalChart = new Chart(ctx2, {
                             type: 'bar',
@@ -3767,9 +3834,10 @@
                                 labels: criticalData.map(g => g.name),
                                 datasets: [{
                                     data: criticalData.map(g => g.performance),
-                                    backgroundColor: criticalData.map(g => 
-                                        g.performance >= 70 ? '#FFCC00' : '#FF3B30'
-                                    ),
+                                    backgroundColor: criticalData.map(g => {
+                                        const performanceClass = getHeatClass(g.performance);
+                                        return performanceClass === 'heat-regular' ? 'var(--epl-regular-solid)' : 'var(--epl-critico-solid)';
+                                    }),
                                     borderWidth: 0,
                                     borderRadius: 4
                                 }]
@@ -4827,16 +4895,16 @@
             renderCASPeriodsHeatmap(modifiedData);
         }
 
-        // Heat class helper function
-        function getHeatClass(value) {
+        // EPL CAS Standard Classification - Unified across all components
+        function getEPLPerformanceClass(value) {
             const perf = parseFloat(value) || 0;
-            if (perf >= 95) return 'heat-excellent';
-            if (perf >= 90) return 'heat-very-good'; 
-            if (perf >= 85) return 'heat-good';
-            if (perf >= 80) return 'heat-average';
-            if (perf >= 70) return 'heat-below-average';
-            if (perf >= 60) return 'heat-poor';
-            return 'heat-critical';
+            
+            if (perf >= 92) return 'heat-excelente';     // ≥92% - Excelente
+            if (perf >= 87) return 'heat-muy-bueno';     // 87-91% - Muy Bueno  
+            if (perf >= 82) return 'heat-bueno';         // 82-86% - Bueno
+            if (perf >= 77) return 'heat-regular';       // 77-81% - Regular
+            if (perf > 0)   return 'heat-critico';       // 1-76% - Crítico
+            return 'heat-none';                          // 0% - Sin datos
         }
 
         function refreshData() {
