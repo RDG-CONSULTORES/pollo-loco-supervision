@@ -2693,6 +2693,9 @@
             const container = document.getElementById('grupo-pills-scroll');
             if (!container) return;
             
+            // PRESERVE CURRENT SELECTIONS before clearing
+            const currentSelections = currentFilters.grupos || [];
+            
             // Clear loading
             container.innerHTML = '';
             
@@ -2705,6 +2708,12 @@
                 const pill = document.createElement('button');
                 pill.className = 'grupo-pill';
                 pill.dataset.grupo = group.name;
+                
+                // RESTORE SELECTION STATE
+                if (currentSelections.includes(group.name)) {
+                    pill.classList.add('selected');
+                }
+                
                 pill.innerHTML = `
                     <span class="grupo-pill-name">${group.name}</span>
                     <span class="grupo-pill-performance">${group.performance.toFixed(1)}%</span>
@@ -2715,11 +2724,70 @@
             
             // Setup event listeners
             setupGroupPillEvents();
+            
+            // PRESERVE PRESET STATE
+            preservePresetState(currentSelections);
+        }
+        
+        function preservePresetState(currentSelections) {
+            // Clear all preset active states first
+            document.querySelectorAll('.preset-pill').forEach(preset => {
+                preset.classList.remove('active');
+            });
+            
+            // If no selections, activate "Todos"
+            if (currentSelections.length === 0) {
+                document.querySelector('[data-preset="all"]')?.classList.add('active');
+                return;
+            }
+            
+            // Check if current selections match any preset
+            const topGroups = allGroupsComplete
+                .slice()
+                .sort((a, b) => b.performance - a.performance)
+                .slice(0, 5)
+                .map(g => g.name);
+            
+            const criticalGroups = allGroupsComplete
+                .filter(g => g.performance < 80)
+                .map(g => g.name);
+            
+            const nlGroups = allGroupsComplete
+                .filter(g => g.name.toLowerCase().includes('nuevo león') || 
+                           g.name.toLowerCase().includes('monterrey') ||
+                           g.name.toLowerCase().includes('guadalupe'))
+                .map(g => g.name);
+            
+            const foraneasGroups = allGroupsComplete
+                .filter(g => !g.name.toLowerCase().includes('nuevo león') && 
+                           !g.name.toLowerCase().includes('monterrey') &&
+                           !g.name.toLowerCase().includes('guadalupe') &&
+                           !g.name.toLowerCase().includes('saltillo'))
+                .map(g => g.name);
+            
+            // Check which preset matches current selection
+            if (arraysEqual(currentSelections.sort(), topGroups.sort())) {
+                document.querySelector('[data-preset="top5"]')?.classList.add('active');
+            } else if (arraysEqual(currentSelections.sort(), criticalGroups.sort())) {
+                document.querySelector('[data-preset="critical"]')?.classList.add('active');
+            } else if (arraysEqual(currentSelections.sort(), nlGroups.sort())) {
+                document.querySelector('[data-preset="nl"]')?.classList.add('active');
+            } else if (arraysEqual(currentSelections.sort(), foraneasGroups.sort())) {
+                document.querySelector('[data-preset="foraneas"]')?.classList.add('active');
+            }
+            // If no preset matches, leave all deactivated (custom selection)
+        }
+        
+        function arraysEqual(arr1, arr2) {
+            return arr1.length === arr2.length && arr1.every(item => arr2.includes(item));
         }
 
         function populateGroupMultiSelect() {
             const container = document.getElementById('grupos-checklist');
             if (!container) return;
+            
+            // PRESERVE CURRENT SELECTIONS before clearing (legacy support)
+            const currentSelections = currentFilters.grupos || [];
             
             // Clear loading
             container.innerHTML = '';
@@ -2730,8 +2798,11 @@
                 item.className = 'grupo-checkbox-item';
                 item.dataset.grupo = group.name;
                 
+                const isSelected = currentSelections.includes(group.name);
+                const checkboxClass = isSelected ? 'grupo-checkbox checked' : 'grupo-checkbox';
+                
                 item.innerHTML = `
-                    <div class="grupo-checkbox" data-grupo="${group.name}"></div>
+                    <div class="${checkboxClass}" data-grupo="${group.name}"></div>
                     <div class="grupo-label">${group.name} (${group.performance.toFixed(1)}%)</div>
                 `;
                 
@@ -2777,13 +2848,28 @@
                 selectedGroups.push(checkbox.dataset.grupo);
             });
             
+            // Check if selection actually changed to avoid unnecessary reloads
+            const previousGroups = currentFilters.grupos || [];
+            const hasChanged = !arraysEqual(selectedGroups.sort(), previousGroups.sort());
+            
+            if (!hasChanged) {
+                console.log('📊 No change in group selection (checkboxes), skipping reload');
+                return;
+            }
+            
             // Update current filters - store as array now
             currentFilters.grupos = selectedGroups;
             
-            console.log('📊 Selected groups:', selectedGroups.length > 0 ? selectedGroups : 'All groups');
+            console.log('📊 Selected groups (checkboxes):', selectedGroups.length > 0 ? selectedGroups : 'All groups');
+            
+            // Sync with pills quietly (don't trigger their events)
+            syncPillsWithCheckboxesQuiet(selectedGroups);
+            
+            // Update preset state to reflect changes
+            preservePresetState(selectedGroups);
             
             // Reload data with new group selection
-            loadData();
+            loadDataWithoutPopulatingGroups();
             
             // Update other tabs if they are currently active
             if (currentTab === 'mapa') {
@@ -2827,16 +2913,25 @@
                 selectedGroups.push(pill.dataset.grupo);
             });
             
+            // Check if selection actually changed to avoid unnecessary reloads
+            const previousGroups = currentFilters.grupos || [];
+            const hasChanged = !arraysEqual(selectedGroups.sort(), previousGroups.sort());
+            
+            if (!hasChanged) {
+                console.log('💊 No change in group selection, skipping reload');
+                return;
+            }
+            
             // Update current filters
             currentFilters.grupos = selectedGroups;
             
             console.log('💊 Selected groups (pills):', selectedGroups.length > 0 ? selectedGroups : 'All groups');
             
-            // Sync with checkboxes (legacy support)
-            syncCheckboxesWithPills(selectedGroups);
+            // Sync with checkboxes (legacy support) - but DON'T trigger their events
+            syncCheckboxesWithPillsQuiet(selectedGroups);
             
             // Reload data
-            loadData();
+            loadDataWithoutPopulatingGroups();
             
             // Update other tabs if active
             if (currentTab === 'mapa') {
@@ -2938,6 +3033,10 @@
         }
         
         function syncCheckboxesWithPills(selectedGroups) {
+            syncCheckboxesWithPillsQuiet(selectedGroups);
+        }
+        
+        function syncCheckboxesWithPillsQuiet(selectedGroups) {
             // Clear all checkboxes
             document.querySelectorAll('.grupo-checkbox').forEach(checkbox => {
                 checkbox.classList.remove('checked');
@@ -2950,6 +3049,69 @@
                     checkbox.classList.add('checked');
                 }
             });
+        }
+        
+        function syncPillsWithCheckboxesQuiet(selectedGroups) {
+            // Clear all pills
+            document.querySelectorAll('.grupo-pill').forEach(pill => {
+                pill.classList.remove('selected');
+            });
+            
+            // Select corresponding pills
+            selectedGroups.forEach(groupName => {
+                const pill = document.querySelector(`[data-grupo="${groupName}"].grupo-pill`);
+                if (pill) {
+                    pill.classList.add('selected');
+                }
+            });
+        }
+        
+        async function loadDataWithoutPopulatingGroups() {
+            try {
+                showLoading();
+                
+                // Clear previous data to avoid showing stale information
+                allGroups = [];
+                updateUI(); // Show empty state while loading
+                
+                // Load KPIs
+                const kpiResponse = await fetch(`${API_BASE}/kpis${buildQueryString()}`);
+                kpiData = await kpiResponse.json();
+                updateKPIs();
+                
+                // Load Groups
+                const groupsResponse = await fetch(`${API_BASE}/grupos${buildQueryString()}`);
+                const groupsData = await groupsResponse.json();
+                
+                // Check if we have data
+                if (groupsData && groupsData.length > 0) {
+                    // Process groups data
+                    allGroups = groupsData.map(g => ({
+                        name: g.grupo_operativo || g.grupo,
+                        performance: parseFloat(g.promedio) || 0,
+                        stores: parseInt(g.sucursales) || 0,
+                        supervisions: parseInt(g.supervisiones) || 0,
+                        lastEvaluation: g.ultima_evaluacion,
+                        estado: g.estado
+                    }));
+                    
+                    // DO NOT call populateGroupSelect() here - that's the problem!
+                    // Just update the UI with current data
+                    updateUI();
+                } else {
+                    allGroups = [];
+                    showNoDataMessage();
+                }
+                
+                initCharts();
+                hideLoading();
+                
+            } catch (error) {
+                console.error('❌ Error loading data (without populating groups):', error);
+                allGroups = [];
+                showNoDataMessage();
+                hideLoading();
+            }
         }
 
         function updateUI() {
