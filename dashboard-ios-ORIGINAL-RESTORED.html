@@ -3768,11 +3768,11 @@
                         datasets: [{
                             data: [excellent, muyBueno, bueno, regular, critical],
                             backgroundColor: [
-                                'var(--epl-excelente-solid)',
-                                'var(--epl-muy-bueno-solid)', 
-                                'var(--epl-bueno-solid)',
-                                'var(--epl-regular-solid)',
-                                'var(--epl-critico-solid)'
+                                '#00b894', // excelente
+                                '#0984e3', // muy-bueno
+                                '#6c5ce7', // bueno
+                                '#e17055', // regular
+                                '#d63031'  // critico
                             ],
                             borderWidth: 0
                         }]
@@ -3809,11 +3809,11 @@
                 performanceChart.data.labels = ['Excelentes ≥92%', 'Muy Buenos 87-91%', 'Buenos 82-86%', 'Regulares 77-81%', 'Críticos <77%'];
                 performanceChart.data.datasets[0].data = [excellent, muyBueno, bueno, regular, critical];
                 performanceChart.data.datasets[0].backgroundColor = [
-                    'var(--epl-excelente-solid)',
-                    'var(--epl-muy-bueno-solid)', 
-                    'var(--epl-bueno-solid)',
-                    'var(--epl-regular-solid)',
-                    'var(--epl-critico-solid)'
+                    '#00b894', // excelente
+                    '#0984e3', // muy-bueno
+                    '#6c5ce7', // bueno
+                    '#e17055', // regular
+                    '#d63031'  // critico
                 ];
                 performanceChart.update();
             }
@@ -3838,7 +3838,7 @@
                                     data: criticalData.map(g => g.performance),
                                     backgroundColor: criticalData.map(g => {
                                         const performanceClass = getHeatClass(g.performance);
-                                        return performanceClass === 'heat-regular' ? 'var(--epl-regular-solid)' : 'var(--epl-critico-solid)';
+                                        return performanceClass === 'heat-regular' ? '#e17055' : '#d63031';
                                     }),
                                     borderWidth: 0,
                                     borderRadius: 4
