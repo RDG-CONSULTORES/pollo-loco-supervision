@@ -483,7 +483,6 @@
             display: flex;
             /* Add safe area support */
             padding-bottom: env(safe-area-inset-bottom);
-        }
             padding: 0 2px;
         }
 
@@ -893,6 +892,93 @@
 
         .diff-positive {
             color: rgba(255, 255, 255, 0.9);
+        }
+
+        /* Multi-Select Groups Styles */
+        .grupo-multi-select {
+            border: 1px solid var(--ios-gray-4);
+            border-radius: 8px;
+            background: var(--ios-secondary-background);
+            overflow: hidden;
+        }
+
+        .multi-select-header {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--ios-gray-6);
+            border-bottom: 0.5px solid var(--ios-separator);
+        }
+
+        .select-all-btn, .clear-all-btn {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid var(--ios-gray-4);
+            border-radius: 6px;
+            background: var(--ios-secondary-background);
+            color: var(--ios-blue);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .select-all-btn:active, .clear-all-btn:active {
+            transform: scale(0.95);
+            background: var(--ios-gray-5);
+        }
+
+        .grupos-checklist {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+
+        .grupo-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .grupo-checkbox-item:hover {
+            background: var(--ios-gray-6);
+        }
+
+        .grupo-checkbox-item:active {
+            transform: scale(0.98);
+        }
+
+        .grupo-checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--ios-gray-4);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .grupo-checkbox.checked {
+            background: var(--ios-blue);
+            border-color: var(--ios-blue);
+        }
+
+        .grupo-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .grupo-label {
+            flex: 1;
+            font-size: 0.875rem;
+            color: var(--ios-label);
         }
 
         .heatmap-filters {
@@ -1733,10 +1819,17 @@
                 </div>
 
                 <div class="section">
-                    <div class="section-header">GRUPO OPERATIVO</div>
-                    <select id="grupo-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--ios-gray-4); font-size: 16px;">
-                        <option value="">Todos los grupos</option>
-                    </select>
+                    <div class="section-header">GRUPOS OPERATIVOS</div>
+                    <div class="grupo-multi-select" id="grupo-multi-select">
+                        <div class="multi-select-header">
+                            <button class="select-all-btn" data-action="selectAllGroups">Seleccionar Todos</button>
+                            <button class="clear-all-btn" data-action="clearAllGroups">Limpiar</button>
+                        </div>
+                        <div class="grupos-checklist" id="grupos-checklist">
+                            <!-- Groups will be populated dynamically -->
+                            <div class="loading">Cargando grupos...</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -2332,8 +2425,15 @@
                 params.append('periodoCas', currentFilters.periodo);
             }
             
+            // Support both legacy single grupo and new multi grupos
             if (currentFilters.grupo) {
                 params.append('grupo', currentFilters.grupo);
+            }
+            
+            if (currentFilters.grupos && currentFilters.grupos.length > 0) {
+                currentFilters.grupos.forEach(grupo => {
+                    params.append('grupo', grupo);
+                });
             }
 
             if (currentFilters.estado && currentFilters.estado !== 'all') {
@@ -2356,23 +2456,77 @@
         }
 
         function populateGroupSelect() {
-            const select = document.getElementById('grupo-select');
-            const currentValue = select.value; // Save current selection
+            // NEW: Populate multi-select checklist
+            populateGroupMultiSelect();
+        }
+
+        function populateGroupMultiSelect() {
+            const container = document.getElementById('grupos-checklist');
+            if (!container) return;
             
-            select.innerHTML = '<option value="">Todos los grupos</option>';
+            // Clear loading
+            container.innerHTML = '';
             
             // Use complete list instead of filtered list
             allGroupsComplete.forEach(group => {
-                const option = document.createElement('option');
-                option.value = group.name;
-                option.textContent = `${group.name} (${group.performance.toFixed(2)}%)`;
-                select.appendChild(option);
+                const item = document.createElement('div');
+                item.className = 'grupo-checkbox-item';
+                item.dataset.grupo = group.name;
+                
+                item.innerHTML = `
+                    <div class="grupo-checkbox" data-grupo="${group.name}"></div>
+                    <div class="grupo-label">${group.name} (${group.performance.toFixed(1)}%)</div>
+                `;
+                
+                container.appendChild(item);
             });
             
-            // Restore selection if it still exists
-            if (currentValue) {
-                select.value = currentValue;
-            }
+            // Add event listeners
+            setupGroupMultiSelectEvents();
+        }
+
+        function setupGroupMultiSelectEvents() {
+            // Individual checkbox clicks
+            document.querySelectorAll('.grupo-checkbox-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const checkbox = this.querySelector('.grupo-checkbox');
+                    const grupo = this.dataset.grupo;
+                    
+                    checkbox.classList.toggle('checked');
+                    updateSelectedGroups();
+                });
+            });
+            
+            // Select All button
+            document.querySelector('[data-action="selectAllGroups"]')?.addEventListener('click', function() {
+                document.querySelectorAll('.grupo-checkbox').forEach(checkbox => {
+                    checkbox.classList.add('checked');
+                });
+                updateSelectedGroups();
+            });
+            
+            // Clear All button
+            document.querySelector('[data-action="clearAllGroups"]')?.addEventListener('click', function() {
+                document.querySelectorAll('.grupo-checkbox').forEach(checkbox => {
+                    checkbox.classList.remove('checked');
+                });
+                updateSelectedGroups();
+            });
+        }
+
+        function updateSelectedGroups() {
+            const selectedGroups = [];
+            document.querySelectorAll('.grupo-checkbox.checked').forEach(checkbox => {
+                selectedGroups.push(checkbox.dataset.grupo);
+            });
+            
+            // Update current filters - store as array now
+            currentFilters.grupos = selectedGroups;
+            
+            console.log('📊 Selected groups:', selectedGroups.length > 0 ? selectedGroups : 'All groups');
+            
+            // Reload data with new group selection
+            loadData();
         }
 
         function updateUI() {
@@ -2905,7 +3059,8 @@
                 periodo: 'all',
                 performance: 'all',
                 estado: 'all',
-                grupo: ''
+                grupo: '',
+                grupos: []
             };
 
             // Reset UI
@@ -2916,9 +3071,10 @@
                 }
             });
 
-            // Reset grupo select
-            const grupoSelect = document.getElementById('grupo-select');
-            if (grupoSelect) grupoSelect.value = '';
+            // Reset grupo multi-select
+            document.querySelectorAll('.grupo-checkbox').forEach(checkbox => {
+                checkbox.classList.remove('checked');
+            });
 
             // Reload data
             loadData();
@@ -3344,11 +3500,8 @@
                 }
             });
 
-            // Grupo select
-            document.getElementById('grupo-select').addEventListener('change', function(e) {
-                currentFilters.grupo = e.target.value;
-                loadData();
-            });
+            // Grupo select - DEPRECATED, using multi-select now
+            // Multi-select events are handled in setupGroupMultiSelectEvents()
 
             // Close modal on background click
             document.querySelectorAll('.modal-overlay').forEach(modal => {
