@@ -2349,19 +2349,49 @@
 
         async function loadEstados() {
             try {
+                console.log('🏛️ Loading estados...');
                 const response = await fetch(`${API_BASE}/estados`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const estados = await response.json();
+                console.log('🏛️ Estados API response:', estados);
                 
                 const estadoFilters = document.getElementById('estado-filters');
-                estados.forEach(estado => {
-                    const button = document.createElement('button');
-                    button.className = 'filter-pill';
-                    button.dataset.value = estado.estado;
-                    button.textContent = estado.estado;
-                    estadoFilters.appendChild(button);
-                });
+                console.log('🏛️ Estado filters element found:', !!estadoFilters);
+                
+                if (estadoFilters && estados && Array.isArray(estados) && estados.length > 0) {
+                    // Keep "Todos" button and add estados
+                    const todosButton = estadoFilters.querySelector('[data-value="all"]');
+                    
+                    // Clear all except "Todos" button
+                    const existingButtons = estadoFilters.querySelectorAll('.filter-pill:not([data-value="all"])');
+                    existingButtons.forEach(btn => btn.remove());
+                    
+                    // Add estados
+                    estados.forEach(estado => {
+                        const button = document.createElement('button');
+                        button.className = 'filter-pill';
+                        button.dataset.value = estado; // API returns strings directly
+                        button.textContent = estado;
+                        estadoFilters.appendChild(button);
+                    });
+                    
+                    console.log(`✅ Estados loaded successfully: ${estados.length} estados`);
+                    console.log('🏛️ Estados:', estados.join(', '));
+                } else {
+                    console.warn('⚠️ Estados not loaded:', {
+                        elementExists: !!estadoFilters,
+                        estadosExists: !!estados,
+                        isArray: Array.isArray(estados),
+                        length: estados ? estados.length : 0
+                    });
+                }
             } catch (error) {
-                console.error('Error loading estados:', error);
+                console.error('❌ Error loading estados:', error);
+                console.error('❌ Estados API endpoint:', `${API_BASE}/estados`);
             }
         }
 
