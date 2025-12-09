@@ -41,27 +41,24 @@
             --ios-quaternary-label: #3C3C43;
             --ios-separator: rgba(60, 60, 67, 0.12);
 
-            /* EPL CAS Performance Colors - Standard System */
-            --epl-excelente: linear-gradient(135deg, #00b894 0%, #55efc4 100%);
-            --epl-muy-bueno: linear-gradient(135deg, #0984e3 0%, #74b9ff 100%);
-            --epl-bueno: linear-gradient(135deg, #6c5ce7 0%, #a29bfe 100%);
-            --epl-regular: linear-gradient(135deg, #fdcb6e 0%, #f39c12 100%);
-            --epl-critico: linear-gradient(135deg, #d63031 0%, #e17055 100%);
+            /* EPL CAS Performance Colors - Alineado con Marca 90% */
+            --epl-excelente: linear-gradient(135deg, #34C759 0%, #28a745 100%);
+            --epl-bueno: linear-gradient(135deg, #007AFF 0%, #0056b3 100%);
+            --epl-regular: linear-gradient(135deg, #FF9500 0%, #e6850e 100%);
+            --epl-critico: linear-gradient(135deg, #FF3B30 0%, #d32f2f 100%);
             --epl-sin-datos: #E5E5EA;
             
             /* EPL CAS Solid Colors */
-            --epl-excelente-solid: #00b894;
-            --epl-muy-bueno-solid: #0984e3;
-            --epl-bueno-solid: #6c5ce7;
-            --epl-regular-solid: #e17055;
-            --epl-critico-solid: #d63031;
+            --epl-excelente-solid: #34C759;
+            --epl-bueno-solid: #007AFF;
+            --epl-regular-solid: #FF9500;
+            --epl-critico-solid: #FF3B30;
             
             /* EPL CAS Light Variants */
-            --epl-excelente-light: rgba(0, 184, 148, 0.1);
-            --epl-muy-bueno-light: rgba(9, 132, 227, 0.1);
-            --epl-bueno-light: rgba(108, 92, 231, 0.1);
-            --epl-regular-light: rgba(253, 203, 110, 0.1);
-            --epl-critico-light: rgba(214, 48, 49, 0.1);
+            --epl-excelente-light: rgba(52, 199, 89, 0.1);
+            --epl-bueno-light: rgba(0, 122, 255, 0.1);
+            --epl-regular-light: rgba(255, 149, 0, 0.1);
+            --epl-critico-light: rgba(255, 59, 48, 0.1);
         }
 
         body {
@@ -1534,16 +1531,9 @@
             box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        /* EPL CAS Standard Heat Colors - Unified System */
+        /* EPL CAS Standard Heat Colors - Alineado con Marca 90% */
         .heat-excelente { 
             background: var(--epl-excelente);
-            color: white;
-            font-weight: 600;
-            text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-
-        .heat-muy-bueno { 
-            background: var(--epl-muy-bueno);
             color: white;
             font-weight: 600;
             text-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -2344,12 +2334,12 @@
                     <div class="section-header">PERÍODO CAS</div>
                     <div class="filter-pills" id="periodo-filters">
                         <button class="filter-pill active" data-value="all">Todos</button>
-                        <button class="filter-pill" data-value="NL-T4-2025">NL-T4 (Activo)</button>
-                        <button class="filter-pill" data-value="NL-T3-2025">NL-T3 (Oct 9)</button>
-                        <button class="filter-pill" data-value="FOR-S2-2025">FOR-S2 (Nov 7)</button>
-                        <button class="filter-pill" data-value="NL-T2-2025">NL-T2 (Ago 18)</button>
-                        <button class="filter-pill" data-value="FOR-S1-2025">FOR-S1 (Jun 9)</button>
-                        <button class="filter-pill" data-value="NL-T1-2025">NL-T1 (Abr 16)</button>
+                        <button class="filter-pill" data-value="NL-T4-2025">NL-T4</button>
+                        <button class="filter-pill" data-value="NL-T3-2025">NL-T3</button>
+                        <button class="filter-pill" data-value="FOR-S2-2025">FOR-S2</button>
+                        <button class="filter-pill" data-value="NL-T2-2025">NL-T2</button>
+                        <button class="filter-pill" data-value="FOR-S1-2025">FOR-S1</button>
+                        <button class="filter-pill" data-value="NL-T1-2025">NL-T1</button>
                     </div>
                 </div>
 
@@ -2775,15 +2765,14 @@
             console.log('✅ Heatmap rendered with', sortedGroups.length, 'groups and EPL CAS row');
         }
 
-        // EPL CAS Standard Performance Classification
+        // EPL CAS Standard Performance Classification - Alineado con Meta 90%
         function getHeatClass(performance) {
             const perf = parseFloat(performance) || 0;
             
-            if (perf >= 92) return 'heat-excelente';     // ≥92% - Excelente
-            if (perf >= 87) return 'heat-muy-bueno';     // 87-91% - Muy Bueno  
-            if (perf >= 82) return 'heat-bueno';         // 82-86% - Bueno
-            if (perf >= 77) return 'heat-regular';       // 77-81% - Regular
-            if (perf > 0)   return 'heat-critico';       // 1-76% - Crítico
+            if (perf >= 90) return 'heat-excelente';     // ≥90% - Meta EPL alcanzada
+            if (perf >= 80) return 'heat-bueno';         // 80-89% - Buen rendimiento  
+            if (perf >= 70) return 'heat-regular';       // 70-79% - Regular
+            if (perf > 0)   return 'heat-critico';       // <70% - Crítico
             return 'heat-none';                          // 0% - Sin datos
         }
 
@@ -3719,12 +3708,13 @@
 
         function createHorizontalBar(group) {
             const rankClass = group.rank <= 3 ? `rank-${group.rank}` : 
-                             group.performance >= 92 ? 'rank-good' : 
-                             group.performance >= 77 ? 'rank-warning' : 'rank-critical';
+                             group.performance >= 90 ? 'rank-good' : 
+                             group.performance >= 70 ? 'rank-warning' : 'rank-critical';
             
-            // Use EPL CAS standard classification for bar colors
-            const performanceClass = getHeatClass(group.performance);
-            const barClass = performanceClass.replace('heat-', '');
+            // CORREGIDO: Mapeo a clases CSS existentes (inglés)
+            const barClass = group.performance >= 90 ? 'excellent' : 
+                            group.performance >= 80 ? 'good' : 
+                            group.performance >= 70 ? 'regular' : 'critical';
             
             const trendClass = group.trend >= 0 ? 'trend-up' : 'trend-down';
             const trendSymbol = group.trend >= 0 ? '↑' : '↓';
@@ -3755,24 +3745,22 @@
             // Performance distribution chart with EPL CAS standards
             const ctx1 = document.getElementById('performanceChart');
             if (ctx1 && !performanceChart) {
-                const excellent = allGroups.filter(g => g.performance >= 92).length;
-                const muyBueno = allGroups.filter(g => g.performance >= 87 && g.performance < 92).length;
-                const bueno = allGroups.filter(g => g.performance >= 82 && g.performance < 87).length;
-                const regular = allGroups.filter(g => g.performance >= 77 && g.performance < 82).length;
-                const critical = allGroups.filter(g => g.performance < 77).length;
+                const excellent = allGroups.filter(g => g.performance >= 90).length;
+                const bueno = allGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+                const regular = allGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+                const critical = allGroups.filter(g => g.performance < 70).length;
 
                 performanceChart = new Chart(ctx1, {
                     type: 'doughnut',
                     data: {
-                        labels: ['Excelentes ≥92%', 'Muy Buenos 87-91%', 'Buenos 82-86%', 'Regulares 77-81%', 'Críticos <77%'],
+                        labels: ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'],
                         datasets: [{
-                            data: [excellent, muyBueno, bueno, regular, critical],
+                            data: [excellent, bueno, regular, critical],
                             backgroundColor: [
-                                '#00b894', // excelente
-                                '#0984e3', // muy-bueno
-                                '#6c5ce7', // bueno
-                                '#e17055', // regular
-                                '#d63031'  // critico
+                                '#34C759', // excelente - Verde iOS marca
+                                '#007AFF', // bueno - Azul iOS marca  
+                                '#FF9500', // regular - Naranja iOS marca
+                                '#FF3B30'  // critico - Rojo iOS marca
                             ],
                             borderWidth: 0
                         }]
@@ -3797,23 +3785,21 @@
         }
 
         function updateCharts(filteredGroups) {
-            // Calculate data using EPL CAS standard thresholds
-            const excellent = filteredGroups.filter(g => g.performance >= 92).length;
-            const muyBueno = filteredGroups.filter(g => g.performance >= 87 && g.performance < 92).length;
-            const bueno = filteredGroups.filter(g => g.performance >= 82 && g.performance < 87).length;
-            const regular = filteredGroups.filter(g => g.performance >= 77 && g.performance < 82).length;
-            const critical = filteredGroups.filter(g => g.performance < 77).length;
+            // Calculate data using EPL CAS standard thresholds - Meta 90%
+            const excellent = filteredGroups.filter(g => g.performance >= 90).length;
+            const bueno = filteredGroups.filter(g => g.performance >= 80 && g.performance < 90).length;
+            const regular = filteredGroups.filter(g => g.performance >= 70 && g.performance < 80).length;
+            const critical = filteredGroups.filter(g => g.performance < 70).length;
 
-            // Update performance chart with EPL CAS categories
+            // Update performance chart with EPL CAS categories - Meta 90%
             if (performanceChart) {
-                performanceChart.data.labels = ['Excelentes ≥92%', 'Muy Buenos 87-91%', 'Buenos 82-86%', 'Regulares 77-81%', 'Críticos <77%'];
-                performanceChart.data.datasets[0].data = [excellent, muyBueno, bueno, regular, critical];
+                performanceChart.data.labels = ['Excelentes ≥90%', 'Buenos 80-89%', 'Regulares 70-79%', 'Críticos <70%'];
+                performanceChart.data.datasets[0].data = [excellent, bueno, regular, critical];
                 performanceChart.data.datasets[0].backgroundColor = [
-                    '#00b894', // excelente
-                    '#0984e3', // muy-bueno
-                    '#6c5ce7', // bueno
-                    '#e17055', // regular
-                    '#d63031'  // critico
+                    '#34C759', // excelente - Verde iOS marca
+                    '#007AFF', // bueno - Azul iOS marca  
+                    '#FF9500', // regular - Naranja iOS marca
+                    '#FF3B30'  // critico - Rojo iOS marca
                 ];
                 performanceChart.update();
             }
@@ -3824,11 +3810,11 @@
                 criticalChart = null;
             }
 
-            // Critical chart for criticos view using EPL CAS standards
+            // Critical chart for criticos view using EPL CAS standards - Meta 90%
             if (currentView === 'criticos' && !criticalChart) {
                 const ctx2 = document.getElementById('criticalChart');
                 if (ctx2) {
-                    const criticalData = filteredGroups.filter(g => g.performance < 82);
+                    const criticalData = filteredGroups.filter(g => g.performance < 80);
                     if (criticalData.length > 0) {
                         criticalChart = new Chart(ctx2, {
                             type: 'bar',
@@ -3837,8 +3823,7 @@
                                 datasets: [{
                                     data: criticalData.map(g => g.performance),
                                     backgroundColor: criticalData.map(g => {
-                                        const performanceClass = getHeatClass(g.performance);
-                                        return performanceClass === 'heat-regular' ? '#e17055' : '#d63031';
+                                        return g.performance >= 70 ? '#FF9500' : '#FF3B30';
                                     }),
                                     borderWidth: 0,
                                     borderRadius: 4
@@ -4901,11 +4886,10 @@
         function getEPLPerformanceClass(value) {
             const perf = parseFloat(value) || 0;
             
-            if (perf >= 92) return 'heat-excelente';     // ≥92% - Excelente
-            if (perf >= 87) return 'heat-muy-bueno';     // 87-91% - Muy Bueno  
-            if (perf >= 82) return 'heat-bueno';         // 82-86% - Bueno
-            if (perf >= 77) return 'heat-regular';       // 77-81% - Regular
-            if (perf > 0)   return 'heat-critico';       // 1-76% - Crítico
+            if (perf >= 90) return 'heat-excelente';     // ≥90% - Meta EPL alcanzada
+            if (perf >= 80) return 'heat-bueno';         // 80-89% - Buen rendimiento  
+            if (perf >= 70) return 'heat-regular';       // 70-79% - Regular
+            if (perf > 0)   return 'heat-critico';       // <70% - Crítico
             return 'heat-none';                          // 0% - Sin datos
         }
 
