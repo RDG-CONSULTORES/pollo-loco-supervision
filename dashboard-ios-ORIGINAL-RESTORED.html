@@ -3132,7 +3132,7 @@
             document.getElementById('total-grupos').textContent = 
                 kpiData.total_grupos || '--';
             document.getElementById('total-sucursales').textContent = 
-                kpiData.total_sucursales || '--';
+                kpiData.sucursales_evaluadas || '--';  // ✅ CORREGIDO: usar campo correcto de API
         }
 
         function populateGroupSelect() {
