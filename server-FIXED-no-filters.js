@@ -692,39 +692,59 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
             paramIndex++;
         }
         
-        // TEMPORARY: Revert to working query while we fix the logic
+        // CORRECTED: Fix territorial classification logic with proper CAS periods
         const query = `
             WITH periods_data AS (
                 SELECT 
                     grupo_normalizado as grupo,
+                    estado_final,
+                    nombre_normalizado,
                     CASE 
-                        -- NL-T4 (Locales): 10/Oct/2025 → 31/Dic/2025
-                        WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
-                        -- NL-T3 (Locales): 19/Ago/2025 → 09/Oct/2025  
-                        WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
-                        -- FOR-S2 (Foráneas): 30/Jul/2025 → 31/Dic/2025
-                        WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
-                        -- NL-T2 (Locales): 11/Jun/2025 → 18/Ago/2025
-                        WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
-                        -- FOR-S1 (Foráneas): 10/Abr/2025 → 09/Jun/2025
-                        WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                        -- NL-T1 (Locales): 12/Mar/2025 → 16/Abr/2025
-                        WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
-                        ELSE 'Otro'
+                        -- Determinar si es Local (NL) o Foráneo primero
+                        WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                             AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                        THEN 
+                            -- LOCALES NL - Períodos Trimestrales
+                            CASE
+                                WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE
+                            -- FORÁNEAS - Períodos Semestrales
+                            CASE
+                                WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END as periodo,
                     ROUND(AVG(porcentaje), 2) as promedio,
                     COUNT(*) as evaluaciones
                 FROM supervision_normalized_view 
                 WHERE porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
-                GROUP BY grupo, 
+                GROUP BY grupo, estado_final, nombre_normalizado,
                 CASE 
-                    WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
-                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
-                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
-                    ELSE 'Otro'
+                    -- Duplicar la lógica de clasificación territorial para GROUP BY
+                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                         AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                    THEN 
+                        -- LOCALES NL - Períodos Trimestrales
+                        CASE
+                            WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                            WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                            WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                            ELSE 'OTRO'
+                        END
+                    ELSE
+                        -- FORÁNEAS - Períodos Semestrales
+                        CASE
+                            WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                            WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                            ELSE 'OTRO'
+                        END
                 END
                 HAVING COUNT(*) > 0
             ),
@@ -747,17 +767,29 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
         
         const result = await pool.query(query, params);
         
-        // Get distinct periods - REVERTED to working version
+        // Get distinct periods with correct territorial classification
         const periodsQuery = `
             SELECT DISTINCT 
                 CASE 
-                    WHEN fecha_supervision BETWEEN '2025-10-10' AND '2025-12-31' THEN 'T4-2025'
-                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'T3-2025'
-                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-12-31' THEN 'FOR-S2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'T2-2025'
-                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'T1-2025'
-                    ELSE 'Otro'
+                    -- Determinar si es Local (NL) o Foráneo primero
+                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                         AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                    THEN 
+                        -- LOCALES NL - Períodos Trimestrales
+                        CASE
+                            WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                            WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                            WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                            ELSE 'OTRO'
+                        END
+                    ELSE
+                        -- FORÁNEAS - Períodos Semestrales
+                        CASE
+                            WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                            WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                            ELSE 'OTRO'
+                        END
                 END as periodo
             FROM supervision_normalized_view 
             WHERE porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
@@ -765,9 +797,9 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
         `;
         
         const periodsResult = await pool.query(periodsQuery, params);
-        const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'Otro');
+        const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'OTRO' && p !== null);
         
-        console.log(`✅ Heatmap data: ${result.rows.length} grupos, ${periods.length} períodos (REVERTED to working version)`);
+        console.log(`✅ Heatmap data CORREGIDO: ${result.rows.length} grupos, ${periods.length} períodos con clasificación territorial correcta`);
         
         res.json({
             success: true,

@@ -2604,7 +2604,9 @@
             heatmapHeader.innerHTML = '<th>Grupo Operativo</th>';
             periods.forEach(period => {
                 const th = document.createElement('th');
-                th.textContent = period;
+                // Transform period labels for better display
+                const periodLabel = period.replace('-2025', '');
+                th.textContent = periodLabel;
                 heatmapHeader.appendChild(th);
             });
             const avgTh = document.createElement('th');
