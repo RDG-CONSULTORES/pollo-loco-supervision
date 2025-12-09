@@ -139,6 +139,73 @@ app.get('/api/sucursal-detail', async (req, res) => {
             areas_evaluadas: eval.areas_evaluadas
         }));
         
+        // Get tendencias by CAS periods
+        const tendenciasQuery = `
+            SELECT 
+                -- Clasificar por periodo CAS real
+                CASE 
+                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                        CASE 
+                            WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                            WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                            WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                            ELSE 'OTRO'
+                        END
+                    ELSE 
+                        CASE 
+                            WHEN fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                            WHEN fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                            ELSE 'OTRO'
+                        END
+                END as periodo,
+                ROUND(AVG(porcentaje)::numeric, 2) as performance
+            FROM supervision_normalized_view 
+            ${whereClause}
+              AND fecha_supervision >= '2025-02-01'
+            GROUP BY 
+                CASE 
+                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                        CASE 
+                            WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                            WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                            WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                            ELSE 'OTRO'
+                        END
+                    ELSE 
+                        CASE 
+                            WHEN fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                            WHEN fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                            ELSE 'OTRO'
+                        END
+                END
+            HAVING 
+                CASE 
+                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                         AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                        CASE 
+                            WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                            WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                            WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                            ELSE 'OTRO'
+                        END
+                    ELSE 
+                        CASE 
+                            WHEN fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                            WHEN fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                            ELSE 'OTRO'
+                        END
+                END != 'OTRO'
+            ORDER BY periodo
+        `;
+        
+        const tendenciasResult = await pool.query(tendenciasQuery, params);
+        sucursalData.tendencias = tendenciasResult.rows;
+        
         console.log('✅ Sucursal detail loaded successfully');
         res.json(sucursalData);
         
@@ -148,6 +215,60 @@ app.get('/api/sucursal-detail', async (req, res) => {
             error: 'Error interno del servidor',
             message: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+});
+
+// PERIODOS CAS REALES - Basado en fechas de supervisores
+function getPeriodoCAS(fecha, estado, grupoOperativo, locationName) {
+    const fechaObj = new Date(fecha);
+    
+    // Determinar si es Local (NL) o Foránea
+    const isLocal = (
+        estado === 'Nuevo León' || 
+        grupoOperativo === 'GRUPO SALTILLO'
+    ) && !['57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero'].includes(locationName);
+    
+    if (isLocal) {
+        // LOCALES NL - Periodos Trimestrales
+        if (fechaObj >= new Date('2025-03-12') && fechaObj <= new Date('2025-04-16')) {
+            return 'NL-T1-2025';
+        } else if (fechaObj >= new Date('2025-06-11') && fechaObj <= new Date('2025-08-18')) {
+            return 'NL-T2-2025';
+        } else if (fechaObj >= new Date('2025-08-19') && fechaObj <= new Date('2025-10-09')) {
+            return 'NL-T3-2025';
+        } else if (fechaObj >= new Date('2025-10-30')) {
+            return 'NL-T4-2025';
+        }
+    } else {
+        // FORÁNEAS - Periodos Semestrales
+        if (fechaObj >= new Date('2025-04-10') && fechaObj <= new Date('2025-06-09')) {
+            return 'FOR-S1-2025';
+        } else if (fechaObj >= new Date('2025-07-30') && fechaObj <= new Date('2025-11-07')) {
+            return 'FOR-S2-2025';
+        }
+    }
+    
+    return 'OTRO'; // Fuera de periodos CAS definidos
+}
+
+// API para obtener periodos CAS disponibles
+app.get('/api/periodos-cas', async (req, res) => {
+    try {
+        console.log('📅 Periodos CAS requested');
+        
+        const periodos = [
+            { id: 'NL-T1-2025', nombre: 'NL-T1 (Mar 12 - Abr 16)', tipo: 'local', estado: 'cerrado' },
+            { id: 'NL-T2-2025', nombre: 'NL-T2 (Jun 11 - Ago 18)', tipo: 'local', estado: 'cerrado' },
+            { id: 'NL-T3-2025', nombre: 'NL-T3 (Ago 19 - Oct 9)', tipo: 'local', estado: 'cerrado' },
+            { id: 'NL-T4-2025', nombre: 'NL-T4 (Oct 30 - presente)', tipo: 'local', estado: 'activo' },
+            { id: 'FOR-S1-2025', nombre: 'FOR-S1 (Abr 10 - Jun 9)', tipo: 'foranea', estado: 'cerrado' },
+            { id: 'FOR-S2-2025', nombre: 'FOR-S2 (Jul 30 - Nov 7)', tipo: 'foranea', estado: 'cerrado' }
+        ];
+        
+        res.json(periodos);
+    } catch (error) {
+        console.error('Error loading periodos CAS:', error);
+        res.status(500).json({ error: 'Error al cargar periodos CAS' });
     }
 });
 

@@ -2305,10 +2305,12 @@
                     <div class="section-header">PERÍODO CAS</div>
                     <div class="filter-pills" id="periodo-filters">
                         <button class="filter-pill active" data-value="all">Todos</button>
-                        <button class="filter-pill" data-value="nl_t3">NL-T3</button>
-                        <button class="filter-pill" data-value="for_s2">FOR-S2</button>
-                        <button class="filter-pill" data-value="nl_t2">NL-T2</button>
-                        <button class="filter-pill" data-value="for_s1">FOR-S1</button>
+                        <button class="filter-pill" data-value="NL-T4-2025">NL-T4 (Activo)</button>
+                        <button class="filter-pill" data-value="NL-T3-2025">NL-T3 (Oct 9)</button>
+                        <button class="filter-pill" data-value="FOR-S2-2025">FOR-S2 (Nov 7)</button>
+                        <button class="filter-pill" data-value="NL-T2-2025">NL-T2 (Ago 18)</button>
+                        <button class="filter-pill" data-value="FOR-S1-2025">FOR-S1 (Jun 9)</button>
+                        <button class="filter-pill" data-value="NL-T1-2025">NL-T1 (Abr 16)</button>
                     </div>
                 </div>
 
@@ -4294,23 +4296,45 @@
                 window.sucursalChart.destroy();
             }
             
-            // Prepare trend data (mock data for now, replace with real API data)
-            const tendencias = data.tendencias || generateMockTrendData(data.performance || 85);
+            // Use real tendencias data from API with CAS periods
+            const tendencias = data.tendencias || [];
+            console.log('📈 Tendencias CAS data:', tendencias);
+            
+            // If no real data, show message instead of mock data
+            if (tendencias.length === 0) {
+                canvas.parentElement.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: var(--ios-gray);">
+                        <i class="fas fa-chart-line" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i>
+                        <div style="font-size: 16px; font-weight: 500;">Sin datos de tendencias</div>
+                        <div style="font-size: 14px; margin-top: 4px;">Esta sucursal no tiene evaluaciones en múltiples periodos CAS</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Transform periodo labels for better display
+            const periodLabels = tendencias.map(t => {
+                const periodo = t.periodo;
+                if (periodo.includes('NL-T')) return periodo.replace('-2025', '');
+                if (periodo.includes('FOR-S')) return periodo.replace('-2025', '');
+                return periodo;
+            });
             
             const chartData = {
-                labels: tendencias.map(t => t.periodo),
+                labels: periodLabels,
                 datasets: [{
-                    label: 'Performance',
-                    data: tendencias.map(t => t.performance),
+                    label: 'Performance por Periodo CAS',
+                    data: tendencias.map(t => parseFloat(t.performance)),
                     borderColor: 'var(--ios-blue)',
                     backgroundColor: 'rgba(0, 122, 255, 0.1)',
-                    borderWidth: 2,
+                    borderWidth: 3,
                     fill: true,
                     tension: 0.4,
                     pointBackgroundColor: 'var(--ios-blue)',
                     pointBorderColor: '#ffffff',
                     pointBorderWidth: 2,
-                    pointRadius: 4
+                    pointRadius: 6,
+                    pointHoverRadius: 8
                 }]
             };
             
@@ -4320,6 +4344,30 @@
                 plugins: {
                     legend: {
                         display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderWidth: 0,
+                        cornerRadius: 8,
+                        callbacks: {
+                            title: function(context) {
+                                const fullPeriodo = tendencias[context[0].dataIndex].periodo;
+                                const labels = {
+                                    'NL-T1-2025': 'NL-T1 (Mar 12 - Abr 16)',
+                                    'NL-T2-2025': 'NL-T2 (Jun 11 - Ago 18)',
+                                    'NL-T3-2025': 'NL-T3 (Ago 19 - Oct 9)',
+                                    'NL-T4-2025': 'NL-T4 (Oct 30 - presente)',
+                                    'FOR-S1-2025': 'FOR-S1 (Abr 10 - Jun 9)',
+                                    'FOR-S2-2025': 'FOR-S2 (Jul 30 - Nov 7)'
+                                };
+                                return labels[fullPeriodo] || fullPeriodo;
+                            },
+                            label: function(context) {
+                                return `Performance: ${context.parsed.y.toFixed(2)}%`;
+                            }
+                        }
                     }
                 },
                 scales: {
@@ -4329,14 +4377,16 @@
                         },
                         ticks: {
                             font: {
-                                size: 12
+                                size: 11,
+                                weight: '500'
                             },
-                            color: 'var(--ios-secondary-label)'
+                            color: 'var(--ios-secondary-label)',
+                            maxRotation: 0
                         }
                     },
                     y: {
-                        min: 0,
-                        max: 100,
+                        min: Math.max(0, Math.min(...tendencias.map(t => parseFloat(t.performance))) - 10),
+                        max: Math.min(100, Math.max(...tendencias.map(t => parseFloat(t.performance))) + 10),
                         grid: {
                             color: 'var(--ios-separator)',
                             lineWidth: 0.5
@@ -4347,14 +4397,14 @@
                             },
                             color: 'var(--ios-secondary-label)',
                             callback: function(value) {
-                                return value + '%';
+                                return value.toFixed(1) + '%';
                             }
                         }
                     }
                 },
                 elements: {
                     point: {
-                        hoverRadius: 6
+                        hoverRadius: 8
                     }
                 }
             };
