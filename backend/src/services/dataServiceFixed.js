@@ -83,12 +83,19 @@ class DataService {
     });
   }
 
-  // Obtener datos por grupo operativo
+  // Obtener datos por grupo operativo (supports multiple grupos)
   async getDataByGrupo(filters = {}) {
     return this.executeQuery(async () => {
       let whereClause = 'WHERE grupo_operativo_limpio IS NOT NULL AND porcentaje IS NOT NULL';
       const params = [];
       let paramCount = 0;
+      
+      // Handle multiple grupos filter
+      if (filters.grupos && filters.grupos.length > 0) {
+        const grupPlaceholders = filters.grupos.map(() => `$${++paramCount}`).join(', ');
+        whereClause += ` AND grupo_operativo_limpio IN (${grupPlaceholders})`;
+        params.push(...filters.grupos);
+      }
       
       if (filters.estado) {
         params.push(filters.estado);
