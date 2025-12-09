@@ -980,6 +980,106 @@
             font-size: 0.875rem;
             color: var(--ios-label);
         }
+        
+        /* Group Pills & Presets Design */
+        .group-presets {
+            margin-bottom: 1rem;
+            padding: 0 1rem;
+        }
+        .preset-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--ios-secondary-label);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+        .preset-pill {
+            font-size: 0.8rem !important;
+            padding: 0.4rem 0.75rem !important;
+            font-weight: 600 !important;
+        }
+        .preset-pill.active {
+            background: var(--ios-green) !important;
+            color: white !important;
+        }
+        .grupo-pills-container {
+            border: 1px solid var(--ios-gray-4);
+            border-radius: 8px;
+            background: var(--ios-secondary-background);
+            margin: 0 1rem;
+        }
+        .grupo-pills-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--ios-gray-5);
+            background: var(--ios-gray-6);
+        }
+        .clear-selection-btn {
+            background: var(--ios-red);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .clear-selection-btn:active {
+            transform: scale(0.95);
+            background: #d32f2f;
+        }
+        .grupo-pills-scroll {
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .grupo-pill {
+            background: var(--ios-gray-5);
+            border: 1px solid var(--ios-gray-4);
+            border-radius: 16px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--ios-label);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .grupo-pill:hover {
+            background: var(--ios-gray-4);
+            border-color: var(--ios-gray-3);
+        }
+        .grupo-pill:active {
+            transform: scale(0.95);
+        }
+        .grupo-pill.selected {
+            background: var(--ios-blue);
+            border-color: var(--ios-blue);
+            color: white;
+            font-weight: 600;
+        }
+        .grupo-pill.selected:hover {
+            background: #0056d6;
+            border-color: #0056d6;
+        }
+        .grupo-pill-performance {
+            font-size: 0.7rem;
+            opacity: 0.7;
+        }
+        .grupo-pill.selected .grupo-pill-performance {
+            opacity: 0.9;
+        }
 
         .heatmap-filters {
             display: flex;
@@ -1820,7 +1920,32 @@
 
                 <div class="section">
                     <div class="section-header">GRUPOS OPERATIVOS</div>
-                    <div class="grupo-multi-select" id="grupo-multi-select">
+                    
+                    <!-- Group Presets -->
+                    <div class="group-presets" id="group-presets">
+                        <div class="preset-label">Presets rápidos:</div>
+                        <div class="filter-pills">
+                            <button class="filter-pill preset-pill" data-preset="all">Todos</button>
+                            <button class="filter-pill preset-pill" data-preset="top5">Top 5</button>
+                            <button class="filter-pill preset-pill" data-preset="critical">Críticos</button>
+                            <button class="filter-pill preset-pill" data-preset="nl">NL</button>
+                            <button class="filter-pill preset-pill" data-preset="foraneas">Foráneas</button>
+                        </div>
+                    </div>
+                    
+                    <!-- Individual Group Pills -->
+                    <div class="grupo-pills-container" id="grupo-pills-container">
+                        <div class="grupo-pills-header">
+                            <div class="preset-label">Selección individual:</div>
+                            <button class="clear-selection-btn" data-action="clearGroupSelection">Limpiar</button>
+                        </div>
+                        <div class="grupo-pills-scroll" id="grupo-pills-scroll">
+                            <div class="loading">Cargando grupos...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Legacy Multi-Select (Hidden by default, fallback) -->
+                    <div class="grupo-multi-select" id="grupo-multi-select" style="display: none;">
                         <div class="multi-select-header">
                             <button class="select-all-btn" data-action="selectAllGroups">Seleccionar Todos</button>
                             <button class="clear-all-btn" data-action="clearAllGroups">Limpiar</button>
@@ -2220,6 +2345,11 @@
             initEventListeners();
             initCSPSafeEventListeners();
             setupHeatmapFilters(); // Setup historic tab filters
+            
+            // Set default preset selection
+            setTimeout(() => {
+                document.querySelector('[data-preset="all"]')?.classList.add('active');
+            }, 100);
         });
 
         // Add CSP-safe event listeners
@@ -2233,6 +2363,7 @@
                     else if (action === 'toggleMapFullscreen') toggleMapFullscreen();
                     else if (action === 'closeFilters') closeFilters();
                     else if (action === 'closeGroupDetail') closeGroupDetail();
+                    else if (action === 'clearGroupSelection') clearGroupSelection();
                 });
             });
 
@@ -2484,8 +2615,38 @@
         }
 
         function populateGroupSelect() {
-            // NEW: Populate multi-select checklist
+            // NEW: Populate pill-based group selection
+            populateGroupPills();
+            // Legacy: Populate multi-select checklist (fallback)
             populateGroupMultiSelect();
+        }
+        
+        function populateGroupPills() {
+            const container = document.getElementById('grupo-pills-scroll');
+            if (!container) return;
+            
+            // Clear loading
+            container.innerHTML = '';
+            
+            // Use complete list and sort by performance
+            const sortedGroups = allGroupsComplete
+                .slice()
+                .sort((a, b) => b.performance - a.performance);
+            
+            sortedGroups.forEach(group => {
+                const pill = document.createElement('button');
+                pill.className = 'grupo-pill';
+                pill.dataset.grupo = group.name;
+                pill.innerHTML = `
+                    <span class="grupo-pill-name">${group.name}</span>
+                    <span class="grupo-pill-performance">${group.performance.toFixed(1)}%</span>
+                `;
+                
+                container.appendChild(pill);
+            });
+            
+            // Setup event listeners
+            setupGroupPillEvents();
         }
 
         function populateGroupMultiSelect() {
@@ -2562,6 +2723,165 @@
             } else if (currentTab === 'tendencias') {
                 loadHeatmapData();
             }
+        }
+        
+        // GROUP PILLS EVENT HANDLERS
+        function setupGroupPillEvents() {
+            // Individual pill clicks
+            document.querySelectorAll('.grupo-pill').forEach(pill => {
+                pill.addEventListener('click', function() {
+                    this.classList.toggle('selected');
+                    updateSelectedGroupsFromPills();
+                });
+            });
+            
+            // Preset buttons
+            document.querySelectorAll('.preset-pill').forEach(preset => {
+                preset.addEventListener('click', function() {
+                    const presetType = this.dataset.preset;
+                    applyGroupPreset(presetType);
+                    
+                    // Update active preset
+                    document.querySelectorAll('.preset-pill').forEach(p => p.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+            
+            // Clear selection button
+            document.querySelector('[data-action="clearGroupSelection"]')?.addEventListener('click', function() {
+                clearGroupSelection();
+            });
+        }
+        
+        function updateSelectedGroupsFromPills() {
+            const selectedGroups = [];
+            document.querySelectorAll('.grupo-pill.selected').forEach(pill => {
+                selectedGroups.push(pill.dataset.grupo);
+            });
+            
+            // Update current filters
+            currentFilters.grupos = selectedGroups;
+            
+            console.log('💊 Selected groups (pills):', selectedGroups.length > 0 ? selectedGroups : 'All groups');
+            
+            // Sync with checkboxes (legacy support)
+            syncCheckboxesWithPills(selectedGroups);
+            
+            // Reload data
+            loadData();
+            
+            // Update other tabs if active
+            if (currentTab === 'mapa') {
+                loadMapData();
+            } else if (currentTab === 'tendencias') {
+                loadHeatmapData();
+            }
+        }
+        
+        function applyGroupPreset(presetType) {
+            // Clear all selections first
+            document.querySelectorAll('.grupo-pill').forEach(pill => {
+                pill.classList.remove('selected');
+            });
+            
+            let selectedGroups = [];
+            
+            switch(presetType) {
+                case 'all':
+                    selectedGroups = []; // Empty array means all groups
+                    break;
+                case 'top5':
+                    selectedGroups = allGroupsComplete
+                        .slice()
+                        .sort((a, b) => b.performance - a.performance)
+                        .slice(0, 5)
+                        .map(g => g.name);
+                    break;
+                case 'critical':
+                    selectedGroups = allGroupsComplete
+                        .filter(g => g.performance < 80)
+                        .map(g => g.name);
+                    break;
+                case 'nl':
+                    selectedGroups = allGroupsComplete
+                        .filter(g => g.name.toLowerCase().includes('nuevo león') || 
+                                   g.name.toLowerCase().includes('monterrey') ||
+                                   g.name.toLowerCase().includes('guadalupe'))
+                        .map(g => g.name);
+                    break;
+                case 'foraneas':
+                    selectedGroups = allGroupsComplete
+                        .filter(g => !g.name.toLowerCase().includes('nuevo león') && 
+                                   !g.name.toLowerCase().includes('monterrey') &&
+                                   !g.name.toLowerCase().includes('guadalupe') &&
+                                   !g.name.toLowerCase().includes('saltillo'))
+                        .map(g => g.name);
+                    break;
+            }
+            
+            // Apply selection to pills
+            selectedGroups.forEach(groupName => {
+                const pill = document.querySelector(`[data-grupo="${groupName}"]`);
+                if (pill && pill.classList.contains('grupo-pill')) {
+                    pill.classList.add('selected');
+                }
+            });
+            
+            // Update filters and reload data
+            currentFilters.grupos = selectedGroups;
+            
+            console.log(`🎯 Applied preset "${presetType}":`, selectedGroups.length > 0 ? selectedGroups : 'All groups');
+            
+            // Sync with checkboxes
+            syncCheckboxesWithPills(selectedGroups);
+            
+            // Reload data
+            loadData();
+            if (currentTab === 'mapa') loadMapData();
+            if (currentTab === 'tendencias') loadHeatmapData();
+        }
+        
+        function clearGroupSelection() {
+            // Clear pill selections
+            document.querySelectorAll('.grupo-pill').forEach(pill => {
+                pill.classList.remove('selected');
+            });
+            
+            // Clear preset selections
+            document.querySelectorAll('.preset-pill').forEach(preset => {
+                preset.classList.remove('active');
+            });
+            
+            // Activate "Todos" preset
+            document.querySelector('[data-preset="all"]')?.classList.add('active');
+            
+            // Clear filters
+            currentFilters.grupos = [];
+            
+            console.log('🧹 Cleared group selection');
+            
+            // Sync with checkboxes
+            syncCheckboxesWithPills([]);
+            
+            // Reload data
+            loadData();
+            if (currentTab === 'mapa') loadMapData();
+            if (currentTab === 'tendencias') loadHeatmapData();
+        }
+        
+        function syncCheckboxesWithPills(selectedGroups) {
+            // Clear all checkboxes
+            document.querySelectorAll('.grupo-checkbox').forEach(checkbox => {
+                checkbox.classList.remove('checked');
+            });
+            
+            // Check selected groups
+            selectedGroups.forEach(groupName => {
+                const checkbox = document.querySelector(`[data-grupo="${groupName}"].grupo-checkbox`);
+                if (checkbox) {
+                    checkbox.classList.add('checked');
+                }
+            });
         }
 
         function updateUI() {
