@@ -53,8 +53,8 @@ app.get('/api/sucursal-detail', async (req, res) => {
             return res.status(400).json({ error: 'Sucursal name is required' });
         }
         
-        // Build WHERE clause for sucursal - Using normalized view like other endpoints
-        let whereClause = `WHERE location_name = $1 AND area_tipo = 'area_principal'`;
+        // Build WHERE clause for sucursal - Using nombre_normalizado like sucursales-ranking endpoint
+        let whereClause = `WHERE nombre_normalizado = $1 AND area_tipo = 'area_principal'`;
         const params = [sucursal];
         let paramIndex = 1;
         
@@ -64,12 +64,13 @@ app.get('/api/sucursal-detail', async (req, res) => {
             params.push(grupo);
         }
         
-        // Main query for sucursal details - Using supervision_normalized_view
+        // Main query for sucursal details - Using supervision_normalized_view with nombre_normalizado
         const query = `
             SELECT 
-                location_name as sucursal,
+                nombre_normalizado as sucursal,
+                numero_sucursal,
                 estado_final as estado,
-                municipio,
+                ciudad_normalizada as municipio,
                 grupo_normalizado as grupo_operativo,
                 ROUND(AVG(porcentaje)::numeric, 2) as performance,
                 COUNT(DISTINCT submission_id) as total_evaluaciones,
@@ -78,7 +79,7 @@ app.get('/api/sucursal-detail', async (req, res) => {
             FROM supervision_normalized_view 
             ${whereClause}
               AND fecha_supervision >= '2025-02-01'
-            GROUP BY location_name, estado_final, municipio, grupo_normalizado
+            GROUP BY nombre_normalizado, numero_sucursal, estado_final, ciudad_normalizada, grupo_normalizado
         `;
         
         const result = await pool.query(query, params);
