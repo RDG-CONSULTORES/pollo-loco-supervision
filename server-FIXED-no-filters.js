@@ -53,31 +53,32 @@ app.get('/api/sucursal-detail', async (req, res) => {
             return res.status(400).json({ error: 'Sucursal name is required' });
         }
         
-        // Build WHERE clause for sucursal
+        // Build WHERE clause for sucursal - Using normalized view like other endpoints
         let whereClause = `WHERE location_name = $1 AND area_tipo = 'area_principal'`;
         const params = [sucursal];
         let paramIndex = 1;
         
         if (grupo) {
             paramIndex++;
-            whereClause += ` AND grupo_operativo = $${paramIndex}`;
+            whereClause += ` AND grupo_normalizado = $${paramIndex}`;
             params.push(grupo);
         }
         
-        // Main query for sucursal details
+        // Main query for sucursal details - Using supervision_normalized_view
         const query = `
             SELECT 
                 location_name as sucursal,
-                estado_normalizado as estado,
+                estado_final as estado,
                 municipio,
-                grupo_operativo,
+                grupo_normalizado as grupo_operativo,
                 ROUND(AVG(porcentaje)::numeric, 2) as performance,
                 COUNT(DISTINCT submission_id) as total_evaluaciones,
                 MAX(fecha_supervision) as ultima_supervision,
                 COUNT(DISTINCT area_evaluacion) as areas_evaluadas
-            FROM supervision_operativa_clean 
+            FROM supervision_normalized_view 
             ${whereClause}
-            GROUP BY location_name, estado_normalizado, municipio, grupo_operativo
+              AND fecha_supervision >= '2025-02-01'
+            GROUP BY location_name, estado_final, municipio, grupo_normalizado
         `;
         
         const result = await pool.query(query, params);
@@ -92,14 +93,17 @@ app.get('/api/sucursal-detail', async (req, res) => {
         
         const sucursalData = result.rows[0];
         
-        // Get areas breakdown
+        // Get areas breakdown - Using normalized view
         const areasQuery = `
             SELECT 
                 TRIM(area_evaluacion) as nombre,
                 ROUND(AVG(porcentaje)::numeric, 2) as performance,
                 COUNT(*) as evaluaciones
-            FROM supervision_operativa_clean 
-            ${whereClause} AND area_evaluacion IS NOT NULL AND TRIM(area_evaluacion) != ''
+            FROM supervision_normalized_view 
+            ${whereClause} 
+              AND area_evaluacion IS NOT NULL 
+              AND TRIM(area_evaluacion) != ''
+              AND fecha_supervision >= '2025-02-01'
             GROUP BY TRIM(area_evaluacion)
             ORDER BY performance DESC
         `;
@@ -110,15 +114,16 @@ app.get('/api/sucursal-detail', async (req, res) => {
             trend: (Math.random() - 0.5) * 10 // Mock trend for now
         }));
         
-        // Get recent evaluaciones (mock for now)
+        // Get recent evaluaciones - Using normalized view
         const evaluacionesQuery = `
             SELECT 
                 fecha_supervision as fecha,
                 submission_id,
                 ROUND(AVG(porcentaje)::numeric, 2) as performance,
                 COUNT(DISTINCT area_evaluacion) as areas_evaluadas
-            FROM supervision_operativa_clean 
+            FROM supervision_normalized_view 
             ${whereClause}
+              AND fecha_supervision >= '2025-02-01'
             GROUP BY fecha_supervision, submission_id
             ORDER BY fecha_supervision DESC
             LIMIT 10
