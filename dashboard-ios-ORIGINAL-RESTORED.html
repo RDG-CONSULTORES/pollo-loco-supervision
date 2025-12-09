@@ -214,6 +214,175 @@
             margin-bottom: 0;
         }
 
+        /* Sucursal Detail Modal Styles */
+        .modal-nav-back {
+            color: var(--ios-blue);
+            font-size: 18px;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            min-width: 44px;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-nav-back:active {
+            background: rgba(0, 122, 255, 0.1);
+            transform: scale(0.95);
+        }
+
+        .sucursal-overview {
+            padding: 16px;
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            margin: 16px;
+        }
+
+        .sucursal-header {
+            text-align: center;
+        }
+
+        .sucursal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--ios-label);
+            margin-bottom: 8px;
+        }
+
+        .sucursal-performance {
+            font-size: 32px;
+            font-weight: 800;
+            color: var(--ios-blue);
+            margin-bottom: 4px;
+        }
+
+        .sucursal-meta {
+            font-size: 14px;
+            color: var(--ios-secondary-label);
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .trend-chart-container {
+            padding: 16px;
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            margin: 0 16px;
+        }
+
+        .evaluaciones-timeline {
+            padding: 0;
+        }
+
+        .evaluacion-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--ios-separator);
+            background: var(--ios-secondary-background);
+            transition: background 0.2s ease;
+        }
+
+        .evaluacion-item:last-child {
+            border-bottom: none;
+        }
+
+        .evaluacion-item:active {
+            background: var(--ios-gray-6);
+        }
+
+        .evaluacion-date {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--ios-secondary-label);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            min-width: 80px;
+        }
+
+        .evaluacion-content {
+            flex: 1;
+            margin-left: 12px;
+        }
+
+        .evaluacion-score {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--ios-label);
+        }
+
+        .evaluacion-areas {
+            font-size: 13px;
+            color: var(--ios-secondary-label);
+            margin-top: 2px;
+        }
+
+        .evaluacion-trend {
+            font-size: 14px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .trend-up {
+            color: var(--ios-green);
+        }
+
+        .trend-down {
+            color: var(--ios-red);
+        }
+
+        .trend-neutral {
+            color: var(--ios-gray);
+        }
+
+        .areas-breakdown {
+            padding: 0;
+        }
+
+        .area-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--ios-separator);
+            background: var(--ios-secondary-background);
+        }
+
+        .area-item:last-child {
+            border-bottom: none;
+        }
+
+        .area-name {
+            font-size: 15px;
+            color: var(--ios-label);
+            flex: 1;
+        }
+
+        .area-score {
+            font-size: 15px;
+            font-weight: 600;
+            min-width: 60px;
+            text-align: right;
+        }
+
+        .area-score.good {
+            color: var(--ios-green);
+        }
+
+        .area-score.warning {
+            color: var(--ios-orange);
+        }
+
+        .area-score.critical {
+            color: var(--ios-red);
+        }
+
         .section-header {
             padding: 12px 16px 8px 16px;
             font-size: 13px;
@@ -1705,6 +1874,115 @@
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
+        /* Sucursal Detail Modal Styles */
+        .sucursal-header {
+            text-align: center;
+        }
+        
+        .sucursal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--ios-label);
+            margin-bottom: 4px;
+        }
+        
+        .sucursal-performance {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+        
+        .sucursal-meta {
+            font-size: 14px;
+            color: var(--ios-secondary-label);
+        }
+        
+        .trend-chart-container {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+            height: 200px;
+        }
+        
+        .evaluaciones-timeline {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+        
+        .evaluation-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 0.5px solid var(--ios-separator);
+        }
+        
+        .evaluation-item:last-child {
+            border-bottom: none;
+        }
+        
+        .evaluation-date {
+            font-size: 12px;
+            color: var(--ios-secondary-label);
+            width: 60px;
+            flex-shrink: 0;
+            text-align: center;
+        }
+        
+        .evaluation-main {
+            flex: 1;
+            margin-left: 12px;
+        }
+        
+        .evaluation-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-label);
+            margin-bottom: 2px;
+        }
+        
+        .evaluation-subtitle {
+            font-size: 13px;
+            color: var(--ios-secondary-label);
+        }
+        
+        .evaluation-performance {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: right;
+            min-width: 60px;
+        }
+        
+        .areas-breakdown {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            margin: 16px 0;
+        }
+        
+        .area-main {
+            flex: 1;
+        }
+        
+        .area-title {
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--ios-label);
+            margin-bottom: 2px;
+        }
+        
+        .area-subtitle {
+            font-size: 13px;
+            color: var(--ios-secondary-label);
+        }
+        
+        .area-performance {
+            font-size: 16px;
+            font-weight: 600;
+            text-align: right;
+            min-width: 60px;
+        }
+
         /* Responsive adjustments */
         @media (max-width: 375px) {
             .large-title {
@@ -2122,6 +2400,59 @@
         </div>
     </div>
 
+    <!-- Sucursal Detail Modal (NEW) -->
+    <div class="modal-overlay" id="sucursalDetailModal">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-nav-back" data-action="closeSucursalDetail">
+                    <i class="fas fa-arrow-left"></i>
+                </div>
+                <h3 class="modal-title" id="sucursal-detail-title">Detalle de Sucursal</h3>
+                <button class="modal-close" data-action="closeSucursalDetail">Cerrar</button>
+            </div>
+            <div class="modal-content">
+                <!-- Sucursal Overview -->
+                <div class="sucursal-overview">
+                    <div class="sucursal-header">
+                        <div class="sucursal-title" id="sucursal-name"></div>
+                        <div class="sucursal-performance" id="sucursal-performance"></div>
+                        <div class="sucursal-meta" id="sucursal-meta"></div>
+                    </div>
+                </div>
+                
+                <!-- Performance Trend Chart -->
+                <div class="section">
+                    <div class="section-header">TENDENCIA DE PERFORMANCE</div>
+                    <div class="trend-chart-container">
+                        <canvas id="sucursalTrendChart" width="400" height="200"></canvas>
+                    </div>
+                </div>
+                
+                <!-- Evaluaciones Timeline -->
+                <div class="section">
+                    <div class="section-header">EVALUACIONES RECIENTES</div>
+                    <div class="evaluaciones-timeline" id="evaluaciones-timeline">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando evaluaciones...
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Areas de Evaluación -->
+                <div class="section">
+                    <div class="section-header">DESGLOSE POR ÁREA</div>
+                    <div class="areas-breakdown" id="areas-breakdown">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            Cargando áreas...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Global data
         let allGroups = [];
@@ -2497,6 +2828,7 @@
                     else if (action === 'toggleMapFullscreen') toggleMapFullscreen();
                     else if (action === 'closeFilters') closeFilters();
                     else if (action === 'closeGroupDetail') closeGroupDetail();
+                    else if (action === 'closeSucursalDetail') closeSucursalDetail();
                     else if (action === 'clearGroupSelection') clearGroupSelection();
                 });
             });
@@ -3819,7 +4151,7 @@
                 updateContainer('group-sucursales',
                     sucursales.length > 0 
                         ? sucursales.map((suc, index) => `
-                            <div class="list-item">
+                            <div class="list-item" data-sucursal-detail="${suc.sucursal || suc.location_name}" style="cursor: pointer;">
                                 <div class="list-item-main">
                                     <div class="list-item-number rank-good">${index + 1}</div>
                                     <div class="list-item-content">
@@ -3829,6 +4161,9 @@
                                 </div>
                                 <div class="list-item-end">
                                     <div class="list-item-value">${parseFloat(suc.promedio).toFixed(2)}%</div>
+                                    <div class="list-item-arrow" style="margin-left: 8px;">
+                                        <i class="fas fa-chevron-right" style="font-size: 12px; color: var(--ios-gray);"></i>
+                                    </div>
                                 </div>
                             </div>
                         `).join('')
@@ -3846,6 +4181,306 @@
 
         function closeGroupDetail() {
             document.getElementById('groupDetailModal').classList.remove('active');
+        }
+
+        // 3-Level Drill-down: Sucursal Detail Modal Implementation
+        async function showSucursalDetail(sucursalName, grupoName) {
+            try {
+                console.log('🏢 Opening Sucursal Detail for:', sucursalName, 'from group:', grupoName);
+                
+                // Update modal title and loading state
+                document.getElementById('sucursal-detail-title').textContent = 'Detalle de Sucursal';
+                document.getElementById('sucursal-name').textContent = sucursalName;
+                document.getElementById('sucursal-performance').textContent = 'Cargando...';
+                document.getElementById('sucursal-meta').textContent = '';
+                
+                // Show modal immediately for better UX
+                document.getElementById('sucursalDetailModal').classList.add('active');
+                
+                // Load sucursal detailed data from API
+                const queryParams = new URLSearchParams();
+                queryParams.append('sucursal', sucursalName);
+                if (grupoName) queryParams.append('grupo', grupoName);
+                
+                const response = await fetch(`${API_BASE}/sucursal-detail?${queryParams.toString()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const sucursalData = await response.json();
+                console.log('📊 Sucursal data received:', sucursalData);
+                
+                // Update sucursal header
+                updateSucursalHeader(sucursalData);
+                
+                // Load and display trend chart
+                await loadSucursalTrendChart(sucursalData);
+                
+                // Load evaluaciones timeline
+                await loadEvaluacionesTimeline(sucursalData);
+                
+                // Load areas breakdown
+                await loadAreasBreakdown(sucursalData);
+                
+            } catch (error) {
+                console.error('❌ Error loading sucursal detail:', error);
+                
+                // Update UI with error state
+                document.getElementById('sucursal-performance').textContent = 'Error al cargar';
+                document.getElementById('sucursal-performance').style.color = 'var(--ios-red)';
+                document.getElementById('sucursal-meta').textContent = 'Intente nuevamente más tarde';
+                
+                // Show fallback data in sections
+                updateContainer('evaluaciones-timeline', `
+                    <div style="padding: 20px; text-align: center; color: var(--ios-red);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <div>Error al cargar evaluaciones</div>
+                        <div style="font-size: 14px; color: var(--ios-gray); margin-top: 4px;">
+                            ${error.message}
+                        </div>
+                    </div>
+                `);
+                
+                updateContainer('areas-breakdown', `
+                    <div style="padding: 20px; text-align: center; color: var(--ios-red);">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 8px;"></i>
+                        <div>Error al cargar desglose de áreas</div>
+                    </div>
+                `);
+            }
+        }
+        
+        function updateSucursalHeader(data) {
+            // Extract data with fallbacks
+            const performance = data.performance || data.promedio || 0;
+            const evaluaciones = data.total_evaluaciones || data.evaluaciones || 0;
+            const ultimaSupervision = data.ultima_supervision || 'N/A';
+            const estado = data.estado || 'Estado no disponible';
+            const municipio = data.municipio || '';
+            
+            // Update performance with color coding
+            const performanceElement = document.getElementById('sucursal-performance');
+            performanceElement.textContent = `${parseFloat(performance).toFixed(2)}%`;
+            performanceElement.style.color = 
+                performance >= 90 ? 'var(--ios-green)' :
+                performance >= 80 ? 'var(--ios-blue)' :
+                performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
+            
+            // Update meta information
+            let metaText = `${estado}`;
+            if (municipio) metaText += ` • ${municipio}`;
+            metaText += ` • ${evaluaciones} evaluaciones`;
+            
+            if (ultimaSupervision && ultimaSupervision !== 'N/A') {
+                const fecha = new Date(ultimaSupervision);
+                const fechaFormateada = fecha.toLocaleDateString('es-MX', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric'
+                });
+                metaText += ` • Última: ${fechaFormateada}`;
+            }
+            
+            document.getElementById('sucursal-meta').textContent = metaText;
+        }
+        
+        async function loadSucursalTrendChart(data) {
+            const canvas = document.getElementById('sucursalTrendChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Clear any existing chart
+            if (window.sucursalChart) {
+                window.sucursalChart.destroy();
+            }
+            
+            // Prepare trend data (mock data for now, replace with real API data)
+            const tendencias = data.tendencias || generateMockTrendData(data.performance || 85);
+            
+            const chartData = {
+                labels: tendencias.map(t => t.periodo),
+                datasets: [{
+                    label: 'Performance',
+                    data: tendencias.map(t => t.performance),
+                    borderColor: 'var(--ios-blue)',
+                    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: 'var(--ios-blue)',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4
+                }]
+            };
+            
+            const chartOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            color: 'var(--ios-secondary-label)'
+                        }
+                    },
+                    y: {
+                        min: 0,
+                        max: 100,
+                        grid: {
+                            color: 'var(--ios-separator)',
+                            lineWidth: 0.5
+                        },
+                        ticks: {
+                            font: {
+                                size: 12
+                            },
+                            color: 'var(--ios-secondary-label)',
+                            callback: function(value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                },
+                elements: {
+                    point: {
+                        hoverRadius: 6
+                    }
+                }
+            };
+            
+            // Create chart
+            window.sucursalChart = new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: chartOptions
+            });
+            
+            console.log('📈 Sucursal trend chart loaded');
+        }
+        
+        function generateMockTrendData(currentPerformance) {
+            const periods = ['Q4 2024', 'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025'];
+            const basePerformance = currentPerformance || 85;
+            
+            return periods.map((period, index) => ({
+                periodo: period,
+                performance: Math.max(60, Math.min(100, 
+                    basePerformance + (Math.random() - 0.5) * 10 + (index - 2) * 2
+                ))
+            }));
+        }
+        
+        async function loadEvaluacionesTimeline(data) {
+            const evaluaciones = data.evaluaciones_recientes || generateMockEvaluaciones();
+            
+            const timelineHTML = evaluaciones.length > 0 ? 
+                evaluaciones.map(evaluacion => {
+                    const fecha = new Date(evaluacion.fecha);
+                    const fechaFormateada = fecha.toLocaleDateString('es-MX', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                    });
+                    
+                    const performanceColor = evaluacion.performance >= 90 ? 'var(--ios-green)' :
+                                           evaluacion.performance >= 80 ? 'var(--ios-blue)' :
+                                           evaluacion.performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
+                    
+                    return `
+                        <div class="evaluation-item">
+                            <div class="evaluation-date">${fechaFormateada}</div>
+                            <div class="evaluation-main">
+                                <div class="evaluation-title">${evaluacion.tipo || 'Supervisión General'}</div>
+                                <div class="evaluation-subtitle">${evaluacion.supervisor || 'Supervisor'} • ${evaluacion.areas_evaluadas || 0} áreas</div>
+                            </div>
+                            <div class="evaluation-performance" style="color: ${performanceColor};">
+                                ${evaluacion.performance.toFixed(1)}%
+                            </div>
+                        </div>
+                    `;
+                }).join('') :
+                '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay evaluaciones disponibles</div>';
+            
+            updateContainer('evaluaciones-timeline', timelineHTML);
+        }
+        
+        function generateMockEvaluaciones() {
+            const tipos = ['Supervisión General', 'Auditoría de Calidad', 'Inspección Sanitaria', 'Revisión Operativa'];
+            const supervisores = ['Ana García', 'Carlos López', 'María Rodríguez', 'José Martínez'];
+            
+            return Array.from({length: 5}, (_, index) => ({
+                fecha: new Date(Date.now() - (index * 7 * 24 * 60 * 60 * 1000)).toISOString(),
+                tipo: tipos[Math.floor(Math.random() * tipos.length)],
+                supervisor: supervisores[Math.floor(Math.random() * supervisores.length)],
+                performance: Math.random() * 40 + 60, // 60-100
+                areas_evaluadas: Math.floor(Math.random() * 8) + 3 // 3-10
+            }));
+        }
+        
+        async function loadAreasBreakdown(data) {
+            const areas = data.areas_evaluacion || generateMockAreas();
+            
+            const areasHTML = areas.length > 0 ?
+                areas.map(area => {
+                    const performanceColor = area.performance >= 90 ? 'var(--ios-green)' :
+                                           area.performance >= 80 ? 'var(--ios-blue)' :
+                                           area.performance >= 70 ? 'var(--ios-orange)' : 'var(--ios-red)';
+                    
+                    const trendIcon = area.trend > 0 ? '📈' : area.trend < 0 ? '📉' : '➡️';
+                    const trendText = area.trend > 0 ? `+${area.trend.toFixed(1)}%` :
+                                     area.trend < 0 ? `${area.trend.toFixed(1)}%` : 'Estable';
+                    
+                    return `
+                        <div class="area-item">
+                            <div class="area-main">
+                                <div class="area-title">${area.nombre}</div>
+                                <div class="area-subtitle">${area.evaluaciones} evaluaciones • ${trendIcon} ${trendText}</div>
+                            </div>
+                            <div class="area-performance" style="color: ${performanceColor};">
+                                ${area.performance.toFixed(1)}%
+                            </div>
+                        </div>
+                    `;
+                }).join('') :
+                '<div style="padding: 20px; text-align: center; color: var(--ios-gray);">No hay áreas disponibles</div>';
+            
+            updateContainer('areas-breakdown', areasHTML);
+        }
+        
+        function generateMockAreas() {
+            const areas = [
+                'Atención al Cliente', 'Calidad de Producto', 'Limpieza e Higiene',
+                'Procedimientos Operativos', 'Imagen de Tienda', 'Inventario',
+                'Seguridad Alimentaria', 'Administración'
+            ];
+            
+            return areas.map(nombre => ({
+                nombre,
+                performance: Math.random() * 40 + 60, // 60-100
+                evaluaciones: Math.floor(Math.random() * 10) + 5, // 5-15
+                trend: (Math.random() - 0.5) * 10 // -5 to +5
+            }));
+        }
+        
+        function closeSucursalDetail() {
+            document.getElementById('sucursalDetailModal').classList.remove('active');
+            
+            // Cleanup chart if it exists
+            if (window.sucursalChart) {
+                window.sucursalChart.destroy();
+                window.sucursalChart = null;
+            }
         }
 
         // NOTE: DUPLICATE FUNCTIONS REMOVED - Using existing functions above
@@ -4183,8 +4818,20 @@
 
         // Event Listeners
         function initEventListeners() {
-            // Filter pills - Using event delegation for dynamic content
+            // Event delegation for sucursal detail clicks
             document.addEventListener('click', function(e) {
+                // Handle sucursal detail clicks
+                const sucursalItem = e.target.closest('[data-sucursal-detail]');
+                if (sucursalItem) {
+                    e.preventDefault();
+                    const sucursalName = sucursalItem.dataset.sucursalDetail;
+                    const groupModal = sucursalItem.closest('#groupDetailModal');
+                    const grupoName = groupModal ? document.getElementById('detail-group-name').textContent : null;
+                    showSucursalDetail(sucursalName, grupoName);
+                    return;
+                }
+                
+                // Handle filter pills
                 if (e.target.classList.contains('filter-pill')) {
                     const container = e.target.closest('.filter-pills');
                     if (container) {

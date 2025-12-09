@@ -43,6 +43,108 @@ app.use(express.json());
 // Serve static files
 app.use(express.static('public'));
 
+// Sucursal Detail API - NEW 3-Level Drill-down
+app.get('/api/sucursal-detail', async (req, res) => {
+    try {
+        const { sucursal, grupo } = req.query;
+        console.log('🏢 Sucursal Detail requested for:', sucursal, 'from group:', grupo);
+        
+        if (!sucursal) {
+            return res.status(400).json({ error: 'Sucursal name is required' });
+        }
+        
+        // Build WHERE clause for sucursal
+        let whereClause = `WHERE location_name = $1 AND area_tipo = 'area_principal'`;
+        const params = [sucursal];
+        let paramIndex = 1;
+        
+        if (grupo) {
+            paramIndex++;
+            whereClause += ` AND grupo_operativo = $${paramIndex}`;
+            params.push(grupo);
+        }
+        
+        // Main query for sucursal details
+        const query = `
+            SELECT 
+                location_name as sucursal,
+                estado_normalizado as estado,
+                municipio,
+                grupo_operativo,
+                ROUND(AVG(porcentaje)::numeric, 2) as performance,
+                COUNT(DISTINCT submission_id) as total_evaluaciones,
+                MAX(fecha_supervision) as ultima_supervision,
+                COUNT(DISTINCT area_evaluacion) as areas_evaluadas
+            FROM supervision_operativa_clean 
+            ${whereClause}
+            GROUP BY location_name, estado_normalizado, municipio, grupo_operativo
+        `;
+        
+        const result = await pool.query(query, params);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ 
+                error: 'Sucursal not found',
+                sucursal,
+                available_suggestions: []
+            });
+        }
+        
+        const sucursalData = result.rows[0];
+        
+        // Get areas breakdown
+        const areasQuery = `
+            SELECT 
+                TRIM(area_evaluacion) as nombre,
+                ROUND(AVG(porcentaje)::numeric, 2) as performance,
+                COUNT(*) as evaluaciones
+            FROM supervision_operativa_clean 
+            ${whereClause} AND area_evaluacion IS NOT NULL AND TRIM(area_evaluacion) != ''
+            GROUP BY TRIM(area_evaluacion)
+            ORDER BY performance DESC
+        `;
+        
+        const areasResult = await pool.query(areasQuery, params);
+        sucursalData.areas_evaluacion = areasResult.rows.map(area => ({
+            ...area,
+            trend: (Math.random() - 0.5) * 10 // Mock trend for now
+        }));
+        
+        // Get recent evaluaciones (mock for now)
+        const evaluacionesQuery = `
+            SELECT 
+                fecha_supervision as fecha,
+                submission_id,
+                ROUND(AVG(porcentaje)::numeric, 2) as performance,
+                COUNT(DISTINCT area_evaluacion) as areas_evaluadas
+            FROM supervision_operativa_clean 
+            ${whereClause}
+            GROUP BY fecha_supervision, submission_id
+            ORDER BY fecha_supervision DESC
+            LIMIT 10
+        `;
+        
+        const evaluacionesResult = await pool.query(evaluacionesQuery, params);
+        sucursalData.evaluaciones_recientes = evaluacionesResult.rows.map(eval => ({
+            fecha: eval.fecha,
+            performance: parseFloat(eval.performance),
+            tipo: 'Supervisión General', // Mock for now
+            supervisor: 'Supervisor', // Mock for now
+            areas_evaluadas: eval.areas_evaluadas
+        }));
+        
+        console.log('✅ Sucursal detail loaded successfully');
+        res.json(sucursalData);
+        
+    } catch (error) {
+        console.error('❌ Error fetching sucursal detail:', error);
+        res.status(500).json({ 
+            error: 'Error interno del servidor',
+            message: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
 // Health check - SIMPLIFIED 
 app.get('/health', async (req, res) => {
     try {
