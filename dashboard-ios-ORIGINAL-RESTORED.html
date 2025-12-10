@@ -683,6 +683,8 @@
             right: 0;
             height: 49px;
             display: flex;
+            /* CRITICAL FIX: Z-index to prevent heatmap overlap */
+            z-index: 1000;
             /* Add safe area support */
             padding-bottom: env(safe-area-inset-bottom);
             padding: 0 2px;
@@ -1529,6 +1531,8 @@
             overflow: hidden;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             overflow-x: auto;
+            /* PROFESSIONAL FIX: Safe area padding for tab-bar */
+            margin-bottom: calc(60px + env(safe-area-inset-bottom));
         }
 
         .heatmap-table {
@@ -1555,9 +1559,13 @@
             position: sticky;
             left: 0;
             background: var(--ios-gray-6);
-            z-index: 11;
+            z-index: 11; /* Below tab-bar (1000) but above content */
             text-align: left;
             min-width: 120px;
+            /* PROFESSIONAL ENHANCEMENT */
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text';
+            font-weight: 600;
+            letter-spacing: 0.025em;
         }
 
         .heatmap-table td {
@@ -1581,8 +1589,11 @@
             font-size: 0.75rem;
             text-align: left;
             border-right: 0.5px solid var(--ios-separator);
-            z-index: 9;
+            z-index: 9; /* Below tab-bar (1000) but above content */
             color: var(--ios-label);
+            /* PROFESSIONAL ENHANCEMENT */
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text';
+            letter-spacing: 0.025em;
         }
 
         .heatmap-table tbody tr:hover {
@@ -2792,9 +2803,10 @@
 
             // EPL CAS label
             const eplLabelCell = document.createElement('td');
-            eplLabelCell.innerHTML = `<div style="display: flex; align-items: center; justify-content: center;">
-                <i class="fas fa-star" style="margin-right: 8px; color: #FFD700;"></i>
-                <span style="font-weight: 700; font-size: 0.9rem;">PROMEDIO EPL CAS</span>
+            eplLabelCell.style.cssText = 'padding: 12px 8px; position: sticky; left: 0; z-index: 12; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%); border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
+            eplLabelCell.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; color: white;">
+                <i class="fas fa-star" style="margin-right: 8px; color: #FFD700; text-shadow: 0 1px 3px rgba(0,0,0,0.5); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"></i>
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text'; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.025em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">PROMEDIO EPL CAS</span>
             </div>`;
             eplRow.appendChild(eplLabelCell);
 
@@ -5145,8 +5157,11 @@
             eplRow.style.cssText = 'background: #007AFF; color: white; font-weight: bold;';
             
             const eplLabelCell = document.createElement('td');
-            eplLabelCell.style.cssText = 'padding: 12px 8px; font-weight: 700; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: #007AFF; z-index: 6; color: white;';
-            eplLabelCell.innerHTML = `<div style="color: white; font-weight: bold;">PROMEDIO EPL CAS</div>`;
+            eplLabelCell.style.cssText = 'padding: 12px 8px; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: linear-gradient(135deg, #007AFF 0%, #0056b3 100%); z-index: 12; color: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
+            eplLabelCell.innerHTML = `<div style="display: flex; align-items: center; justify-content: center; color: white;">
+                <i class="fas fa-star" style="margin-right: 8px; color: #FFD700; text-shadow: 0 1px 3px rgba(0,0,0,0.5); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));"></i>
+                <span style="font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text'; font-weight: 600; font-size: 0.875rem; letter-spacing: 0.025em; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">PROMEDIO EPL CAS</span>
+            </div>`;
             eplRow.appendChild(eplLabelCell);
             
             let lastValidEpl = null;
