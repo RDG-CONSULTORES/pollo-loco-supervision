@@ -1325,8 +1325,78 @@
             color: var(--ios-secondary-label);
             text-transform: uppercase;
             letter-spacing: 0.05em;
-            margin-bottom: 0.5rem;
         }
+
+        /* Territorial Filter Toggle - iOS Native Style */
+        .territorial-filter {
+            background: rgba(242, 242, 247, 0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            -webkit-backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 13px;
+            padding: 3px;
+            margin: 12px 16px 8px 16px;
+            display: flex;
+            position: relative;
+        }
+
+        .territorial-option {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 590; /* SF Pro Text Medium */
+            letter-spacing: -0.24px;
+            text-align: center;
+            transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            cursor: pointer;
+            background: transparent;
+            border: none;
+            color: var(--ios-label);
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .territorial-option.active {
+            background: var(--ios-blue);
+            color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
+            transform: scale(1.02);
+        }
+
+        .territorial-option:not(.active):hover {
+            background: rgba(0, 122, 255, 0.1);
+        }
+
+        .territorial-option:not(.active):active {
+            transform: scale(0.98);
+        }
+
+        /* Mixed group indicator */
+        .mixed-group-indicator {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            background: var(--ios-orange);
+            border-radius: 50%;
+            opacity: 0.8;
+        }
+
+        .heatmap-cell.mixed {
+            position: relative;
+        }
+
+        .heatmap-cell.mixed::after {
+            content: '🔀';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 10px;
+            opacity: 0.7;
+        }
+
+        /* Group Pills & Presets Styles */
         .preset-pill {
             font-size: 0.8rem !important;
             padding: 0.4rem 0.75rem !important;
@@ -1690,7 +1760,6 @@
 
             .legend-item {
                 font-size: 0.7rem;
-            }
         }
 
         /* Trend Chart */
@@ -2020,7 +2089,6 @@
             
             .summary-value {
                 font-size: 20px;
-            }
         }
     </style>
 </head>
@@ -2344,6 +2412,24 @@
                 </div>
 
                 <div class="section">
+                    <div class="section-header">CLASIFICACIÓN TERRITORIAL</div>
+                    <div class="territorial-filter">
+                        <button class="territorial-option active" data-territorial="all">
+                            📍 Todas
+                        </button>
+                        <button class="territorial-option" data-territorial="local">
+                            🏠 Locales
+                        </button>
+                        <button class="territorial-option" data-territorial="foranea">
+                            🌐 Foráneas
+                        </button>
+                    </div>
+                    <div style="padding: 8px 16px 12px; font-size: 13px; color: var(--ios-secondary-label); text-align: center;">
+                        🏠 Locales: NL + Saltillo • 🌐 Foráneas: Otros estados
+                    </div>
+                </div>
+
+                <div class="section">
                     <div class="section-header">PERFORMANCE</div>
                     <div class="filter-pills" id="performance-filters">
                         <button class="filter-pill active" data-value="all">Todos</button>
@@ -2490,6 +2576,50 @@
         let allGroupsComplete = []; // Complete list of groups without filters
         let allSucursales = [];
         let mapData = [];
+
+        // Mapping territorial de grupos mixtos
+        const territorialMapping = {
+            'GRUPO SALTILLO': {
+                local: ['01 - Saltillo Centro', '02 - Saltillo Sur', '03 - Saltillo Norte', '04 - Ramos Arizpe', '05 - Arteaga'],
+                foranea: ['57 - Harold R. Pape']
+            },
+            'GRUPO TEC': {
+                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec', '16 - Apodaca Tec'],
+                foranea: ['58 - Guasave']
+            },
+            'GRUPO EXPO': {
+                local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur', '23 - San Pedro Expo', 
+                       '24 - Guadalupe Expo', '25 - Escobedo Expo', '26 - García Expo',
+                       '27 - Santiago Expo', '29 - Juárez Expo'],
+                foranea: ['30 - Carrizo', '28 - Guerrero']
+            }
+        };
+
+        // Clasificación territorial base
+        function isLocalSucursal(sucursal, grupo) {
+            // Casos especiales para grupos mixtos
+            if (territorialMapping[grupo]) {
+                return territorialMapping[grupo].local.includes(sucursal);
+            }
+            
+            // Lógica general: NL + Saltillo son locales (excepto 3 específicas)
+            const foraneasEspeciales = ['57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero'];
+            
+            if (foraneasEspeciales.includes(sucursal)) {
+                return false; // Estas son foráneas sin importar el estado
+            }
+            
+            // GRUPO SALTILLO siempre local por proximidad HQ
+            if (grupo === 'GRUPO SALTILLO') {
+                return true;
+            }
+            
+            // TODO: Aquí necesitaremos datos del estado de la sucursal
+            // Por ahora, usamos la lógica del nombre
+            return !sucursal.toLowerCase().includes('laredo') && 
+                   !sucursal.toLowerCase().includes('querétaro') &&
+                   !sucursal.toLowerCase().includes('guasave');
+        }
         let currentView = 'general';
         let currentTab = 'dashboard';
         let currentViewMode = 'list'; // 'list' or 'chart'
@@ -2498,7 +2628,8 @@
             performance: 'all',
             estado: 'all',
             grupo: '',
-            grupos: []  // Support for multiple group selection
+            grupos: [],  // Support for multiple group selection
+            territorial: 'all'  // Nueva dimensión territorial: all, local, foranea
         };
         let kpiData = {};
         let map = null;
@@ -3599,6 +3730,7 @@
         function filterGroups() {
             let filtered = allGroups;
             
+            // Aplicar filtro de performance
             if (currentFilters.performance !== 'all') {
                 filtered = filtered.filter(g => {
                     switch(currentFilters.performance) {
@@ -3610,7 +3742,191 @@
                 });
             }
 
+            // Aplicar filtro territorial
+            if (currentFilters.territorial !== 'all') {
+                filtered = filtered.filter(g => {
+                    if (currentFilters.territorial === 'local') {
+                        return isLocalGroup(g.name || g.grupo || g.grupo_operativo);
+                    } else if (currentFilters.territorial === 'foranea') {
+                        return isForaneaGroup(g.name || g.grupo || g.grupo_operativo);
+                    }
+                    return true;
+                });
+            }
+
             return filtered;
+        }
+
+        // Aplicar filtro territorial con animación iOS
+        function applyTerritorialFilter(territorialValue) {
+            console.log(`🗺️ Applying territorial filter: ${territorialValue}`);
+            
+            // Animación de transición suave
+            const containers = [
+                document.getElementById('grupos-por-performance'),
+                document.getElementById('top-performers'),
+                document.getElementById('critical-performers'),
+                document.querySelector('.heatmap-container')
+            ].filter(el => el);
+            
+            // Fade out
+            containers.forEach(container => {
+                container.style.transition = 'all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+                container.style.transform = 'scale(0.98)';
+                container.style.opacity = '0.7';
+            });
+            
+            // Recalcular datos con delay para la animación
+            setTimeout(() => {
+                // Recalcular KPIs con filtro territorial
+                const filteredKPIs = recalculateKPIsWithTerritorial(territorialValue);
+                
+                // Actualizar banner principal
+                updateKPIsWithTerritorial(filteredKPIs, territorialValue);
+                
+                // Recargar datos con filtro
+                loadData();
+                
+                // Si estamos en tab histórico, también actualizar heatmap
+                if (currentTab === 'historico') {
+                    loadHistoricoData();
+                }
+                
+                // Fade in
+                setTimeout(() => {
+                    containers.forEach(container => {
+                        container.style.transform = 'scale(1)';
+                        container.style.opacity = '1';
+                    });
+                }, 50);
+                
+            }, 150);
+        }
+
+        // Recalcular KPIs con filtro territorial
+        function recalculateKPIsWithTerritorial(territorialValue) {
+            if (!allGroupsComplete || allGroupsComplete.length === 0) {
+                return kpiData; // Return existing if no data
+            }
+
+            let filteredGroups = allGroupsComplete;
+            
+            // Aplicar filtro territorial
+            if (territorialValue !== 'all') {
+                filteredGroups = filteredGroups.filter(group => {
+                    if (territorialValue === 'local') {
+                        return isLocalGroup(group.name);
+                    } else if (territorialValue === 'foranea') {
+                        return isForaneaGroup(group.name);
+                    }
+                    return true;
+                });
+            }
+            
+            // Recalcular métricas
+            const totalSucursales = filteredGroups.reduce((sum, g) => sum + (g.sucursales || 0), 0);
+            const totalSupervisiones = filteredGroups.reduce((sum, g) => sum + (g.supervisiones || 0), 0);
+            const promedioGeneral = filteredGroups.length > 0 
+                ? (filteredGroups.reduce((sum, g) => sum + (g.performance || 0), 0) / filteredGroups.length)
+                : 0;
+
+            return {
+                ...kpiData,
+                sucursales_evaluadas: totalSucursales,
+                total_supervisiones: totalSupervisiones,
+                promedio_general: promedioGeneral.toFixed(2),
+                total_grupos: filteredGroups.length
+            };
+        }
+
+        // Verificar si un grupo es local
+        function isLocalGroup(groupName) {
+            // Grupos mixtos - verificar si tienen sucursales locales
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].local.length > 0;
+            }
+            
+            // Grupos puros locales (NL + Saltillo)
+            const localGroups = ['OGAS', 'TEPEYAC', 'EFM', 'GRUPO NUEVO LEÓN'];
+            const foraneasGroups = ['PLOG QUERETARO', 'PLOG TAMAULIPAS'];
+            
+            if (localGroups.some(local => groupName.includes(local))) {
+                return true;
+            }
+            
+            if (foraneasGroups.some(foranea => groupName.includes(foranea))) {
+                return false;
+            }
+            
+            // Default logic basado en nombre
+            return !groupName.toLowerCase().includes('querétaro') && 
+                   !groupName.toLowerCase().includes('tamaulipas') &&
+                   !groupName.toLowerCase().includes('laredo');
+        }
+
+        // Verificar si un grupo es foráneo
+        function isForaneaGroup(groupName) {
+            // Grupos mixtos - verificar si tienen sucursales foráneas
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].foranea.length > 0;
+            }
+            
+            // Grupos puros foráneos
+            const foraneasGroups = ['PLOG QUERETARO', 'PLOG TAMAULIPAS'];
+            
+            if (foraneasGroups.some(foranea => groupName.includes(foranea))) {
+                return true;
+            }
+            
+            // Default logic
+            return groupName.toLowerCase().includes('querétaro') || 
+                   groupName.toLowerCase().includes('tamaulipas') ||
+                   groupName.toLowerCase().includes('laredo');
+        }
+
+        // Actualizar KPIs con contexto territorial
+        function updateKPIsWithTerritorial(filteredKPIs, territorialValue) {
+            // Actualizar valores
+            document.getElementById('performance-general').textContent = 
+                filteredKPIs.promedio_general ? `${parseFloat(filteredKPIs.promedio_general).toFixed(2)}%` : '--%';
+            document.getElementById('total-supervisiones').textContent = 
+                filteredKPIs.total_supervisiones || '--';
+            document.getElementById('total-grupos').textContent = 
+                filteredKPIs.total_grupos || '--';
+            document.getElementById('total-sucursales').textContent = 
+                filteredKPIs.sucursales_evaluadas || '--';
+            
+            // Actualizar contexto en el título si es necesario
+            const navTitle = document.getElementById('nav-title');
+            if (navTitle) {
+                const baseTitle = 'Dashboard CAS';
+                const contextText = territorialValue === 'local' ? ' (Locales)' : 
+                                   territorialValue === 'foranea' ? ' (Foráneas)' : '';
+                navTitle.textContent = baseTitle + contextText;
+            }
+        }
+
+        // Sincronizar filtro territorial entre tabs
+        function syncTerritorialFilterAcrossTabs() {
+            // Obtener estado actual del toggle territorial
+            const currentTerritorialFilter = currentFilters.territorial;
+            
+            // Actualizar visualmente el toggle en el modal de filtros si no está sincronizado
+            const territorialOptions = document.querySelectorAll('.territorial-option');
+            territorialOptions.forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.territorial === currentTerritorialFilter) {
+                    option.classList.add('active');
+                }
+            });
+            
+            // Si cambiamos al tab histórico, aplicar el filtro territorial activo
+            if (currentTab === 'historico' && currentTerritorialFilter !== 'all') {
+                console.log(`🗺️ Applying territorial filter to historico tab: ${currentTerritorialFilter}`);
+                // El filtro se aplicará automáticamente en renderCASPeriodsHeatmap por currentFilters.territorial
+            }
+            
+            console.log(`📱 Tab switched to: ${currentTab}, territorial filter: ${currentTerritorialFilter}`);
         }
 
         function updateContainer(id, content) {
@@ -4054,6 +4370,9 @@
             // Update tab bar
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            
+            // Preservar y sincronizar estado territorial entre tabs
+            syncTerritorialFilterAcrossTabs();
 
             // Hide all views
             document.querySelectorAll('.tab-view').forEach(view => {
@@ -4165,7 +4484,8 @@
                 performance: 'all',
                 estado: 'all',
                 grupo: '',
-                grupos: []
+                grupos: [],
+                territorial: 'all'
             };
 
             // Reset UI
@@ -4173,6 +4493,14 @@
                 pill.classList.remove('active');
                 if (pill.dataset.value === 'all') {
                     pill.classList.add('active');
+                }
+            });
+
+            // Reset territorial toggle
+            document.querySelectorAll('.territorial-option').forEach(option => {
+                option.classList.remove('active');
+                if (option.dataset.territorial === 'all') {
+                    option.classList.add('active');
                 }
             });
 
@@ -4637,6 +4965,20 @@
             
             const { periods, groups } = data;
             
+            // Aplicar filtro territorial a los grupos
+            let filteredGroups = groups;
+            if (currentFilters.territorial !== 'all') {
+                filteredGroups = groups.filter(group => {
+                    const groupName = group.grupo || group.name;
+                    if (currentFilters.territorial === 'local') {
+                        return isLocalGroup(groupName);
+                    } else if (currentFilters.territorial === 'foranea') {
+                        return isForaneaGroup(groupName);
+                    }
+                    return true;
+                });
+            }
+            
             // Sort periods in CAS order: T1 → T2 → T3 → T4 → FOR-S1 → FOR-S2
             const sortedPeriods = periods.sort((a, b) => {
                 // Orden CAS definitivo: Locales primero, luego Foráneas
@@ -4645,7 +4987,15 @@
             });
             
             // Sort groups by general average descending
-            const sortedGroups = groups.sort((a, b) => (b.promedio_general || 0) - (a.promedio_general || 0));
+            const sortedGroups = filteredGroups.sort((a, b) => (b.promedio_general || 0) - (a.promedio_general || 0));
+            
+            // Mensaje contextual basado en filtro territorial
+            let contextMessage = '📊 Períodos CAS 2025 • Promedio consolidado por Grupo Operativo';
+            if (currentFilters.territorial === 'local') {
+                contextMessage = '🏠 Períodos CAS 2025 • Solo Grupos Locales (NL + Saltillo)';
+            } else if (currentFilters.territorial === 'foranea') {
+                contextMessage = '🌐 Períodos CAS 2025 • Solo Grupos Foráneos (Otros Estados)';
+            }
             
             // Clear existing content
             container.innerHTML = `
@@ -4654,7 +5004,7 @@
                         📊 Períodos CAS por Grupo Operativo
                     </h3>
                     <p style="color: #666; font-size: 14px; text-align: center; margin-bottom: 20px;">
-                        📊 Períodos CAS 2025 • Promedio consolidado por Grupo Operativo<br>
+                        ${contextMessage}<br>
                         🏠 Locales: T1 (12Mar-16Abr) • T2 (11Jun-18Ago) • T3 (19Ago-9Oct) • T4 (10Oct-31Dic)<br>
                         🌎 Foráneas: FOR-S1 (10Abr-9Jun) • FOR-S2 (30Jul-31Dic)
                     </p>
@@ -4695,8 +5045,19 @@
                 
                 // Group name cell
                 const nameCell = document.createElement('td');
-                nameCell.style.cssText = 'padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: white; z-index: 5;';
-                nameCell.textContent = group.grupo || 'Sin nombre';
+                nameCell.style.cssText = 'padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: white; z-index: 5; position: relative;';
+                
+                const groupName = group.grupo || 'Sin nombre';
+                const isMixed = territorialMapping[groupName];
+                
+                nameCell.innerHTML = isMixed ? 
+                    `${groupName} <span style="color: var(--ios-orange); font-size: 12px;">🔀</span>` : 
+                    groupName;
+                
+                if (isMixed) {
+                    nameCell.title = `Grupo mixto: Locales (${territorialMapping[groupName].local.length}) + Foráneas (${territorialMapping[groupName].foranea.length})`;
+                }
+                
                 row.appendChild(nameCell);
                 
                 // Period cells
@@ -4966,6 +5327,33 @@
                         if (currentTab === 'mapa') {
                             loadMapData();
                         }
+                    }
+                }
+
+                // Handle territorial toggle - iOS Native Style
+                if (e.target.classList.contains('territorial-option')) {
+                    const container = e.target.closest('.territorial-filter');
+                    if (container) {
+                        const territorialValue = e.target.dataset.territorial;
+                        
+                        // Haptic feedback (if available)
+                        if (navigator.vibrate) {
+                            navigator.vibrate(10);
+                        }
+                        
+                        // Update active state with iOS animation
+                        container.querySelectorAll('.territorial-option').forEach(option => {
+                            option.classList.remove('active');
+                        });
+                        e.target.classList.add('active');
+                        
+                        // Update filter
+                        currentFilters.territorial = territorialValue;
+                        
+                        console.log(`🗺️ Territorial filter changed to: ${territorialValue}`);
+                        
+                        // Apply territorial filter with animation
+                        applyTerritorialFilter(territorialValue);
                     }
                 }
             });
