@@ -2577,20 +2577,14 @@
         let allSucursales = [];
         let mapData = [];
 
-        // Mapping territorial de grupos mixtos - NOMBRES EXACTOS DEL API
+        // Mapping territorial de grupos mixtos - SOLO LOS VERDADERAMENTE MIXTOS
         const territorialMapping = {
-            'GRUPO SALTILLO': {
-                local: ['01 - Saltillo Centro', '02 - Saltillo Sur', '03 - Saltillo Norte', '04 - Ramos Arizpe', '05 - Arteaga'],
-                foranea: ['57 - Harold R. Pape']
-            },
             'TEC': {
-                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec', '16 - Apodaca Tec'],
+                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec'],
                 foranea: ['58 - Guasave']
             },
             'EXPO': {
-                local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur', '23 - San Pedro Expo', 
-                       '24 - Guadalupe Expo', '25 - Escobedo Expo', '26 - García Expo',
-                       '27 - Santiago Expo', '29 - Juárez Expo'],
+                local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur'],
                 foranea: ['30 - Carrizo', '28 - Guerrero']
             }
         };
@@ -3839,42 +3833,40 @@
             };
         }
 
-        // Verificar si un grupo es local - BASADO EN API REAL
+        // Verificar si un grupo es local - BASADO EN CAMPO ESTADO DEL API
         function isLocalGroup(groupName) {
-            // Grupos mixtos - verificar si tienen sucursales locales
+            // Para grupos mixtos, solo los que tienen sucursales locales
             if (territorialMapping[groupName]) {
                 return territorialMapping[groupName].local.length > 0;
             }
             
-            // Grupos puros locales - NUEVO LEON SOLAMENTE (del API real)
-            const nuevoLeonGroups = [
-                'OGAS', 'EPL SO', 'EFM', 'TEPEYAC', 'GRUPO CENTRITO', 
-                'GRUPO SABINAS HIDALGO', 'PLOG NUEVO LEON'
+            // Grupos puros locales - SOLO NUEVO LEON (basado en API estado)
+            const nuevoLeonPuros = [
+                'OGAS', 'EPL SO', 'TEPEYAC', 'EFM', 'PLOG NUEVO LEON', 
+                'GRUPO SABINAS HIDALGO', 'GRUPO CENTRITO'
             ];
             
-            // Match exacto por nombres del API
-            return nuevoLeonGroups.includes(groupName);
+            return nuevoLeonPuros.includes(groupName);
         }
 
-        // Verificar si un grupo es foráneo - BASADO EN API REAL  
+        // Verificar si un grupo es foráneo - BASADO EN CAMPO ESTADO DEL API
         function isForaneaGroup(groupName) {
-            // Grupos mixtos - verificar si tienen sucursales foráneas
+            // Para grupos mixtos, solo los que tienen sucursales foráneas  
             if (territorialMapping[groupName]) {
                 return territorialMapping[groupName].foranea.length > 0;
             }
             
-            // Grupos foráneos puros - TODOS LOS QUE NO SON NL NI MIXTOS (del API real)
-            const foraneasGroups = [
-                'PLOG QUERETARO',                    // Querétaro
+            // Grupos foráneos puros - TODOS SIN NUEVO LEON (basado en API estado)
+            const foraneasPuros = [
+                'PLOG QUERETARO',                           // Querétaro
                 'GRUPO MATAMOROS', 'GRUPO RIO BRAVO', 'CRR', 'RAP', 
-                'OCHTER TAMPICO', 'GRUPO NUEVO LAREDO (RUELAS)',  // Tamaulipas (6)
-                'PLOG LAGUNA',                       // Coahuila, Durango  
-                'GRUPO PIEDRAS NEGRAS',              // Coahuila (1) - GRUPO SALTILLO es mixto
-                'GRUPO CANTERA ROSA (MORELIA)'       // Michoacán
+                'OCHTER TAMPICO', 'GRUPO NUEVO LAREDO (RUELAS)',    // Tamaulipas (6)
+                'PLOG LAGUNA',                              // Coahuila, Durango
+                'GRUPO PIEDRAS NEGRAS', 'GRUPO SALTILLO',   // Coahuila (2)
+                'GRUPO CANTERA ROSA (MORELIA)'              // Michoacán
             ];
             
-            // Match exacto por nombres del API
-            return foraneasGroups.includes(groupName);
+            return foraneasPuros.includes(groupName);
         }
 
         // Actualizar KPIs con contexto territorial
