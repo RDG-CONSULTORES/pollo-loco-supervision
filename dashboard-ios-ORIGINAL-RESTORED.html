@@ -5197,18 +5197,32 @@
             }
         }
 
-        // Render heatmap with filters - RESTORED functionality
+        // Render heatmap with filters - RESTORED functionality with territorial support
         function renderHeatmapWithFilter(data, filter = 'all') {
             let filteredGroups = [...data.groups];
             
-            // Apply filters
+            // 🗺️ FIRST: Apply territorial filters
+            if (currentFilters.territorial !== 'all') {
+                filteredGroups = filteredGroups.filter(group => {
+                    const groupName = group.grupo || group.name;
+                    if (currentFilters.territorial === 'local') {
+                        return isLocalGroup(groupName);
+                    } else if (currentFilters.territorial === 'foranea') {
+                        return isForaneaGroup(groupName);
+                    }
+                    return true;
+                });
+                console.log(`🗺️ After territorial filter (${currentFilters.territorial}):`, filteredGroups.length, 'groups');
+            }
+            
+            // 📊 SECOND: Apply performance filters
             switch(filter) {
                 case 'critical':
-                    filteredGroups = data.groups.filter(g => (g.promedio_general || 0) < 80);
+                    filteredGroups = filteredGroups.filter(g => (g.promedio_general || 0) < 80);
                     break;
                 case 'improving':
                     // Groups with positive trend in latest period
-                    filteredGroups = data.groups.filter(g => {
+                    filteredGroups = filteredGroups.filter(g => {
                         const periods = data.periods.sort((a, b) => {
                             const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
                             return order.indexOf(a) - order.indexOf(b);
@@ -5221,7 +5235,7 @@
                     break;
                 case 'declining':
                     // Groups with negative trend in latest period
-                    filteredGroups = data.groups.filter(g => {
+                    filteredGroups = filteredGroups.filter(g => {
                         const periods = data.periods.sort((a, b) => {
                             const order = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
                             return order.indexOf(a) - order.indexOf(b);
@@ -5233,10 +5247,11 @@
                     });
                     break;
                 default: // 'all'
-                    filteredGroups = data.groups;
+                    // filteredGroups already has territorial filters applied
+                    break;
             }
             
-            console.log(`🔍 Filtered groups (${filter}):`, filteredGroups.length, 'of', data.groups.length);
+            console.log(`🔍 Final filtered groups (territorial: ${currentFilters.territorial}, performance: ${filter}):`, filteredGroups.length, 'of', data.groups.length);
             
             // Render with filtered data
             const modifiedData = { ...data, groups: filteredGroups };
