@@ -2603,10 +2603,8 @@
                 return false; // Estas son foráneas sin importar el estado
             }
             
-            // GRUPO SALTILLO siempre local por proximidad HQ
-            if (grupo === 'GRUPO SALTILLO') {
-                return true;
-            }
+            // GRUPO SALTILLO es FORÁNEO (estado: Coahuila según API)
+            // Eliminamos override de proximidad HQ para respetar clasificación territorial real
             
             // TODO: Aquí necesitaremos datos del estado de la sucursal
             // Por ahora, usamos la lógica del nombre
