@@ -2586,6 +2586,10 @@
             'EXPO': {
                 local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur'],
                 foranea: ['30 - Carrizo', '28 - Guerrero']
+            },
+            'GRUPO SALTILLO': {
+                local: ['01 - Saltillo Centro', '02 - Saltillo Sur', '03 - Saltillo Norte', '04 - Ramos Arizpe', '05 - Arteaga'],
+                foranea: ['57 - Harold R. Pape']
             }
         };
 
@@ -2603,8 +2607,11 @@
                 return false; // Estas son foráneas sin importar el estado
             }
             
-            // GRUPO SALTILLO es FORÁNEO (estado: Coahuila según API)
-            // Eliminamos override de proximidad HQ para respetar clasificación territorial real
+            // GRUPO SALTILLO es MIXTO (locales en Saltillo, foránea Harold R. Pape en Monclova)
+            if (grupo === 'GRUPO SALTILLO') {
+                // Harold R. Pape en Monclova es la única foránea
+                return !sucursal.includes('Harold R. Pape');
+            }
             
             // TODO: Aquí necesitaremos datos del estado de la sucursal
             // Por ahora, usamos la lógica del nombre
@@ -3860,7 +3867,7 @@
                 'GRUPO MATAMOROS', 'GRUPO RIO BRAVO', 'CRR', 'RAP', 
                 'OCHTER TAMPICO', 'GRUPO NUEVO LAREDO (RUELAS)',    // Tamaulipas (6)
                 'PLOG LAGUNA',                              // Coahuila, Durango
-                'GRUPO PIEDRAS NEGRAS', 'GRUPO SALTILLO',   // Coahuila (2)
+                'GRUPO PIEDRAS NEGRAS',                     // Coahuila (1)
                 'GRUPO CANTERA ROSA (MORELIA)'              // Michoacán
             ];
             
