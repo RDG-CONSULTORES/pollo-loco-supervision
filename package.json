@@ -1,10 +1,10 @@
 {
   "name": "pollo-loco-supervision",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "El Pollo Loco CAS - Dashboard RESTAURADO con funcionalidad completa + estructura nueva + fechas de corte T4/S2",
-  "main": "telegram-bot/bot.js",
+  "main": "server.js",
   "scripts": {
-    "start": "NODE_ENV=production node telegram-bot/bot.js",
+    "start": "NODE_ENV=production node server.js",
     "dev": "NODE_ENV=development nodemon telegram-bot/bot.js",
     "bot": "node telegram-bot/bot.js",
     "bot-auth": "node telegram-bot/bot.js",
