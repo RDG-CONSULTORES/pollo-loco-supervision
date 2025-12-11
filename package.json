@@ -4,7 +4,9 @@
   "description": "El Pollo Loco CAS - Dashboard RESTAURADO con funcionalidad completa + estructura nueva + fechas de corte T4/S2",
   "main": "server.js",
   "scripts": {
-    "start": "NODE_ENV=production node server.js",
+    "start": "NODE_ENV=production node server-MENU-BUTTON-ONLY.js",
+    "start-old": "NODE_ENV=production node server-FIXED-no-filters.js",
+    "start-dashboard-only": "NODE_ENV=production node server-dashboard-only.js", 
     "dev": "NODE_ENV=development nodemon telegram-bot/bot.js",
     "bot": "node telegram-bot/bot.js",
     "bot-auth": "node telegram-bot/bot.js",
