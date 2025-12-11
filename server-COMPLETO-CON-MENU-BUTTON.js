@@ -423,6 +423,18 @@ app.get('/', (req, res) => {
     });
 });
 
+// RUTA /dashboard - NECESARIA PARA MENU BUTTON
+app.get('/dashboard', (req, res) => {
+    const dashboardPath = path.join(__dirname, 'dashboard-ios-ORIGINAL-RESTORED.html');
+    console.log('📱 DASHBOARD route accessed - redirecting to:', dashboardPath);
+    res.sendFile(dashboardPath, (err) => {
+        if (err) {
+            console.error('❌ Dashboard file error:', err.message);
+            res.status(500).send(`Error loading dashboard: ${err.message}`);
+        }
+    });
+});
+
 // KPIs API - USING NORMALIZED VIEW FOR CORRECT SUPERVISION COUNT
 app.get('/api/kpis', async (req, res) => {
     try {
