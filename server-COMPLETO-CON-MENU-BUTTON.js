@@ -427,6 +427,111 @@ function getPeriodoCAS(fecha, estado, grupoOperativo, locationName) {
 // ============================================================================
 // 🧪 ENDPOINT DE PRUEBA - VALIDAR MIGRACION CALIFICACION_GENERAL_PCT  
 // ============================================================================
+app.get('/api/sucursal-detail-new', async (req, res) => {
+    try {
+        const { sucursal, grupo } = req.query;
+        console.log('🧪 Testing NEW calculation method for:', sucursal, 'from group:', grupo);
+        
+        if (!sucursal) {
+            return res.status(400).json({ error: 'Sucursal name is required' });
+        }
+        
+        // 🆕 FORZAR MÉTODO NUEVO para testing
+        const normalizedName = sucursal.replace('la-', '').replace('La ', '').trim();
+        
+        const newQuery = `
+            SELECT 
+                -- Normalizar nombres TEPEYAC
+                CASE 
+                    WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                    WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                    WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                    ELSE location_name 
+                END as sucursal,
+                estado_supervision as estado,
+                'MAPPED_FROM_CAS' as grupo_operativo,
+                ROUND(AVG(calificacion_general_pct)::numeric, 2) as performance,
+                COUNT(DISTINCT submission_id) as total_evaluaciones,
+                MAX(date_completed) as ultima_supervision,
+                'NEW (calificacion_general_pct)' as calculation_method
+            FROM supervision_operativa_cas 
+            WHERE (location_name ILIKE '%${normalizedName}%' 
+                   OR location_name ILIKE '%${sucursal}%'
+                   OR location_name ILIKE '%Huasteca%')
+              AND date_completed >= '2025-02-01'
+            GROUP BY 
+                CASE 
+                    WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                    WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                    WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                    ELSE location_name 
+                END,
+                estado_supervision
+        `;
+        
+        const result = await pool.query(newQuery);
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ 
+                error: 'Sucursal not found in CAS table',
+                sucursal,
+                method: 'NEW (supervision_operativa_cas)',
+                query_used: newQuery
+            });
+        }
+        
+        const sucursalData = result.rows[0];
+        
+        // Calcular tendencias por período para método nuevo
+        const tendenciasQuery = `
+            SELECT 
+                CASE 
+                    WHEN date_completed >= '2025-03-12' AND date_completed <= '2025-04-16' THEN 'NL-T1-2025'
+                    WHEN date_completed >= '2025-06-11' AND date_completed <= '2025-08-18' THEN 'NL-T2-2025'
+                    WHEN date_completed >= '2025-08-19' AND date_completed <= '2025-10-09' THEN 'NL-T3-2025'
+                    WHEN date_completed >= '2025-10-30' THEN 'NL-T4-2025'
+                    ELSE 'OTRO'
+                END as periodo,
+                ROUND(AVG(calificacion_general_pct)::numeric, 2) as performance
+            FROM supervision_operativa_cas 
+            WHERE (location_name ILIKE '%${normalizedName}%' 
+                   OR location_name ILIKE '%${sucursal}%'
+                   OR location_name ILIKE '%Huasteca%')
+              AND date_completed >= '2025-02-01'
+            GROUP BY 
+                CASE 
+                    WHEN date_completed >= '2025-03-12' AND date_completed <= '2025-04-16' THEN 'NL-T1-2025'
+                    WHEN date_completed >= '2025-06-11' AND date_completed <= '2025-08-18' THEN 'NL-T2-2025'
+                    WHEN date_completed >= '2025-08-19' AND date_completed <= '2025-10-09' THEN 'NL-T3-2025'
+                    WHEN date_completed >= '2025-10-30' THEN 'NL-T4-2025'
+                    ELSE 'OTRO'
+                END
+            HAVING 
+                CASE 
+                    WHEN date_completed >= '2025-03-12' AND date_completed <= '2025-04-16' THEN 'NL-T1-2025'
+                    WHEN date_completed >= '2025-06-11' AND date_completed <= '2025-08-18' THEN 'NL-T2-2025'
+                    WHEN date_completed >= '2025-08-19' AND date_completed <= '2025-10-09' THEN 'NL-T3-2025'
+                    WHEN date_completed >= '2025-10-30' THEN 'NL-T4-2025'
+                    ELSE 'OTRO'
+                END != 'OTRO'
+            ORDER BY periodo
+        `;
+        
+        const tendenciasResult = await pool.query(tendenciasQuery);
+        sucursalData.tendencias = tendenciasResult.rows;
+        
+        console.log('🆕 NEW method results:', sucursalData);
+        res.json(sucursalData);
+        
+    } catch (error) {
+        console.error('❌ Error in NEW method test:', error);
+        res.status(500).json({ 
+            error: 'Error in NEW method test',
+            details: error.message 
+        });
+    }
+});
+
 app.get('/api/test-migration', async (req, res) => {
     try {
         console.log('🧪 Testing migration - comparing old vs new calculation methods');
