@@ -177,35 +177,95 @@ app.get('/api/sucursal-detail', async (req, res) => {
             params.push(grupo);
         }
         
-        // Main query for sucursal details - Using supervision_normalized_view with nombre_normalizado
-        const query = `
-            SELECT 
-                nombre_normalizado as sucursal,
-                numero_sucursal,
-                estado_final as estado,
-                ciudad_normalizada as municipio,
-                grupo_normalizado as grupo_operativo,
-                ROUND(AVG(porcentaje)::numeric, 2) as performance,
-                COUNT(DISTINCT submission_id) as total_evaluaciones,
-                MAX(fecha_supervision) as ultima_supervision,
-                COUNT(DISTINCT area_evaluacion) as areas_evaluadas
-            FROM supervision_normalized_view 
-            ${whereClause}
-              AND fecha_supervision >= '2025-02-01'
-            GROUP BY nombre_normalizado, numero_sucursal, estado_final, ciudad_normalizada, grupo_normalizado
-        `;
+        // 🚀 DUAL-SOURCE STRATEGY: Test new vs old calculation method
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        const result = await pool.query(query, params);
+        let sucursalData;
         
-        if (result.rows.length === 0) {
-            return res.status(404).json({ 
-                error: 'Sucursal not found',
-                sucursal,
-                available_suggestions: []
-            });
+        if (USE_NEW_CALCULATION) {
+            // 🆕 NUEVO MÉTODO: supervision_operativa_cas con calificacion_general_pct
+            console.log('🆕 Using NEW calculation method (supervision_operativa_cas)');
+            
+            // Normalizar nombre para búsqueda en supervision_operativa_cas
+            const normalizedName = sucursal.replace('la-', '').replace('-', ' ');
+            
+            const newQuery = `
+                SELECT 
+                    -- Normalizar nombres TEPEYAC
+                    CASE 
+                        WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                        WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                        WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                        ELSE location_name 
+                    END as sucursal,
+                    NULL as numero_sucursal,
+                    estado_supervision as estado,
+                    NULL as municipio,
+                    'MAPPED_FROM_CAS' as grupo_operativo,
+                    ROUND(AVG(calificacion_general_pct)::numeric, 2) as performance,
+                    COUNT(DISTINCT submission_id) as total_evaluaciones,
+                    MAX(date_completed) as ultima_supervision,
+                    1 as areas_evaluadas
+                FROM supervision_operativa_cas 
+                WHERE (location_name ILIKE '%${normalizedName}%' OR location_name ILIKE '%${sucursal}%')
+                  AND date_completed >= '2025-02-01'
+                GROUP BY 
+                    CASE 
+                        WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                        WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                        WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                        ELSE location_name 
+                    END,
+                    estado_supervision
+            `;
+            
+            const newResult = await pool.query(newQuery);
+            
+            if (newResult.rows.length === 0) {
+                return res.status(404).json({ 
+                    error: 'Sucursal not found in CAS table',
+                    sucursal,
+                    method: 'NEW (supervision_operativa_cas)'
+                });
+            }
+            
+            sucursalData = newResult.rows[0];
+            sucursalData.calculation_method = 'NEW (calificacion_general_pct)';
+            
+        } else {
+            // 📊 MÉTODO ACTUAL: supervision_normalized_view con promedio de áreas
+            console.log('📊 Using CURRENT calculation method (supervision_normalized_view)');
+            
+            const currentQuery = `
+                SELECT 
+                    nombre_normalizado as sucursal,
+                    numero_sucursal,
+                    estado_final as estado,
+                    ciudad_normalizada as municipio,
+                    grupo_normalizado as grupo_operativo,
+                    ROUND(AVG(porcentaje)::numeric, 2) as performance,
+                    COUNT(DISTINCT submission_id) as total_evaluaciones,
+                    MAX(fecha_supervision) as ultima_supervision,
+                    COUNT(DISTINCT area_evaluacion) as areas_evaluadas
+                FROM supervision_normalized_view 
+                ${whereClause}
+                  AND fecha_supervision >= '2025-02-01'
+                GROUP BY nombre_normalizado, numero_sucursal, estado_final, ciudad_normalizada, grupo_normalizado
+            `;
+            
+            const currentResult = await pool.query(currentQuery, params);
+            
+            if (currentResult.rows.length === 0) {
+                return res.status(404).json({ 
+                    error: 'Sucursal not found',
+                    sucursal,
+                    method: 'CURRENT (supervision_normalized_view)'
+                });
+            }
+            
+            sucursalData = currentResult.rows[0];
+            sucursalData.calculation_method = 'CURRENT (promedio áreas)';
         }
-        
-        const sucursalData = result.rows[0];
         
         // Get areas breakdown - Using normalized view
         const areasQuery = `
