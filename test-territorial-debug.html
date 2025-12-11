@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Territorial Filter</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .test-button {
+            background: #007AFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        .result {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛠️ Debug Territorial Filter</h1>
+    
+    <div class="debug-panel">
+        <h3>Test Classification Functions</h3>
+        <button class="test-button" onclick="testGroupClassification()">Test Group Classification</button>
+        <button class="test-button" onclick="testTerritorialMapping()">Test Territorial Mapping</button>
+        <button class="test-button" onclick="testAPIData()">Test API Data</button>
+        <div id="results" class="result"></div>
+    </div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        // Mapping territorial de grupos mixtos (copiar del dashboard)
+        const territorialMapping = {
+            'GRUPO SALTILLO': {
+                local: ['01 - Saltillo Centro', '02 - Saltillo Sur', '03 - Saltillo Norte', '04 - Ramos Arizpe', '05 - Arteaga'],
+                foranea: ['57 - Harold R. Pape']
+            },
+            'GRUPO TEC': {
+                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec', '16 - Apodaca Tec'],
+                foranea: ['58 - Guasave']
+            },
+            'GRUPO EXPO': {
+                local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur', '23 - San Pedro Expo', 
+                       '24 - Guadalupe Expo', '25 - Escobedo Expo', '26 - García Expo',
+                       '27 - Santiago Expo', '29 - Juárez Expo'],
+                foranea: ['30 - Carrizo', '28 - Guerrero']
+            }
+        };
+
+        // Funciones de clasificación (copiar del dashboard)
+        function isLocalGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].local.length > 0;
+            }
+            
+            const localGroups = ['OGAS', 'TEPEYAC', 'EFM', 'GRUPO NUEVO LEÓN'];
+            const foraneasGroups = ['PLOG QUERETARO', 'PLOG TAMAULIPAS'];
+            
+            if (localGroups.some(local => groupName.includes(local))) {
+                return true;
+            }
+            
+            if (foraneasGroups.some(foranea => groupName.includes(foranea))) {
+                return false;
+            }
+            
+            return !groupName.toLowerCase().includes('querétaro') && 
+                   !groupName.toLowerCase().includes('tamaulipas') &&
+                   !groupName.toLowerCase().includes('laredo');
+        }
+
+        function isForaneaGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].foranea.length > 0;
+            }
+            
+            const foraneasGroups = ['PLOG QUERETARO', 'PLOG TAMAULIPAS'];
+            
+            if (foraneasGroups.some(foranea => groupName.includes(foranea))) {
+                return true;
+            }
+            
+            return groupName.toLowerCase().includes('querétaro') || 
+                   groupName.toLowerCase().includes('tamaulipas') ||
+                   groupName.toLowerCase().includes('laredo');
+        }
+
+        function testGroupClassification() {
+            results.innerHTML = '🧪 Testing Group Classification...\n\n';
+            
+            // Test groups from actual API
+            const testGroups = [
+                'OGAS', 'PLOG QUERETARO', 'EPL SO', 'TEC', 'TEPEYAC',
+                'PLOG LAGUNA', 'EXPO', 'GRUPO MATAMOROS', 'GRUPO PIEDRAS NEGRAS',
+                'GRUPO RIO BRAVO', 'EFM', 'PLOG NUEVO LEON', 'RAP', 'OCHTER TAMPICO',
+                'GRUPO CANTERA ROSA (MORELIA)', 'GRUPO SABINAS HIDALGO',
+                'CRR', 'GRUPO CENTRITO', 'GRUPO NUEVO LAREDO (RUELAS)', 'GRUPO SALTILLO'
+            ];
+            
+            testGroups.forEach(group => {
+                const isLocal = isLocalGroup(group);
+                const isForanea = isForaneaGroup(group);
+                const isMixed = isLocal && isForanea;
+                
+                let classification = '';
+                if (isMixed) classification = '🔀 MIXED';
+                else if (isLocal) classification = '🏠 LOCAL';
+                else if (isForanea) classification = '🌐 FORANEA';
+                else classification = '❓ UNKNOWN';
+                
+                results.innerHTML += `${classification} | ${group}\n`;
+            });
+        }
+
+        function testTerritorialMapping() {
+            results.innerHTML = '🗺️ Testing Territorial Mapping...\n\n';
+            
+            Object.keys(territorialMapping).forEach(group => {
+                const mapping = territorialMapping[group];
+                results.innerHTML += `${group}:\n`;
+                results.innerHTML += `  🏠 Local: ${mapping.local.length} sucursales\n`;
+                results.innerHTML += `  🌐 Foránea: ${mapping.foranea.length} sucursales\n`;
+                results.innerHTML += `  📍 isLocal: ${isLocalGroup(group)}\n`;
+                results.innerHTML += `  🌍 isForanea: ${isForaneaGroup(group)}\n\n`;
+            });
+        }
+
+        async function testAPIData() {
+            results.innerHTML = '📡 Testing API Data...\n\n';
+            
+            try {
+                const response = await fetch('http://localhost:3000/api/heatmap-periods');
+                const data = await response.json();
+                
+                if (data.success && data.data) {
+                    const { groups, periods } = data.data;
+                    
+                    results.innerHTML += `📊 API returned ${groups.length} groups, ${periods.length} periods\n\n`;
+                    
+                    // Test filtering
+                    const localGroups = groups.filter(g => isLocalGroup(g.grupo));
+                    const foraneasGroups = groups.filter(g => isForaneaGroup(g.grupo));
+                    
+                    results.innerHTML += `🏠 Local groups: ${localGroups.length}\n`;
+                    localGroups.forEach(g => {
+                        results.innerHTML += `  - ${g.grupo}\n`;
+                    });
+                    
+                    results.innerHTML += `\n🌐 Foránea groups: ${foraneasGroups.length}\n`;
+                    foraneasGroups.forEach(g => {
+                        results.innerHTML += `  - ${g.grupo}\n`;
+                    });
+                    
+                } else {
+                    results.innerHTML += '❌ API Error: ' + JSON.stringify(data, null, 2);
+                }
+                
+            } catch (error) {
+                results.innerHTML += '❌ Fetch Error: ' + error.message;
+            }
+        }
+        
+        // Auto-run tests on load
+        console.log('🧪 Debug page loaded');
+        testGroupClassification();
+    </script>
+</body>
+</html>

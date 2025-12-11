@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Complete Toggle Territorial</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .territorial-filter {
+            background: rgba(242, 242, 247, 0.8);
+            backdrop-filter: saturate(180%) blur(20px);
+            border-radius: 13px;
+            padding: 3px;
+            display: flex;
+            margin: 20px 0;
+        }
+        .territorial-option {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 590;
+            color: #000;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        .territorial-option.active {
+            background: white;
+            color: #000;
+            box-shadow: 0 3px 8px 0 rgba(0,0,0,0.12);
+        }
+        .results {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .local { color: #34C759; font-weight: bold; }
+        .foranea { color: #FF9500; font-weight: bold; }
+        .mixed { color: #007AFF; font-weight: bold; }
+        .error { color: #FF3B30; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Complete Toggle Territorial - FIXED</h1>
+    
+    <div class="test-panel">
+        <h3>🗺️ Filtro Territorial</h3>
+        <div class="territorial-filter">
+            <button class="territorial-option active" data-territorial="all">Todas</button>
+            <button class="territorial-option" data-territorial="local">Locales</button>
+            <button class="territorial-option" data-territorial="foranea">Foráneas</button>
+        </div>
+        
+        <div class="results" id="results">
+            Cargando datos del API...
+        </div>
+    </div>
+
+    <script>
+        // CORRECTED - Territorial mapping basado en clasificación operativa real
+        const territorialMapping = {
+            'TEC': {
+                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec'],
+                foranea: ['58 - Guasave']
+            },
+            'EXPO': {
+                local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur'],
+                foranea: ['30 - Carrizo', '28 - Guerrero']
+            },
+            'GRUPO SALTILLO': {
+                local: ['01 - Saltillo Centro', '02 - Saltillo Sur', '03 - Saltillo Norte', '04 - Ramos Arizpe', '05 - Arteaga'],
+                foranea: ['57 - Harold R. Pape']
+            }
+        };
+
+        // CORRECTED - Functions based on real API estado field
+        function isLocalGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].local.length > 0;
+            }
+            
+            // Solo Nuevo León puro (estado: "Nuevo León")
+            const nuevoLeonPuros = [
+                'OGAS', 'EPL SO', 'TEPEYAC', 'EFM', 'PLOG NUEVO LEON', 
+                'GRUPO SABINAS HIDALGO', 'GRUPO CENTRITO'
+            ];
+            
+            return nuevoLeonPuros.includes(groupName);
+        }
+
+        function isForaneaGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].foranea.length > 0;
+            }
+            
+            // Todos sin Nuevo León en el estado (excluyendo mixtos)
+            const foraneasPuros = [
+                'PLOG QUERETARO',                           // Querétaro
+                'GRUPO MATAMOROS', 'GRUPO RIO BRAVO', 'CRR', 'RAP', 
+                'OCHTER TAMPICO', 'GRUPO NUEVO LAREDO (RUELAS)',    // Tamaulipas (6)
+                'PLOG LAGUNA',                              // Coahuila, Durango
+                'GRUPO PIEDRAS NEGRAS',                     // Coahuila (1)
+                'GRUPO CANTERA ROSA (MORELIA)'              // Michoacán
+            ];
+            
+            return foraneasPuros.includes(groupName);
+        }
+
+        function isMixedGroup(groupName) {
+            return territorialMapping[groupName] && 
+                   territorialMapping[groupName].local.length > 0 && 
+                   territorialMapping[groupName].foranea.length > 0;
+        }
+
+        async function loadAndTest() {
+            try {
+                const response = await fetch('http://localhost:3000/api/grupos');
+                const grupos = await response.json();
+                
+                testTerritorialFilter(grupos);
+                
+            } catch (error) {
+                document.getElementById('results').innerHTML = `❌ Error: ${error.message}`;
+            }
+        }
+
+        function testTerritorialFilter(grupos) {
+            const currentFilter = document.querySelector('.territorial-option.active').dataset.territorial;
+            
+            let output = `📊 ANÁLISIS COMPLETO - Filtro: ${currentFilter.toUpperCase()}\n`;
+            output += `═══════════════════════════════════════════\n\n`;
+            
+            // Clasificar todos los grupos
+            let locales = [];
+            let foraneas = [];
+            let mixtos = [];
+            let filteredGroups = [];
+            
+            grupos.forEach(grupo => {
+                const name = grupo.grupo;
+                const isLocal = isLocalGroup(name);
+                const isForanea = isForaneaGroup(name);
+                const isMixed = isMixedGroup(name);
+                
+                let classification = '';
+                if (isMixed) {
+                    classification = 'MIXED';
+                    mixtos.push(name);
+                } else if (isLocal && !isForanea) {
+                    classification = 'LOCAL';
+                    locales.push(name);
+                } else if (isForanea && !isLocal) {
+                    classification = 'FORANEA';
+                    foraneas.push(name);
+                } else {
+                    classification = 'ERROR';
+                }
+                
+                // Aplicar filtro
+                let shouldShow = false;
+                if (currentFilter === 'all') {
+                    shouldShow = true;
+                } else if (currentFilter === 'local') {
+                    shouldShow = isLocal;
+                } else if (currentFilter === 'foranea') {
+                    shouldShow = isForanea;
+                }
+                
+                if (shouldShow) {
+                    filteredGroups.push({name, classification});
+                }
+            });
+            
+            // Mostrar resumen
+            output += `📈 RESUMEN CLASIFICACIÓN:\n`;
+            output += `🏠 LOCALES: ${locales.length}\n`;
+            output += `🔀 MIXTOS:  ${mixtos.length}\n`;
+            output += `🌐 FORÁNEAS: ${foraneas.length}\n`;
+            output += `📊 TOTAL:   ${locales.length + mixtos.length + foraneas.length} (debe ser 20)\n\n`;
+            
+            // Mostrar grupos filtrados
+            output += `🎯 GRUPOS MOSTRADOS CON FILTRO "${currentFilter.toUpperCase()}" (${filteredGroups.length}):\n`;
+            output += `─────────────────────────────────────────\n`;
+            
+            filteredGroups.forEach(({name, classification}) => {
+                const color = classification === 'LOCAL' ? 'local' : 
+                             classification === 'FORANEA' ? 'foranea' : 
+                             classification === 'MIXED' ? 'mixed' : 'error';
+                
+                output += `<span class="${color}">${classification.padEnd(8)}</span> | ${name}\n`;
+            });
+            
+            // Validaciones
+            output += `\n✅ VALIDACIONES:\n`;
+            output += `─────────────────\n`;
+            
+            if (mixtos.length === 3 && mixtos.includes('TEC') && mixtos.includes('EXPO') && mixtos.includes('GRUPO SALTILLO')) {
+                output += `<span class="local">✅ Mixtos correctos: TEC, EXPO, GRUPO SALTILLO</span>\n`;
+            } else {
+                output += `<span class="error">❌ Mixtos incorrectos: ${mixtos.join(', ')}</span>\n`;
+            }
+            
+            if (mixtos.includes('GRUPO SALTILLO')) {
+                output += `<span class="local">✅ GRUPO SALTILLO clasificado como MIXTO</span>\n`;
+            } else {
+                output += `<span class="error">❌ GRUPO SALTILLO mal clasificado</span>\n`;
+            }
+            
+            if (locales.length + mixtos.length + foraneas.length === 20) {
+                output += `<span class="local">✅ Total correcto: 20 grupos</span>\n`;
+            } else {
+                output += `<span class="error">❌ Total incorrecto: ${locales.length + mixtos.length + foraneas.length} grupos</span>\n`;
+            }
+            
+            document.getElementById('results').innerHTML = output;
+        }
+
+        // Event listeners
+        document.querySelectorAll('.territorial-option').forEach(option => {
+            option.addEventListener('click', async () => {
+                // Update active state
+                document.querySelectorAll('.territorial-option').forEach(opt => 
+                    opt.classList.remove('active')
+                );
+                option.classList.add('active');
+                
+                // Reload test
+                await loadAndTest();
+                
+                console.log('🗺️ Filter changed to:', option.dataset.territorial);
+            });
+        });
+
+        // Load on page ready
+        loadAndTest();
+    </script>
+</body>
+</html>

@@ -364,6 +364,93 @@ function getPeriodoCAS(fecha, estado, grupoOperativo, locationName) {
     return 'OTRO'; // Fuera de periodos CAS definidos
 }
 
+// ============================================================================
+// 🧪 ENDPOINT DE PRUEBA - VALIDAR MIGRACION CALIFICACION_GENERAL_PCT  
+// ============================================================================
+app.get('/api/test-migration', async (req, res) => {
+    try {
+        console.log('🧪 Testing migration - comparing old vs new calculation methods');
+        
+        // Test case: La Huasteca - 11 noviembre 2025
+        const testSucursal = 'la-huasteca';
+        const testDate = '2025-11-11';
+        
+        // MÉTODO ACTUAL (supervision_normalized_view + promedio áreas)
+        const currentQuery = `
+            SELECT 
+                'MÉTODO ACTUAL' as metodo,
+                nombre_normalizado as sucursal,
+                ROUND(AVG(porcentaje)::numeric, 2) as calificacion,
+                COUNT(DISTINCT submission_id) as supervisiones,
+                COUNT(*) as registros_areas
+            FROM supervision_normalized_view 
+            WHERE nombre_normalizado = $1 
+              AND area_tipo = 'area_principal'
+              AND fecha_supervision = $2
+            GROUP BY nombre_normalizado
+        `;
+        
+        // MÉTODO NUEVO (supervision_operativa_cas + calificacion_general_pct)
+        const newQuery = `
+            SELECT 
+                'MÉTODO NUEVO' as metodo,
+                location_name as sucursal,
+                ROUND(calificacion_general_pct::numeric, 2) as calificacion,
+                COUNT(*) as supervisiones,
+                1 as registros_areas
+            FROM supervision_operativa_cas 
+            WHERE location_name ILIKE '%huasteca%'
+              AND DATE(date_completed) = $1
+            GROUP BY location_name, calificacion_general_pct
+        `;
+        
+        const [currentResult, newResult] = await Promise.all([
+            pool.query(currentQuery, [testSucursal, testDate]),
+            pool.query(newQuery, [testDate])
+        ]);
+        
+        // COMPARACIÓN DE RESULTADOS
+        const comparison = {
+            test_sucursal: 'La Huasteca',
+            test_date: testDate,
+            metodo_actual: {
+                calificacion: currentResult.rows[0]?.calificacion || 'NO ENCONTRADO',
+                supervisiones: currentResult.rows[0]?.supervisiones || 0,
+                registros_areas: currentResult.rows[0]?.registros_areas || 0,
+                descripcion: 'Promedio de áreas (supervision_normalized_view)'
+            },
+            metodo_nuevo: {
+                calificacion: newResult.rows[0]?.calificacion || 'NO ENCONTRADO',
+                supervisiones: newResult.rows[0]?.supervisiones || 0,
+                registros_areas: newResult.rows[0]?.registros_areas || 0,
+                descripcion: 'Calificación general real (supervision_operativa_cas)'
+            },
+            diferencia: {
+                absoluta: newResult.rows[0]?.calificacion && currentResult.rows[0]?.calificacion 
+                    ? (parseFloat(newResult.rows[0].calificacion) - parseFloat(currentResult.rows[0].calificacion)).toFixed(2)
+                    : 'NO CALCULABLE',
+                esperada: '-2.76 (85.34% vs 88.1%)'
+            },
+            validacion: {
+                estado: newResult.rows[0]?.calificacion == 85.34 && currentResult.rows[0]?.calificacion == 88.11 
+                    ? '✅ CORRECTO' 
+                    : '⚠️ REVISAR',
+                mensaje: 'La Huasteca debe mostrar 85.34% (Zenput real) vs 88.1% (promedio áreas)'
+            }
+        };
+        
+        console.log('🔍 Migration test results:', comparison);
+        res.json(comparison);
+        
+    } catch (error) {
+        console.error('❌ Error in migration test:', error);
+        res.status(500).json({ 
+            error: 'Error in migration test',
+            details: error.message 
+        });
+    }
+});
+
 // API para obtener periodos CAS disponibles
 app.get('/api/periodos-cas', async (req, res) => {
     try {

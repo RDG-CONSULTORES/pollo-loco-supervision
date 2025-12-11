@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Classification - Fixed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-results {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+        .local { color: #34C759; }
+        .foranea { color: #FF9500; }
+        .mixed { color: #007AFF; }
+        .error { color: #FF3B30; }
+    </style>
+</head>
+<body>
+    <h1>Test Clasificación Territorial - FIXED</h1>
+    <div id="results" class="test-results"></div>
+
+    <script>
+        // CORRECT - Solo grupos verdaderamente mixtos
+        const territorialMapping = {
+            'TEC': {
+                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec'],
+                foranea: ['58 - Guasave']
+            },
+            'EXPO': {
+                local: ['20 - Expo', '21 - Expo Norte'],
+                foranea: ['30 - Carrizo', '28 - Guerrero']
+            }
+        };
+
+        // CORRECT - Basado en campo estado del API
+        function isLocalGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].local.length > 0;
+            }
+            
+            // Solo Nuevo León puro (estado: "Nuevo León")
+            const nuevoLeonPuros = [
+                'OGAS', 'EPL SO', 'TEPEYAC', 'EFM', 'PLOG NUEVO LEON', 
+                'GRUPO SABINAS HIDALGO', 'GRUPO CENTRITO'
+            ];
+            
+            return nuevoLeonPuros.includes(groupName);
+        }
+
+        function isForaneaGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].foranea.length > 0;
+            }
+            
+            // Todos sin Nuevo León en el estado
+            const foraneasPuros = [
+                'PLOG QUERETARO',                           
+                'GRUPO MATAMOROS', 'GRUPO RIO BRAVO', 'CRR', 'RAP', 
+                'OCHTER TAMPICO', 'GRUPO NUEVO LAREDO (RUELAS)',    
+                'PLOG LAGUNA',                              
+                'GRUPO PIEDRAS NEGRAS', 'GRUPO SALTILLO',   
+                'GRUPO CANTERA ROSA (MORELIA)'              
+            ];
+            
+            return foraneasPuros.includes(groupName);
+        }
+
+        function isMixedGroup(groupName) {
+            return territorialMapping[groupName] && 
+                   territorialMapping[groupName].local.length > 0 && 
+                   territorialMapping[groupName].foranea.length > 0;
+        }
+
+        // Test con los 20 grupos reales
+        const realGroups = [
+            'OGAS', 'PLOG QUERETARO', 'EPL SO', 'TEC', 'TEPEYAC',
+            'PLOG LAGUNA', 'EXPO', 'GRUPO MATAMOROS', 'GRUPO PIEDRAS NEGRAS',
+            'GRUPO RIO BRAVO', 'EFM', 'PLOG NUEVO LEON', 'RAP', 'OCHTER TAMPICO',
+            'GRUPO CANTERA ROSA (MORELIA)', 'GRUPO SABINAS HIDALGO',
+            'CRR', 'GRUPO CENTRITO', 'GRUPO NUEVO LAREDO (RUELAS)', 'GRUPO SALTILLO'
+        ];
+
+        function runTest() {
+            let results = 'CLASIFICACION TERRITORIAL - FIXED\n\n';
+            
+            let localCount = 0, foraneasCount = 0, mixedCount = 0, errorCount = 0;
+            
+            realGroups.forEach(group => {
+                const isLocal = isLocalGroup(group);
+                const isForanea = isForaneaGroup(group);
+                const isMixed = isMixedGroup(group);
+                
+                let classification = '';
+                let className = '';
+                
+                if (isMixed) {
+                    classification = 'MIXED';
+                    className = 'mixed';
+                    mixedCount++;
+                } else if (isLocal && !isForanea) {
+                    classification = 'LOCAL';
+                    className = 'local';
+                    localCount++;
+                } else if (isForanea && !isLocal) {
+                    classification = 'FORANEA';
+                    className = 'foranea';
+                    foraneasCount++;
+                } else {
+                    classification = 'ERROR';
+                    className = 'error';
+                    errorCount++;
+                }
+                
+                results += `<span class="${className}">${classification.padEnd(8)}</span> | ${group}\n`;
+            });
+            
+            results += `\nRESUMEN:\n`;
+            results += `<span class="local">LOCALES: ${localCount}</span>\n`;
+            results += `<span class="mixed">MIXTOS:  ${mixedCount}</span>\n`;
+            results += `<span class="foranea">FORANEAS: ${foraneasCount}</span>\n`;
+            results += `<span class="error">ERRORES: ${errorCount}</span>\n`;
+            results += `TOTAL:   ${localCount + mixedCount + foraneasCount + errorCount} (debe ser 20)\n`;
+            
+            if (localCount + mixedCount + foraneasCount + errorCount === 20 && errorCount === 0) {
+                results += `\n✅ CLASIFICACION CORRECTA`;
+            } else {
+                results += `\n❌ HAY ERRORES EN CLASIFICACION`;
+            }
+            
+            document.getElementById('results').innerHTML = results;
+        }
+
+        runTest();
+    </script>
+</body>
+</html>

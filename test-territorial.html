@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Territorial Toggle</title>
+</head>
+<body>
+    <h1>Testing Territorial Functions</h1>
+    <div id="results"></div>
+
+    <script>
+        // Minimal test of territorial functions
+        const territorialMapping = {
+            'GRUPO SALTILLO': {
+                local: ['01 - Saltillo Centro', '02 - Saltillo Sur'],
+                foranea: ['57 - Harold R. Pape']
+            },
+            'GRUPO TEC': {
+                local: ['14 - Tec de Monterrey'],
+                foranea: ['58 - Guasave']
+            },
+            'GRUPO EXPO': {
+                local: ['20 - Expo'],
+                foranea: ['30 - Carrizo', '28 - Guerrero']
+            }
+        };
+
+        // Test isLocalGroup function
+        function isLocalGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].local.length > 0;
+            }
+            const foraneasGroups = ['PLOG QUERETARO', 'PLOG TAMAULIPAS'];
+            return !foraneasGroups.some(foranea => groupName.includes(foranea));
+        }
+
+        // Test isForaneaGroup function  
+        function isForaneaGroup(groupName) {
+            if (territorialMapping[groupName]) {
+                return territorialMapping[groupName].foranea.length > 0;
+            }
+            const foraneasGroups = ['PLOG QUERETARO', 'PLOG TAMAULIPAS'];
+            return foraneasGroups.some(foranea => groupName.includes(foranea));
+        }
+
+        // Run tests
+        const tests = [
+            { group: 'GRUPO SALTILLO', expectedLocal: true, expectedForanea: true },
+            { group: 'GRUPO TEC', expectedLocal: true, expectedForanea: true },
+            { group: 'GRUPO EXPO', expectedLocal: true, expectedForanea: true },
+            { group: 'PLOG QUERETARO', expectedLocal: false, expectedForanea: true },
+            { group: 'OGAS', expectedLocal: true, expectedForanea: false }
+        ];
+
+        let results = '<h2>Test Results:</h2>';
+        let allPassed = true;
+
+        tests.forEach(test => {
+            const isLocal = isLocalGroup(test.group);
+            const isForanea = isForaneaGroup(test.group);
+            const localPass = isLocal === test.expectedLocal;
+            const foraneaPass = isForanea === test.expectedForanea;
+            
+            results += `<p>
+                <strong>${test.group}</strong><br>
+                Local: ${isLocal} (expected: ${test.expectedLocal}) ${localPass ? '✅' : '❌'}<br>
+                Foranea: ${isForanea} (expected: ${test.expectedForanea}) ${foraneaPass ? '✅' : '❌'}
+            </p>`;
+            
+            if (!localPass || !foraneaPass) allPassed = false;
+        });
+
+        results += `<h3>Overall Result: ${allPassed ? '✅ All tests passed!' : '❌ Some tests failed'}</h3>`;
+        
+        document.getElementById('results').innerHTML = results;
+        console.log('Test completed:', allPassed ? 'PASS' : 'FAIL');
+    </script>
+</body>
+</html>
