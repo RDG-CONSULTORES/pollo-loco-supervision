@@ -232,7 +232,52 @@ app.get('/api/kpis', async (req, res) => {
     }
 });
 
-// API Grupos (exactamente como funciona)
+// API Estados - NECESARIA PARA EL DASHBOARD
+app.get('/api/estados', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT estado 
+            FROM supervision_operativa_clean 
+            WHERE estado IS NOT NULL 
+              AND fecha >= '2025-01-01'
+            ORDER BY estado
+        `);
+        res.json(result.rows.map(row => row.estado));
+    } catch (error) {
+        console.error('❌ Error fetching estados:', error);
+        res.status(500).json({ error: 'Error fetching estados', details: error.message });
+    }
+});
+
+// API Grupos - NECESARIA PARA EL DASHBOARD (diferente a grupos-operativos)
+app.get('/api/grupos', async (req, res) => {
+    console.log('📊 Grupos operativos requested with filters: no filters');
+    try {
+        const query = `
+            SELECT 
+                grupo_operativo as grupo,
+                COUNT(DISTINCT location_id) as sucursales,
+                ROUND(AVG(percentage), 2) as promedio,
+                COUNT(*) as supervisiones,
+                MAX(fecha) as ultima_evaluacion
+            FROM supervision_operativa_clean 
+            WHERE percentage IS NOT NULL
+              AND fecha >= '2025-01-01'
+            GROUP BY grupo_operativo
+            ORDER BY promedio DESC
+        `;
+
+        const result = await pool.query(query);
+        
+        console.log(`✅ Grupos CORREGIDOS: ${result.rows.length} grupos operativos con supervision count real`);
+        res.json(result.rows);
+    } catch (error) {
+        console.error('Error en /api/grupos:', error);
+        res.status(500).json({ error: 'Error obteniendo grupos' });
+    }
+});
+
+// API Grupos Operativos (mantener para compatibilidad)
 app.get('/api/grupos-operativos', async (req, res) => {
     console.log('📊 Grupos operativos requested with filters: no filters');
     try {
