@@ -4,14 +4,15 @@
   "description": "El Pollo Loco CAS - Dashboard RESTAURADO con funcionalidad completa + estructura nueva + fechas de corte T4/S2",
   "main": "server-FIXED-no-filters.js",
   "scripts": {
-    "start": "NODE_ENV=production node server-FIXED-no-filters.js",
-    "dev": "concurrently \"npm run server\" \"npm run bot\"",
-    "server": "cd backend && npm run dev",
-    "bot": "node telegram-bot/bot-simple.js",
-    "bot-old": "node telegram-bot/bot.js",
+    "start": "NODE_ENV=production node telegram-bot/bot.js",
+    "dev": "NODE_ENV=development nodemon telegram-bot/bot.js",
+    "bot": "node telegram-bot/bot.js",
+    "bot-auth": "node telegram-bot/bot.js",
+    "bot-simple": "node telegram-bot/bot-simple.js",
     "build": "echo 'Using static HTML files, no build needed'",
     "install-deps": "npm install",
     "deploy": "npm start",
+    "db:init": "psql $DATABASE_URL -f db/authorized_users.sql",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -38,6 +39,7 @@
     "express-rate-limit": "^7.1.5",
     "handlebars": "^4.7.8",
     "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
     "node-telegram-bot-api": "^0.66.0",
     "openai": "^5.15.0",
     "pg": "^8.16.3"

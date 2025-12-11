@@ -6,7 +6,10 @@ Usar `/setcommands` con @BotFather y copiar este texto:
 
 ```
 start - Iniciar el bot
-dashboard - Ver dashboard interactivo
+login - Autenticarse y obtener acceso al dashboard  
+dashboard - Ver dashboard (requiere login)
+whoami - Ver información de usuario
+logout - Cerrar sesión
 ```
 
 ## 2. Descripción del Bot
@@ -14,18 +17,18 @@ dashboard - Ver dashboard interactivo
 Usar `/setdescription`:
 
 ```
-🍗 Dashboard El Pollo Loco CAS
+🍗 Dashboard El Pollo Loco CAS - Sistema Seguro
 
-Sistema de supervisión operativa con dashboard móvil optimizado.
+Sistema de supervisión operativa con autenticación corporativa.
 
-✨ Características:
+🔐 Características:
 • 79 sucursales monitoreadas
-• 135 supervisiones analizadas
+• 135 supervisiones analizadas 
 • Mapas interactivos en tiempo real
 • KPIs y métricas operativas
-• Optimizado para móvil
+• Acceso restringido a personal autorizado
 
-📊 Usa el botón Dashboard para acceder.
+🔑 Usa /login para acceder al dashboard seguro.
 ```
 
 ## 3. Descripción Corta
@@ -33,7 +36,7 @@ Sistema de supervisión operativa con dashboard móvil optimizado.
 Usar `/setabouttext`:
 
 ```
-🍗 Dashboard El Pollo Loco CAS - Supervisión operativa de 79 sucursales con mapas interactivos y métricas en tiempo real.
+🍗 Dashboard El Pollo Loco CAS - Sistema seguro de supervisión operativa. Acceso restringido a personal autorizado. Usa /login para acceder.
 ```
 
 ## 4. Foto de Perfil

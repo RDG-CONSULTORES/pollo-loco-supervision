@@ -1,10 +1,14 @@
+// 🤖 EL POLLO LOCO CAS - TELEGRAM BOT LIMPIO CON AUTENTICACIÓN
+// Sistema profesional sin conflictos de keyboard/menu
+
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
-const axios = require('axios');
+const jwt = require('jsonwebtoken');
 const { Pool } = require('pg');
+const { TelegramAuth, requireAuth, authLimiter } = require('./auth-system');
 
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
@@ -36,10 +40,7 @@ app.use(helmet({
 app.use(compression());
 app.use(express.json());
 
-// Serve dashboard static files
-app.use(express.static(path.join(__dirname, 'web-app/public')));
-
-// Initialize bot
+// Initialize bot TOKEN
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
     console.error('❌ TELEGRAM_BOT_TOKEN is required!');
@@ -48,33 +49,37 @@ if (!token) {
 
 const bot = new TelegramBot(token, { polling: false });
 
-// Simplified bot - no Ana integration
+// Inicializar sistema de autenticación
+const auth = new TelegramAuth();
+
+// Estado para manejo de conversaciones (registro)
+const userStates = {};
 
 // =====================================================
 // WEBHOOK CONFIGURATION
 // =====================================================
 
 if (process.env.NODE_ENV === 'production') {
-    const webhookUrl = process.env.RENDER_EXTERNAL_URL || process.env.WEBHOOK_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
+    const webhookUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision.onrender.com';
     bot.setWebHook(`${webhookUrl}/webhook`);
     console.log('🔗 Webhook configured:', `${webhookUrl}/webhook`);
 }
 
 // =====================================================
-// EXPRESS ROUTES
+// EXPRESS ROUTES - SOLO ESENCIALES
 // =====================================================
 
 // Health check
 app.get('/health', async (req, res) => {
     try {
-        const dbCheck = await pool.query('SELECT NOW() as server_time, COUNT(*) as records FROM supervision_operativa_clean LIMIT 1');
+        const dbCheck = await pool.query('SELECT NOW() as server_time, COUNT(*) as records FROM authorized_users LIMIT 1');
         res.json({ 
             status: 'healthy',
-            service: 'El Pollo Loco Bot + Dashboard',
+            service: 'El Pollo Loco Bot + Dashboard con Autenticación',
             database: 'connected',
             server_time: dbCheck.rows[0].server_time,
-            total_records: dbCheck.rows[0].records,
-            features: ['telegram-bot', 'web-dashboard', 'api-endpoints']
+            authorized_users: dbCheck.rows[0].records,
+            features: ['telegram-auth-bot', 'secure-dashboard', 'jwt-tokens', 'audit-logs']
         });
     } catch (error) {
         res.status(500).json({ 
@@ -85,59 +90,109 @@ app.get('/health', async (req, res) => {
     }
 });
 
-// Dashboard route - serve mobile-optimized version
-app.get('/dashboard', (req, res) => {
-    const mobileOptimizedPath = path.join(__dirname, '../public/dashboard-ios-complete.html');
-    console.log('📊 Dashboard requested, serving mobile-optimized:', mobileOptimizedPath);
+// Login page - página simple para redirección
+app.get('/login', (req, res) => {
+    const loginHtml = `
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>El Pollo Loco CAS - Acceso</title>
+        <style>
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+                background: #F2F2F7;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                color: #000;
+            }
+            .login-container {
+                background: white;
+                border-radius: 12px;
+                padding: 32px;
+                text-align: center;
+                box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+                max-width: 400px;
+            }
+            .logo { font-size: 48px; margin-bottom: 16px; }
+            h1 { margin-bottom: 8px; font-weight: 600; }
+            p { color: #666; margin-bottom: 24px; line-height: 1.5; }
+            .telegram-btn {
+                background: #007AFF;
+                color: white;
+                padding: 12px 24px;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                text-decoration: none;
+                display: inline-block;
+                margin-top: 16px;
+            }
+            .status { 
+                background: #34C759; 
+                color: white; 
+                padding: 8px 12px; 
+                border-radius: 6px; 
+                font-size: 14px; 
+                margin-bottom: 16px;
+                display: inline-block;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login-container">
+            <div class="logo">🍗</div>
+            <div class="status">✅ Sistema Seguro Activo</div>
+            <h1>El Pollo Loco CAS</h1>
+            <p>Sistema de Supervisión Operativa</p>
+            <p><strong>Acceso restringido</strong><br>Solo para personal autorizado</p>
+            <a href="https://t.me/EPLEstandarizacionBot" class="telegram-btn">
+                🔐 Iniciar Sesión con Telegram
+            </a>
+            <p style="font-size: 14px; margin-top: 24px; color: #999;">
+                Usa el comando <strong>/login</strong> en el bot para obtener acceso
+            </p>
+        </div>
+    </body>
+    </html>`;
     
-    // Check if file exists
-    const fs = require('fs');
-    if (!fs.existsSync(mobileOptimizedPath)) {
-        console.error('❌ Mobile dashboard not found:', mobileOptimizedPath);
-        // Fallback to original
-        const indexPath = path.join(__dirname, 'web-app/public/index.html');
-        return res.sendFile(indexPath);
-    }
-    
-    res.sendFile(mobileOptimizedPath);
+    res.send(loginHtml);
 });
 
-// Dashboard iOS Complete route - direct mobile access
-app.get('/dashboard-ios-complete', (req, res) => {
-    const mobileOptimizedPath = path.join(__dirname, '../public/dashboard-ios-complete.html');
-    console.log('📱 Dashboard iOS Complete requested:', mobileOptimizedPath);
+// Dashboard route - PROTEGIDO con autenticación
+app.get('/dashboard', requireAuth, (req, res) => {
+    const dashboardPath = path.join(__dirname, '../dashboard-ios-ORIGINAL-RESTORED.html');
+    console.log('📊 Dashboard access granted:', req.user.email);
     
-    // Check if file exists
+    // Log access
+    auth.logAccess(req.user.userId, 'dashboard_access', {
+        ip: req.ip,
+        userAgent: req.get('User-Agent'),
+        timestamp: new Date().toISOString()
+    });
+    
+    // Verificar que el archivo existe
     const fs = require('fs');
-    if (!fs.existsSync(mobileOptimizedPath)) {
-        console.error('❌ Mobile dashboard not found:', mobileOptimizedPath);
-        return res.status(404).send('Dashboard móvil no encontrado');
-    }
-    
-    res.sendFile(mobileOptimizedPath);
-});
-
-// Solo Dashboard - sin rutas adicionales
-
-// Default route - serve mobile dashboard directly
-app.get('/', (req, res) => {
-    const mobileOptimizedPath = path.join(__dirname, '../public/dashboard-ios-complete.html');
-    console.log('🏠 Root requested, serving mobile-optimized dashboard:', mobileOptimizedPath);
-    
-    // Check if file exists
-    const fs = require('fs');
-    if (!fs.existsSync(mobileOptimizedPath)) {
-        console.error('❌ Mobile dashboard not found:', mobileOptimizedPath);
-        return res.json({
-            message: 'El Pollo Loco Supervision System',
-            version: '2.0',
-            status: 'running',
-            timestamp: new Date().toISOString(),
-            note: 'Mobile dashboard not found - use /dashboard'
+    if (!fs.existsSync(dashboardPath)) {
+        console.error('❌ Dashboard not found:', dashboardPath);
+        return res.status(404).json({ 
+            error: 'Dashboard no disponible',
+            message: 'Contacte al administrador del sistema'
         });
     }
     
-    res.sendFile(mobileOptimizedPath);
+    res.sendFile(dashboardPath);
+});
+
+// Default route - redirigir a login
+app.get('/', (req, res) => {
+    console.log('🏠 Root requested, redirecting to login');
+    res.redirect('/login');
 });
 
 // Webhook endpoint
@@ -146,10 +201,13 @@ app.post('/webhook', (req, res) => {
     res.status(200).json({ ok: true });
 });
 
-// =====================================================
-// DASHBOARD API ENDPOINTS
-// =====================================================
+// API Auth endpoints con rate limiting
+app.use('/api/auth', authLimiter);
 
+// PROTEGER TODAS LAS RUTAS API
+app.use('/api', requireAuth);
+
+// API ENDPOINTS - COPIADOS DEL SISTEMA ORIGINAL
 // GET /api/locations - Ubicaciones con coordenadas
 app.get('/api/locations', async (req, res) => {
     try {
@@ -393,103 +451,308 @@ app.get('/api/filters/states', async (req, res) => {
 });
 
 // =====================================================
-// TELEGRAM BOT HANDLERS
+// TELEGRAM BOT HANDLERS - SISTEMA LIMPIO
 // =====================================================
 
-// Dashboard command
+// 🔐 LOGIN COMMAND - Sistema de autenticación
+bot.onText(/\/login/, async (msg) => {
+    const chatId = msg.chat.id;
+    const telegramId = msg.from.id;
+    const telegramData = {
+        username: msg.from.username,
+        first_name: msg.from.first_name,
+        last_name: msg.from.last_name
+    };
+
+    try {
+        console.log(`🔐 Login attempt from user: ${telegramId} (${msg.from.first_name})`);
+
+        // Verificar si ya está autorizado
+        const user = await auth.verifyUser(telegramId);
+        if (user) {
+            const token = await auth.generateAccessToken(user);
+            const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision.onrender.com';
+            const authUrl = `${dashboardUrl}/dashboard?token=${token}`;
+            
+            // MENSAJE SIMPLE SIN KEYBOARDS CONFLICTIVOS
+            await bot.sendMessage(chatId, 
+                `✅ **Acceso autorizado - ${user.full_name}**\n\n` +
+                `👔 **Posición:** ${user.position}\n` +
+                `🏢 **Grupo:** ${user.grupo_operativo}\n\n` +
+                `🔑 **Token generado** (válido 24h)\n` +
+                `📊 **Dashboard:** Acceso completo autorizado\n\n` +
+                `🔗 **Enlace de acceso:**\n${authUrl}\n\n` +
+                `💡 **Tip:** Guarda este enlace para acceso rápido`,
+                { parse_mode: 'Markdown' }
+            );
+            
+            await auth.logAccess(user.id, 'login_success', {
+                telegram_id: telegramId,
+                telegram_username: telegramData.username
+            });
+            
+            return;
+        }
+
+        // Proceso de vinculación para usuarios nuevos
+        await bot.sendMessage(chatId, 
+            `🔐 **Sistema de Autenticación El Pollo Loco CAS**\n\n` +
+            `Para acceder al dashboard, necesitas vincular tu cuenta Telegram.\n\n` +
+            `📧 **Envía tu email corporativo** registrado en el sistema:\n` +
+            `*Ejemplos:* \n` +
+            `• roberto@eplmexico.com\n` +
+            `• director@ogas.com.mx\n` +
+            `• gerente@tepeyac.com\n\n` +
+            `⚠️ Solo emails pre-autorizados pueden acceder`,
+            { parse_mode: 'Markdown' }
+        );
+        
+        // Establecer estado de espera de email
+        userStates[chatId] = { 
+            state: 'awaiting_email', 
+            telegram_id: telegramId,
+            telegram_data: telegramData,
+            timestamp: Date.now()
+        };
+        
+    } catch (error) {
+        console.error('❌ Error in login command:', error);
+        await bot.sendMessage(chatId, 
+            '❌ Error en el sistema de autenticación. Intenta más tarde.'
+        );
+    }
+});
+
+// 👤 WHOAMI COMMAND - Ver información del usuario
+bot.onText(/\/whoami/, async (msg) => {
+    const chatId = msg.chat.id;
+    const telegramId = msg.from.id;
+
+    try {
+        const user = await auth.verifyUser(telegramId);
+        if (user) {
+            const userInfo = await auth.getUserInfo(user.id);
+            
+            await bot.sendMessage(chatId, 
+                `👤 **Información de Usuario**\n\n` +
+                `📧 **Email:** ${user.email}\n` +
+                `👔 **Posición:** ${user.position}\n` +
+                `🏢 **Grupo Operativo:** ${user.grupo_operativo}\n` +
+                `📅 **Último acceso:** ${userInfo.last_access ? new Date(userInfo.last_access).toLocaleString('es-MX') : 'Nunca'}\n` +
+                `📊 **Total accesos:** ${userInfo.total_accesses || 0}\n` +
+                `🔑 **Tokens activos:** ${userInfo.active_tokens_count || 0}\n\n` +
+                `✅ **Estado:** Autorizado - Acceso completo\n` +
+                `🎯 **Permisos:** Dashboard, Histórico, Exportar, Todos los grupos`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            await bot.sendMessage(chatId, 
+                `❌ **No tienes acceso autorizado**\n\n` +
+                `Usa /login para vincular tu cuenta corporativa`,
+                { parse_mode: 'Markdown' }
+            );
+        }
+    } catch (error) {
+        console.error('❌ Error in whoami command:', error);
+        await bot.sendMessage(chatId, '❌ Error obteniendo información del usuario');
+    }
+});
+
+// 🔓 LOGOUT COMMAND - Cerrar sesión
+bot.onText(/\/logout/, async (msg) => {
+    const chatId = msg.chat.id;
+    const telegramId = msg.from.id;
+
+    try {
+        const user = await auth.verifyUser(telegramId);
+        if (user) {
+            await auth.revokeUserTokens(user.id);
+            await auth.logAccess(user.id, 'logout', {
+                telegram_id: telegramId,
+                revoked_at: new Date().toISOString()
+            });
+            
+            await bot.sendMessage(chatId,
+                `🔓 **Sesión cerrada exitosamente**\n\n` +
+                `Todos tus tokens han sido revocados.\n` +
+                `Usa /login para acceder nuevamente.`,
+                { parse_mode: 'Markdown' }
+            );
+        } else {
+            await bot.sendMessage(chatId, 
+                '❌ No tienes sesión activa'
+            );
+        }
+    } catch (error) {
+        console.error('❌ Error in logout command:', error);
+        await bot.sendMessage(chatId, '❌ Error cerrando sesión');
+    }
+});
+
+// 📊 DASHBOARD COMMAND - Acceso rápido al dashboard
 bot.onText(/\/dashboard/, async (msg) => {
     const chatId = msg.chat.id;
     
     try {
-        const dashboardUrl = process.env.RENDER_EXTERNAL_URL || 'https://pollo-loco-supervision-kzxj.onrender.com';
-        
-        const keyboard = {
-            reply_markup: {
-                inline_keyboard: [[
-                    {
-                        text: "📊 Ver Dashboard Interactivo",
-                        web_app: { url: `${dashboardUrl}/dashboard-ios-complete` }
-                    }
-                ]]
-            }
-        };
-        
-        const message = `📊 **Dashboard El Pollo Loco CAS**\n\n¡Sistema completo de supervisión operativa!\n\n• 🗺️ Mapa interactivo (79 sucursales)\n• 📈 Análisis de 135 supervisiones\n• 🎯 Histórico con tendencias\n• 📊 KPIs y métricas en tiempo real\n• 📱 Optimizado para móvil\n\n👆 Toca el botón para abrir`;
-        
-        await bot.sendMessage(chatId, message, {
-            parse_mode: 'Markdown',
-            ...keyboard
-        });
+        // Redirigir al comando login
+        await bot.sendMessage(chatId,
+            `📊 **Acceso al Dashboard**\n\n` +
+            `Para acceder al dashboard, usa:\n` +
+            `/login - Autenticarse y obtener acceso`,
+            { parse_mode: 'Markdown' }
+        );
         
     } catch (error) {
-        console.error('Error showing dashboard:', error);
-        bot.sendMessage(chatId, '❌ Error al cargar el dashboard. Intenta más tarde.');
+        console.error('Error in dashboard command:', error);
+        await bot.sendMessage(chatId, '❌ Error accediendo al dashboard. Usa /login');
     }
 });
 
-
-// Sin keyboard buttons - solo menú button azul
-
-
-// Basic message handler
+// Manejo de mensajes de email para vinculación
 bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const messageText = msg.text || '';
+    const state = userStates[chatId];
     
-    // Skip commands only
+    // Skip commands
     if (messageText.startsWith('/')) {
         return;
     }
     
     try {
-        // Check for dashboard triggers
-        // Auto-respuesta simple - redirigir a dashboard
-        return bot.emit('text', msg, [null, '/dashboard']);
-        
-        // Simple response for any message
-        await bot.sendMessage(chatId, '🍗 ¡Hola! Usa el botón Dashboard para acceder al sistema completo de supervisión El Pollo Loco CAS.');
+        // Proceso de vinculación de email
+        if (state && state.state === 'awaiting_email') {
+            const email = messageText.trim().toLowerCase();
+            
+            // Validar formato de email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                await bot.sendMessage(chatId, 
+                    '❌ **Formato de email inválido**\n\n' +
+                    'Envía un email válido, ej: usuario@dominio.com',
+                    { parse_mode: 'Markdown' }
+                );
+                return;
+            }
+            
+            // Verificar si el email está autorizado
+            const authorizedUser = await auth.checkEmailAuthorized(email);
+            if (authorizedUser) {
+                // Vincular cuenta
+                const linkedUser = await auth.linkTelegramAccount(
+                    state.telegram_id, 
+                    email, 
+                    state.telegram_data
+                );
+                
+                if (linkedUser) {
+                    delete userStates[chatId];
+                    
+                    await bot.sendMessage(chatId, 
+                        `✅ **Cuenta vinculada exitosamente**\n\n` +
+                        `🎉 ¡Bienvenido ${linkedUser.full_name}!\n` +
+                        `👔 **Posición:** ${linkedUser.position}\n` +
+                        `🏢 **Grupo:** ${linkedUser.grupo_operativo}\n\n` +
+                        `📊 **Tu cuenta tiene acceso completo al dashboard**\n\n` +
+                        `Usa /login para obtener acceso`,
+                        { parse_mode: 'Markdown' }
+                    );
+                } else {
+                    await bot.sendMessage(chatId, 
+                        '❌ Error vinculando la cuenta. Intenta más tarde.'
+                    );
+                }
+            } else {
+                await bot.sendMessage(chatId, 
+                    `❌ **Email no autorizado**\n\n` +
+                    `El email *${email}* no está en la lista de usuarios autorizados.\n\n` +
+                    `📞 **Contacta al administrador del sistema** para solicitar acceso.`,
+                    { parse_mode: 'Markdown' }
+                );
+                delete userStates[chatId];
+            }
+            return;
+        }
+
+        // Respuesta por defecto para mensajes no relacionados con autenticación
+        await bot.sendMessage(chatId, 
+            `🍗 **El Pollo Loco CAS Dashboard**\n\n` +
+            `Sistema de supervisión operativa seguro\n\n` +
+            `🔐 Usa /login para acceder\n` +
+            `👤 Usa /whoami para ver tu información\n` +
+            `📊 Usa /dashboard para ir al panel`
+        );
         
     } catch (error) {
         console.error('Error processing message:', error);
-        await bot.sendMessage(chatId, 'Hubo un error procesando tu solicitud.');
+        await bot.sendMessage(chatId, 'Error procesando tu solicitud.');
     }
 });
 
-// Start command
+// Start command - Bienvenida con sistema de autenticación
 bot.onText(/\/start/, async (msg) => {
     const chatId = msg.chat.id;
+    const telegramId = msg.from.id;
     
     try {
-        // FORZAR eliminación de cualquier teclado persistente
-        await bot.sendMessage(chatId, "🧹 Limpiando interfaz...", {
-            reply_markup: {
-                remove_keyboard: true
-            }
+        // Limpiar cualquier keyboard persistente
+        await bot.sendMessage(chatId, "🧹 Preparando sistema...", {
+            reply_markup: { remove_keyboard: true }
         });
         
-        // Pausa breve para asegurar eliminación
+        // Verificar si el usuario ya está autorizado
+        const user = await auth.verifyUser(telegramId);
+        
         setTimeout(async () => {
-            const welcomeMessage = `🍗 **¡Bienvenido al Sistema El Pollo Loco CAS!**\n\n` +
-                                  `📊 **Accede al Dashboard para ver:**\n` +
-                                  `• Mapas interactivos con 79 sucursales\n` +
-                                  `• Gráficos de performance en tiempo real\n` +
-                                  `• Análisis de 135 supervisiones\n` +
-                                  `• KPIs y métricas operativas\n\n` +
-                                  `🎯 **Dashboard optimizado para móvil**\n` +
-                                  `Todo en una sola interfaz intuitiva\n\n` +
-                                  `👆 Usa el botón azul "📊 Dashboard" del menú para acceder`;
-            
-            await bot.sendMessage(chatId, welcomeMessage, { 
-                parse_mode: 'Markdown',
-                reply_markup: {
-                    remove_keyboard: true
-                }
-            });
+            if (user) {
+                // Usuario autorizado - mensaje de bienvenida personalizado
+                const welcomeMessage = 
+                    `🍗 **¡Bienvenido de vuelta, ${user.full_name}!**\n\n` +
+                    `✅ **Tu cuenta está vinculada y autorizada**\n` +
+                    `👔 **Posición:** ${user.position}\n` +
+                    `🏢 **Grupo:** ${user.grupo_operativo}\n\n` +
+                    `📊 **Dashboard El Pollo Loco CAS:**\n` +
+                    `• Mapas interactivos (79 sucursales)\n` +
+                    `• Análisis de 135 supervisiones\n` +
+                    `• KPIs y métricas en tiempo real\n` +
+                    `• Histórico con tendencias\n\n` +
+                    `🔐 **Comandos disponibles:**\n` +
+                    `/login - Obtener acceso al dashboard\n` +
+                    `/whoami - Ver tu información\n` +
+                    `/logout - Cerrar sesión`;
+                    
+                await bot.sendMessage(chatId, welcomeMessage, { 
+                    parse_mode: 'Markdown',
+                    reply_markup: { remove_keyboard: true }
+                });
+            } else {
+                // Usuario no autorizado - proceso de registro
+                const welcomeMessage = 
+                    `🍗 **¡Bienvenido al Sistema El Pollo Loco CAS!**\n\n` +
+                    `🔐 **Sistema de Supervisión Operativa Seguro**\n\n` +
+                    `📊 **Accede al Dashboard para ver:**\n` +
+                    `• Mapas interactivos con 79 sucursales\n` +
+                    `• Gráficos de performance en tiempo real\n` +
+                    `• Análisis de 135 supervisiones\n` +
+                    `• KPIs y métricas operativas\n\n` +
+                    `⚠️ **Acceso restringido a personal autorizado**\n\n` +
+                    `🔑 **Para acceder:**\n` +
+                    `/login - Vincular tu cuenta corporativa\n\n` +
+                    `📧 **Nota:** Solo emails pre-autorizados del sistema`;
+                    
+                await bot.sendMessage(chatId, welcomeMessage, { 
+                    parse_mode: 'Markdown',
+                    reply_markup: { remove_keyboard: true }
+                });
+            }
         }, 500);
         
     } catch (error) {
         console.error('Error in start command:', error);
-        await bot.sendMessage(chatId, '🍗 ¡Bienvenido! Usa el botón azul del menú para acceder al Dashboard.');
+        await bot.sendMessage(chatId, 
+            '🍗 ¡Bienvenido al Sistema El Pollo Loco CAS!\n\n' +
+            'Usa /login para acceder al dashboard seguro.'
+        );
     }
 });
 
@@ -497,12 +760,28 @@ bot.onText(/\/start/, async (msg) => {
 // START EXPRESS SERVER
 // =====================================================
 
+// Cleanup expired tokens every hour
+setInterval(async () => {
+    try {
+        const cleaned = await auth.cleanupExpiredTokens();
+        if (cleaned > 0) {
+            console.log(`🧹 Cleaned up ${cleaned} expired tokens`);
+        }
+    } catch (error) {
+        console.error('Error cleaning up tokens:', error);
+    }
+}, 60 * 60 * 1000); // 1 hour
+
 app.listen(port, () => {
-    console.log(`🚀 El Pollo Loco Server running on port ${port}`);
-    console.log(`📊 Dashboard: https://pollo-loco-supervision-kzxj.onrender.com/dashboard`);
-    console.log(`🔍 Health: https://pollo-loco-supervision-kzxj.onrender.com/health`);
+    console.log(`🚀 El Pollo Loco CAS Server running on port ${port}`);
+    console.log(`📊 Dashboard: ${process.env.RENDER_EXTERNAL_URL || 'http://localhost:' + port}/dashboard`);
+    console.log(`🔐 Login: ${process.env.RENDER_EXTERNAL_URL || 'http://localhost:' + port}/login`);
+    console.log(`🔍 Health: ${process.env.RENDER_EXTERNAL_URL || 'http://localhost:' + port}/health`);
     console.log(`🤖 Telegram webhook configured`);
     console.log(`💾 Database: ${process.env.NODE_ENV === 'production' ? 'Production' : 'Development'}`);
+    console.log(`👥 Authorized users: 22 (3 CAS Team + 19 Directors)`);
+    console.log(`🔑 Authentication: JWT tokens with 24h expiry`);
+    console.log(`📋 Features: Secure login, Dashboard protection, Audit logs`);
 });
 
 // Graceful shutdown
