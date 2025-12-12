@@ -5638,7 +5638,7 @@
                 // Check if grupos data is already loaded in memory
                 if (window.dashboardGrupos && window.dashboardGrupos.length > 0) {
                     console.log('⚡ Using cached grupos data:', window.dashboardGrupos.length, 'groups');
-                    renderMckinseyWithRealData(window.dashboardGrupos);
+                    renderMckinseyFallback(window.dashboardGrupos);
                     return;
                 }
                 
@@ -6138,14 +6138,23 @@
         function renderLocalHeatmapWithPeriods(groups, localPeriods) {
             const container = document.getElementById('local-heatmap').querySelector('.heatmap-grid');
             
+            console.log('🔍 Filtering local groups from:', groups.map(g => g.grupo));
+            console.log('🏠 Local periods to check:', localPeriods);
+            
             // Filter using REAL territorial logic from coordenadas_validadas
             const localGroups = groups.filter(group => {
                 const groupName = group.grupo;
+                console.log(`🔍 Checking group: ${groupName}, has periodos: ${!!group.periodos}`);
                 
                 // Mixed groups: only include if they have LOCAL data in periodos
                 if (territorialMapping[groupName]) {
-                    // For mixed groups, check if they have any local period data
-                    return group.periodos && localPeriods.some(period => group.periodos[period]);
+                    const hasLocalData = group.periodos && localPeriods.some(period => {
+                        const hasData = !!group.periodos[period];
+                        console.log(`  🔀 Mixed group ${groupName} - period ${period}: ${hasData}`);
+                        return hasData;
+                    });
+                    console.log(`  🔀 Mixed group ${groupName} final result: ${hasLocalData}`);
+                    return hasLocalData;
                 }
                 
                 // Pure local groups from coordenadas_validadas
@@ -6154,8 +6163,13 @@
                     'GRUPO CENTRITO', 'GRUPO SABINAS HIDALGO'
                 ];
                 
-                return pureLocalGroups.includes(groupName) && group.periodos;
+                const isPureLocal = pureLocalGroups.includes(groupName) && group.periodos;
+                console.log(`  🏠 Pure local ${groupName}: ${isPureLocal}`);
+                
+                return isPureLocal;
             });
+            
+            console.log('✅ Filtered local groups:', localGroups.map(g => g.grupo));
             
             if (localGroups.length === 0) {
                 container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No local historic data available</p>';
@@ -6221,14 +6235,23 @@
         function renderForeignHeatmapWithPeriods(groups, foreignPeriods) {
             const container = document.getElementById('foreign-heatmap').querySelector('.heatmap-grid');
             
+            console.log('🔍 Filtering foreign groups from:', groups.map(g => g.grupo));
+            console.log('🌍 Foreign periods to check:', foreignPeriods);
+            
             // Filter using REAL territorial logic from coordenadas_validadas
             const foreignGroups = groups.filter(group => {
                 const groupName = group.grupo;
+                console.log(`🔍 Checking group: ${groupName}, has periodos: ${!!group.periodos}`);
                 
                 // Mixed groups: only include if they have FOREIGN data in periodos
                 if (territorialMapping[groupName]) {
-                    // For mixed groups, check if they have any foreign period data
-                    return group.periodos && foreignPeriods.some(period => group.periodos[period]);
+                    const hasForeignData = group.periodos && foreignPeriods.some(period => {
+                        const hasData = !!group.periodos[period];
+                        console.log(`  🔀 Mixed group ${groupName} - period ${period}: ${hasData}`);
+                        return hasData;
+                    });
+                    console.log(`  🔀 Mixed group ${groupName} final result: ${hasForeignData}`);
+                    return hasForeignData;
                 }
                 
                 // Pure foreign groups from coordenadas_validadas
@@ -6238,8 +6261,13 @@
                     'GRUPO RIO BRAVO', 'GRUPO NUEVO LAREDO (RUELAS)'
                 ];
                 
-                return pureForeignGroups.includes(groupName) && group.periodos;
+                const isPureForeign = pureForeignGroups.includes(groupName) && group.periodos;
+                console.log(`  🌍 Pure foreign ${groupName}: ${isPureForeign}`);
+                
+                return isPureForeign;
             });
+            
+            console.log('✅ Filtered foreign groups:', foreignGroups.map(g => g.grupo));
             
             if (foreignGroups.length === 0) {
                 container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No foreign historic data available</p>';
