@@ -545,6 +545,35 @@
             background: rgba(255, 255, 255, 0.95);
             border: 0.5px solid var(--ios-separator);
         }
+        
+        /* POPUP OPTIMIZATION: Loading states */
+        .popup-loading {
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+        }
+        
+        .popup-loading::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border: 1px solid #666;
+            border-top: 1px solid transparent;
+            border-radius: 50%;
+            animation: popup-spinner 1s linear infinite;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+        
+        @keyframes popup-spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .popup-loaded {
+            opacity: 1;
+            transition: opacity 0.3s ease 0.1s;
+        }
 
         /* Map Container */
         .map-container {
@@ -5533,12 +5562,12 @@
                         <span id="performance-${uniqueId}" style="font-weight: 600; font-size: 15px; color: ${performance >= 90 ? '#27ae60' : performance >= 80 ? '#3498db' : performance >= 70 ? '#f39c12' : '#e74c3c'};">
                             🎯 Performance General: ${performance || 'N/A'}%
                         </span>
-                        <div id="tendencia-${uniqueId}" style="font-size: 13px; color: #666; margin-top: 4px;">
-                            📊 ${performance >= 80 ? 'Performance sólida' : 'Área de oportunidad'}
+                        <div id="tendencia-${uniqueId}" class="popup-loading" style="font-size: 13px; color: #666; margin-top: 4px;">
+                            ⏳ Analizando tendencias y áreas críticas
                         </div>
                     </div>
-                    <div id="areas-criticas-${uniqueId}" style="margin-top: 8px; font-size: 13px;">
-                        ${performance < 80 ? '🎯 Revisando oportunidades de mejora...' : '✅ Performance dentro del rango objetivo'}
+                    <div id="areas-criticas-${uniqueId}" class="popup-loading" style="margin-top: 8px; font-size: 13px; color: #666;">
+                        🔍 Obteniendo datos detallados del servidor
                     </div>
                     <div id="fecha-supervision-${uniqueId}" style="margin-top: 6px; font-size: 12px; color: #86868b;">
                         📅 ${point.ultima_evaluacion ? new Date(point.ultima_evaluacion).toLocaleDateString('es-MX', {day: 'numeric', month: 'short'}) : 'Actualizando fecha...'}
@@ -5624,6 +5653,13 @@
                 console.log('📊 Datos recibidos:', data);
                 
                 if (data.success) {
+                    // SMOOTH TRANSITION: Remove loading classes and add loaded classes
+                    const loadingElements = document.querySelectorAll(`[id*="${uniqueId}"].popup-loading`);
+                    loadingElements.forEach(el => {
+                        el.classList.remove('popup-loading');
+                        el.classList.add('popup-loaded');
+                    });
+                    
                     // ACTUALIZAR PERFORMANCE CON VALOR CORRECTO DEL ANÁLISIS
                     const performanceElement = document.getElementById(`performance-${uniqueId}`);
                     if (performanceElement && data.performance_general.actual) {
