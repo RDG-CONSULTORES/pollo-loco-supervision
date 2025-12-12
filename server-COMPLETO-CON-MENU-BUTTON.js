@@ -378,11 +378,23 @@ app.get('/api/sucursal-detail', async (req, res) => {
                 )
                 SELECT 
                     CASE 
-                        WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
-                        WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
-                        WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
-                        WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                        ELSE 'OTRO'
+                        -- LOCALES (Nuevo León): Periodos T1, T2, T3, T4
+                        WHEN (snv.estado_final = 'Nuevo León' OR snv.grupo_normalizado = 'GRUPO SALTILLO')
+                             AND snv.location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                            CASE 
+                                WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        -- FORÁNEAS: Periodos S1, S2  
+                        ELSE 
+                            CASE 
+                                WHEN snv.fecha_supervision >= '2025-04-10' AND snv.fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN snv.fecha_supervision >= '2025-07-30' AND snv.fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END as periodo,
                     ROUND(AVG(cp.calificacion_general_pct), 2) as performance
                 FROM supervision_normalized_view snv
@@ -391,19 +403,39 @@ app.get('/api/sucursal-detail', async (req, res) => {
                   AND snv.fecha_supervision >= '2025-02-01'
                 GROUP BY 
                     CASE 
-                        WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
-                        WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
-                        WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
-                        WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                        ELSE 'OTRO'
+                        WHEN (snv.estado_final = 'Nuevo León' OR snv.grupo_normalizado = 'GRUPO SALTILLO')
+                             AND snv.location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                            CASE 
+                                WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE 
+                            CASE 
+                                WHEN snv.fecha_supervision >= '2025-04-10' AND snv.fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN snv.fecha_supervision >= '2025-07-30' AND snv.fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END
                 HAVING 
                     CASE 
-                        WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
-                        WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
-                        WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
-                        WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                        ELSE 'OTRO'
+                        WHEN (snv.estado_final = 'Nuevo León' OR snv.grupo_normalizado = 'GRUPO SALTILLO')
+                             AND snv.location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                            CASE 
+                                WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE 
+                            CASE 
+                                WHEN snv.fecha_supervision >= '2025-04-10' AND snv.fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN snv.fecha_supervision >= '2025-07-30' AND snv.fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END != 'OTRO'
                 ORDER BY periodo
             `;
@@ -415,11 +447,23 @@ app.get('/api/sucursal-detail', async (req, res) => {
             const tendenciasQuery = `
                 SELECT 
                     CASE 
-                        WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
-                        WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
-                        WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
-                        WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                        ELSE 'OTRO'
+                        -- LOCALES (Nuevo León): Periodos T1, T2, T3, T4
+                        WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                            CASE 
+                                WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        -- FORÁNEAS: Periodos S1, S2  
+                        ELSE 
+                            CASE 
+                                WHEN fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END as periodo,
                     ROUND(AVG(porcentaje), 2) as performance
                 FROM supervision_normalized_view 
@@ -427,19 +471,39 @@ app.get('/api/sucursal-detail', async (req, res) => {
                   AND fecha_supervision >= '2025-02-01'
                 GROUP BY 
                     CASE 
-                        WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
-                        WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
-                        WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
-                        WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                        ELSE 'OTRO'
+                        WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                            CASE 
+                                WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE 
+                            CASE 
+                                WHEN fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END
                 HAVING 
                     CASE 
-                        WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
-                        WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
-                        WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
-                        WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                        ELSE 'OTRO'
+                        WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                             AND location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
+                            CASE 
+                                WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE 
+                            CASE 
+                                WHEN fecha_supervision >= '2025-04-10' AND fecha_supervision <= '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN fecha_supervision >= '2025-07-30' AND fecha_supervision <= '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
                     END != 'OTRO'
                 ORDER BY periodo
             `;
