@@ -1169,7 +1169,7 @@ app.get('/api/mapa', async (req, res) => {
             
             // Note: CAS table doesn't have coordenadas, need to JOIN with normalized view for coordinates
             // This is a hybrid approach using both tables
-            // 🚀 OPTIMIZED QUERY: Include popup data to eliminate 2-stage loading
+            // 🚀 SIMPLIFIED QUERY: Basic CAS integration - complex optimization later
             const newQuery = `
                 WITH cas_performance AS (
                     SELECT 
@@ -1181,60 +1181,6 @@ app.get('/api/mapa', async (req, res) => {
                     FROM supervision_operativa_cas 
                     WHERE calificacion_general_pct IS NOT NULL
                       AND date_completed >= '2025-02-01'
-                ),
-                areas_criticas AS (
-                    SELECT 
-                        snv.nombre_normalizado,
-                        SUM(CASE WHEN area_score < 80 THEN 1 ELSE 0 END) as areas_oportunidad_count,
-                        STRING_AGG(
-                            CASE WHEN area_score < 80 
-                                 THEN area_evaluacion || ':' || area_score::text
-                                 ELSE NULL 
-                            END, 
-                            '|' 
-                            ORDER BY area_score ASC
-                        ) FILTER (WHERE area_score < 80) as areas_oportunidad_list
-                    FROM (
-                        SELECT 
-                            snv.nombre_normalizado,
-                            snv.area_evaluacion,
-                            ROUND(AVG(snv.porcentaje), 2) as area_score
-                        FROM supervision_normalized_view snv
-                        JOIN cas_performance cp ON snv.submission_id = cp.submission_id
-                        WHERE snv.area_evaluacion IS NOT NULL 
-                          AND snv.area_evaluacion != ''
-                          AND snv.area_tipo = 'area_principal'
-                        GROUP BY snv.nombre_normalizado, snv.area_evaluacion
-                    ) area_scores
-                    GROUP BY area_scores.nombre_normalizado
-                ),
-                periodo_cas_calc AS (
-                    SELECT 
-                        snv.nombre_normalizado,
-                        MAX(cp.date_completed) as ultima_fecha,
-                        CASE 
-                            -- LOCALES (Nuevo León): Periodos T1, T2, T3, T4
-                            WHEN (snv.estado_final = 'Nuevo León' OR snv.grupo_normalizado = 'GRUPO SALTILLO')
-                                 AND snv.location_name NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero') THEN
-                                CASE 
-                                    WHEN MAX(cp.date_completed) >= '2025-03-12' AND MAX(cp.date_completed) <= '2025-04-16' THEN 'NL-T1-2025'
-                                    WHEN MAX(cp.date_completed) >= '2025-06-11' AND MAX(cp.date_completed) <= '2025-08-18' THEN 'NL-T2-2025'
-                                    WHEN MAX(cp.date_completed) >= '2025-08-19' AND MAX(cp.date_completed) <= '2025-10-09' THEN 'NL-T3-2025'
-                                    WHEN MAX(cp.date_completed) >= '2025-10-30' THEN 'NL-T4-2025'
-                                    ELSE 'Feb-Nov 2025'
-                                END
-                            -- FORÁNEAS: Periodos S1, S2  
-                            ELSE 
-                                CASE 
-                                    WHEN MAX(cp.date_completed) >= '2025-04-10' AND MAX(cp.date_completed) <= '2025-06-09' THEN 'FOR-S1-2025'
-                                    WHEN MAX(cp.date_completed) >= '2025-07-30' AND MAX(cp.date_completed) <= '2025-11-07' THEN 'FOR-S2-2025'
-                                    ELSE 'Feb-Nov 2025'
-                                END
-                        END as periodo_cas
-                    FROM supervision_normalized_view snv
-                    JOIN cas_performance cp ON snv.submission_id = cp.submission_id
-                    WHERE snv.area_tipo = 'area_principal'
-                    GROUP BY snv.nombre_normalizado, snv.estado_final, snv.grupo_normalizado, snv.location_name
                 )
                 SELECT 
                     -- Normalizar nombres TEPEYAC
@@ -1253,15 +1199,9 @@ app.get('/api/mapa', async (req, res) => {
                     snv.ciudad_normalizada as ciudad,
                     MAX(cp.date_completed) as ultima_evaluacion,
                     COUNT(DISTINCT cp.submission_id) as total_supervisiones,
-                    'NEW_optimized_with_popup_data' as coordinate_source,
-                    -- 🚀 POPUP DATA PRE-LOADED
-                    COALESCE(ac.areas_oportunidad_count, 0) as areas_criticas_count,
-                    COALESCE(ac.areas_oportunidad_list, '') as areas_criticas_preview,
-                    COALESCE(pcc.periodo_cas, 'Feb-Nov 2025') as periodo_cas
+                    'NEW_cas_values_basic' as coordinate_source
                 FROM supervision_normalized_view snv
                 JOIN cas_performance cp ON snv.submission_id = cp.submission_id
-                LEFT JOIN areas_criticas ac ON ac.nombre_normalizado = snv.nombre_normalizado
-                LEFT JOIN periodo_cas_calc pcc ON pcc.nombre_normalizado = snv.nombre_normalizado
                 WHERE snv.lat_validada IS NOT NULL 
                   AND snv.lng_validada IS NOT NULL 
                   AND snv.area_tipo = 'area_principal'
@@ -1273,14 +1213,13 @@ app.get('/api/mapa', async (req, res) => {
                             ELSE snv.nombre_normalizado 
                          END,
                          snv.grupo_normalizado, snv.lat_validada, snv.lng_validada, 
-                         snv.estado_final, snv.ciudad_normalizada, ac.areas_oportunidad_count, 
-                         ac.areas_oportunidad_list, pcc.periodo_cas
+                         snv.estado_final, snv.ciudad_normalizada
                 ORDER BY performance DESC
             `;
             
             result = await pool.query(newQuery);
             
-            console.log(`🗺️ Map data OPTIMIZADO: ${result.rows.length} sucursales con calificaciones CAS REALES + popup data pre-cargado (elimina 2-stage loading)`);
+            console.log(`🗺️ Map data NUEVO: ${result.rows.length} sucursales con calificaciones CAS REALES (versión básica - optimización popup pendiente)`);
             
         } else {
             // 📊 MÉTODO ACTUAL: supervision_normalized_view con promedio de áreas
