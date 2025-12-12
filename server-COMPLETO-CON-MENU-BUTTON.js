@@ -1206,7 +1206,7 @@ app.get('/api/mapa', async (req, res) => {
                           AND snv.area_tipo = 'area_principal'
                         GROUP BY snv.nombre_normalizado, snv.area_evaluacion
                     ) area_scores
-                    GROUP BY nombre_normalizado
+                    GROUP BY area_scores.nombre_normalizado
                 ),
                 periodo_cas_calc AS (
                     SELECT 
