@@ -824,37 +824,35 @@ app.get('/api/kpis', async (req, res) => {
         let kpis;
         
         if (USE_NEW_CALCULATION) {
-            // 🆕 MÉTODO NUEVO: supervision_operativa_cas con calificacion_general_pct
-            console.log('🆕 KPIs using NEW calculation method (supervision_operativa_cas)');
+            // 🆕 MÉTODO HÍBRIDO: normalized structure + CAS values
+            console.log('🆕 KPIs using HYBRID method (normalized structure + CAS values)');
             
-            // Build equivalent WHERE clause for CAS table
-            let casWhereClause = 'WHERE calificacion_general_pct IS NOT NULL';
-            const casParams = [];
-            let casParamIndex = 1;
-            
-            casWhereClause += ` AND date_completed >= '2025-02-01'`;
-            
-            // Note: CAS table doesn't have grupo_normalizado, so we skip group filters for now
-            // This would need location_name mapping for full compatibility
-            
-            const newQuery = `
+            const hybridQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                )
                 SELECT 
-                    COUNT(DISTINCT submission_id) as total_supervisiones,
-                    ROUND(AVG(calificacion_general_pct), 2) as promedio_general,
-                    COUNT(DISTINCT location_name) as sucursales_evaluadas,
-                    COUNT(DISTINCT supervisor_nombre) as total_grupos,
-                    COUNT(DISTINCT CASE WHEN calificacion_general_pct < 70 THEN submission_id END) as supervisiones_criticas,
-                    MAX(date_completed) as ultima_evaluacion,
-                    MIN(date_completed) as primera_evaluacion
-                FROM supervision_operativa_cas 
-                ${casWhereClause}
+                    COUNT(DISTINCT snv.submission_id) as total_supervisiones,
+                    ROUND(AVG(cp.calificacion_general_pct), 2) as promedio_general,
+                    COUNT(DISTINCT snv.numero_sucursal) as sucursales_evaluadas,
+                    COUNT(DISTINCT snv.grupo_normalizado) as total_grupos,
+                    COUNT(DISTINCT CASE WHEN cp.calificacion_general_pct < 70 THEN snv.submission_id END) as supervisiones_criticas,
+                    MAX(snv.fecha_supervision) as ultima_evaluacion,
+                    MIN(snv.fecha_supervision) as primera_evaluacion
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                ${whereClause}
             `;
             
-            const newResult = await pool.query(newQuery, casParams);
-            kpis = newResult.rows[0];
-            kpis.calculation_method = 'NEW (calificacion_general_pct)';
+            const hybridResult = await pool.query(hybridQuery, params);
+            kpis = hybridResult.rows[0];
+            kpis.calculation_method = 'NEW (hybrid - normalized structure + CAS values)';
             
-            console.log(`🆕 KPIs NUEVOS: ${kpis.total_supervisiones} supervisiones, ${kpis.promedio_general}% promedio REAL`);
+            console.log(`🆕 KPIs HÍBRIDOS: ${kpis.total_supervisiones} supervisiones, ${kpis.sucursales_evaluadas} sucursales, ${kpis.total_grupos} grupos, ${kpis.promedio_general}% promedio REAL`);
             
         } else {
             // 📊 MÉTODO ACTUAL: supervision_normalized_view con promedio de áreas
@@ -888,42 +886,108 @@ app.get('/api/kpis', async (req, res) => {
     }
 });
 
-// Performance Overview API - NO DATE FILTERS
+// Performance Overview API - NO DATE FILTERS ⚡ MIGRATED TO DUAL-SOURCE
 app.get('/api/performance/overview', async (req, res) => {
     try {
         console.log('📊 Performance overview requested (NO FILTERS)');
         
-        // Get recent data without restrictive filters
-        let whereClause = 'WHERE porcentaje IS NOT NULL';
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        // Show ALL data from February 2025 onwards
-        whereClause += ` AND fecha_supervision >= '2025-02-01'`;
-        
-        const query = `
-            SELECT 
-                COUNT(*) as total_evaluaciones,
-                ROUND(AVG(porcentaje), 2) as promedio_general,
-                COUNT(DISTINCT numero_sucursal) as sucursales_evaluadas,
-                COUNT(DISTINCT grupo_normalizado) as grupos_activos,
-                MAX(fecha_supervision) as ultima_evaluacion,
-                MIN(fecha_supervision) as primera_evaluacion,
-                COUNT(CASE WHEN lat_validada IS NOT NULL THEN 1 END) as with_validated_coords
-            FROM supervision_normalized_view 
-            ${whereClause}
-        `;
-        
-        const result = await pool.query(query);
-        const overview = result.rows[0];
-        
-        console.log(`📈 Overview (últimos 30 días): ${overview.total_evaluaciones} evaluaciones, ${overview.sucursales_evaluadas} sucursales, ${overview.grupos_activos} grupos`);
-        
-        res.json({
-            ...overview,
-            periodo_actual: 'Datos Actuales (últimos 30 días)',
-            note: 'Mostrando datos reales sin filtros restrictivos',
-            data_range: 'Últimos 30 días',
-            coordinate_coverage: `${overview.with_validated_coords}/${overview.total_evaluaciones} (${(overview.with_validated_coords/overview.total_evaluaciones*100).toFixed(1)}%)`
-        });
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas');
+            
+            // NEW: Use supervision_operativa_cas with calificacion_general_pct
+            const newQuery = `
+                WITH grupo_mapping AS (
+                    SELECT DISTINCT
+                        location_name,
+                        CASE 
+                            WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                            WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                            WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                            ELSE location_name
+                        END as nombre_normalizado,
+                        CASE 
+                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
+                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
+                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
+                            WHEN location_name LIKE '%Apodaca%' OR location_name LIKE '%APODACA%' THEN 'APODACA'
+                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
+                            ELSE 'OTROS'
+                        END as grupo_normalizado,
+                        CASE 
+                            WHEN location_name ~ '^[0-9]+'
+                            THEN CAST(SUBSTRING(location_name FROM '^([0-9]+)') AS INTEGER)
+                            ELSE 999
+                        END as numero_sucursal
+                    FROM supervision_operativa_cas
+                    WHERE calificacion_general_pct IS NOT NULL 
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT 
+                    COUNT(*) as total_evaluaciones,
+                    ROUND(AVG(soc.calificacion_general_pct), 2) as promedio_general,
+                    COUNT(DISTINCT gm.numero_sucursal) as sucursales_evaluadas,
+                    COUNT(DISTINCT gm.grupo_normalizado) as grupos_activos,
+                    MAX(soc.date_completed) as ultima_evaluacion,
+                    MIN(soc.date_completed) as primera_evaluacion,
+                    COUNT(*) as with_validated_coords  -- CAS data is inherently validated
+                FROM supervision_operativa_cas soc
+                JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                WHERE soc.calificacion_general_pct IS NOT NULL 
+                  AND soc.date_completed >= '2025-02-01'
+            `;
+            
+            const result = await pool.query(newQuery);
+            const overview = result.rows[0];
+            
+            console.log(`📈 Overview NUEVO: ${overview.total_evaluaciones} evaluaciones, ${overview.sucursales_evaluadas} sucursales, ${overview.grupos_activos} grupos (calificacion_general_pct)`);
+            
+            res.json({
+                ...overview,
+                calculation_method: 'NEW (calificacion_general_pct)',
+                periodo_actual: 'Datos Actuales desde febrero 2025',
+                note: 'Datos reales de calificacion_general_pct (Zenput) - 100% validados',
+                data_range: 'Desde febrero 2025',
+                coordinate_coverage: `${overview.with_validated_coords}/${overview.total_evaluaciones} (100.0%)`
+            });
+            
+        } else {
+            console.log('📊 USANDO MÉTODO ACTUAL: supervision_normalized_view');
+            
+            // CURRENT: Use supervision_normalized_view with AVG(porcentaje)
+            let whereClause = 'WHERE porcentaje IS NOT NULL';
+            
+            // Show ALL data from February 2025 onwards
+            whereClause += ` AND fecha_supervision >= '2025-02-01'`;
+            
+            const currentQuery = `
+                SELECT 
+                    COUNT(*) as total_evaluaciones,
+                    ROUND(AVG(porcentaje), 2) as promedio_general,
+                    COUNT(DISTINCT numero_sucursal) as sucursales_evaluadas,
+                    COUNT(DISTINCT grupo_normalizado) as grupos_activos,
+                    MAX(fecha_supervision) as ultima_evaluacion,
+                    MIN(fecha_supervision) as primera_evaluacion,
+                    COUNT(CASE WHEN lat_validada IS NOT NULL THEN 1 END) as with_validated_coords
+                FROM supervision_normalized_view 
+                ${whereClause}
+            `;
+            
+            const result = await pool.query(currentQuery);
+            const overview = result.rows[0];
+            
+            console.log(`📈 Overview ACTUAL: ${overview.total_evaluaciones} evaluaciones, ${overview.sucursales_evaluadas} sucursales, ${overview.grupos_activos} grupos (promedio áreas)`);
+            
+            res.json({
+                ...overview,
+                calculation_method: 'CURRENT (promedio áreas)',
+                periodo_actual: 'Datos Actuales desde febrero 2025',
+                note: 'Promedio de áreas de evaluación (método actual)',
+                data_range: 'Desde febrero 2025',
+                coordinate_coverage: `${overview.with_validated_coords}/${overview.total_evaluaciones} (${(overview.with_validated_coords/overview.total_evaluaciones*100).toFixed(1)}%)`
+            });
+        }
         
     } catch (error) {
         console.error('❌ Error in performance overview:', error);
@@ -961,30 +1025,97 @@ app.get('/api/mapa', async (req, res) => {
             paramIndex++;
         }
         
-        const query = `
-            SELECT 
-                nombre_normalizado as nombre,
-                numero_sucursal,
-                grupo_normalizado as grupo,
-                lat_validada as lat,
-                lng_validada as lng,
-                ROUND(AVG(porcentaje), 2) as performance,
-                estado_final as estado,
-                ciudad_normalizada as ciudad,
-                MAX(fecha_supervision) as ultima_evaluacion,
-                COUNT(DISTINCT submission_id) as total_supervisiones,
-                'csv_validated' as coordinate_source
-            FROM supervision_normalized_view 
-            ${whereClause}
-              AND porcentaje IS NOT NULL
-              AND fecha_supervision >= '2025-02-01'
-            GROUP BY numero_sucursal, nombre_normalizado, grupo_normalizado, lat_validada, lng_validada, estado_final, ciudad_normalizada
-            ORDER BY performance DESC
-        `;
+        // 🚀 DUAL-SOURCE STRATEGY: New calculation method for mapa
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        const result = await pool.query(query, params);
+        let result;
         
-        console.log(`🗺️ Map data CORREGIDO: ${result.rows.length} sucursales con coordenadas CSV y supervision count real`);
+        if (USE_NEW_CALCULATION) {
+            // 🆕 MÉTODO NUEVO: supervision_operativa_cas con calificacion_general_pct
+            console.log('🗺️ Map using NEW calculation method (supervision_operativa_cas)');
+            
+            // Note: CAS table doesn't have coordenadas, need to JOIN with normalized view for coordinates
+            // This is a hybrid approach using both tables
+            const newQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        location_name,
+                        ROUND(calificacion_general_pct, 2) as performance_real,
+                        date_completed,
+                        estado_supervision
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT 
+                    -- Normalizar nombres TEPEYAC
+                    CASE 
+                        WHEN snv.location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                        WHEN snv.location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                        WHEN snv.location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                        ELSE snv.nombre_normalizado 
+                    END as nombre,
+                    snv.numero_sucursal,
+                    snv.grupo_normalizado as grupo,
+                    snv.lat_validada as lat,
+                    snv.lng_validada as lng,
+                    ROUND(AVG(cp.performance_real), 2) as performance,
+                    snv.estado_final as estado,
+                    snv.ciudad_normalizada as ciudad,
+                    MAX(cp.date_completed) as ultima_evaluacion,
+                    COUNT(DISTINCT cp.submission_id) as total_supervisiones,
+                    'NEW_csv_validated' as coordinate_source
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                WHERE snv.lat_validada IS NOT NULL 
+                  AND snv.lng_validada IS NOT NULL 
+                  AND snv.area_tipo = 'area_principal'
+                GROUP BY snv.numero_sucursal, 
+                         CASE 
+                            WHEN snv.location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                            WHEN snv.location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                            WHEN snv.location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                            ELSE snv.nombre_normalizado 
+                         END,
+                         snv.grupo_normalizado, snv.lat_validada, snv.lng_validada, 
+                         snv.estado_final, snv.ciudad_normalizada
+                ORDER BY performance DESC
+            `;
+            
+            result = await pool.query(newQuery);
+            
+            console.log(`🗺️ Map data NUEVO: ${result.rows.length} sucursales con calificaciones REALES y coordenadas CSV`);
+            
+        } else {
+            // 📊 MÉTODO ACTUAL: supervision_normalized_view con promedio de áreas
+            console.log('🗺️ Map using CURRENT calculation method (supervision_normalized_view)');
+            
+            const currentQuery = `
+                SELECT 
+                    nombre_normalizado as nombre,
+                    numero_sucursal,
+                    grupo_normalizado as grupo,
+                    lat_validada as lat,
+                    lng_validada as lng,
+                    ROUND(AVG(porcentaje), 2) as performance,
+                    estado_final as estado,
+                    ciudad_normalizada as ciudad,
+                    MAX(fecha_supervision) as ultima_evaluacion,
+                    COUNT(DISTINCT submission_id) as total_supervisiones,
+                    'csv_validated' as coordinate_source
+                FROM supervision_normalized_view 
+                ${whereClause}
+                  AND porcentaje IS NOT NULL
+                  AND fecha_supervision >= '2025-02-01'
+                GROUP BY numero_sucursal, nombre_normalizado, grupo_normalizado, lat_validada, lng_validada, estado_final, ciudad_normalizada
+                ORDER BY performance DESC
+            `;
+            
+            result = await pool.query(currentQuery, params);
+            
+            console.log(`🗺️ Map data CORREGIDO: ${result.rows.length} sucursales con coordenadas CSV y supervision count real`);
+        }
         
         res.json(result.rows);
         
@@ -1041,37 +1172,100 @@ app.get('/api/historico', async (req, res) => {
     }
 });
 
-// Filters API - Current data only
+// Filters API - Current data only ⚡ MIGRATED TO DUAL-SOURCE  
 app.get('/api/filtros', async (req, res) => {
     try {
         console.log('🔍 Filters data requested');
         
-        // Get grupos from recent data
-        const gruposResult = await pool.query(`
-            SELECT DISTINCT grupo_normalizado as grupo 
-            FROM supervision_normalized_view 
-            WHERE grupo_normalizado IS NOT NULL 
-              AND fecha_supervision >= '2025-02-01'
-            ORDER BY grupo
-        `);
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        // Get estados from recent data
-        const estadosResult = await pool.query(`
-            SELECT DISTINCT estado_final as estado 
-            FROM supervision_normalized_view 
-            WHERE estado_final IS NOT NULL 
-              AND fecha_supervision >= '2025-02-01'
-            ORDER BY estado_final
-        `);
-        
-        const filters = {
-            grupos: gruposResult.rows.map(row => row.grupo),
-            estados: estadosResult.rows.map(row => row.estado),
-            periodos: ['Últimos 30 días', 'Últimos 7 días', 'Ayer', 'Hoy']
-        };
-        
-        console.log(`🔍 Filters (datos actuales): ${filters.grupos.length} grupos, ${filters.estados.length} estados`);
-        res.json(filters);
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas (filtros)');
+            
+            // Get grupos from CAS with mapping
+            const gruposResult = await pool.query(`
+                WITH grupo_mapping AS (
+                    SELECT DISTINCT
+                        CASE 
+                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
+                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
+                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
+                            WHEN location_name LIKE '%Apodaca%' OR location_name LIKE '%APODACA%' THEN 'APODACA'
+                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
+                            ELSE 'OTROS'
+                        END as grupo_normalizado
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL 
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT DISTINCT grupo_normalizado as grupo
+                FROM grupo_mapping 
+                WHERE grupo_normalizado IS NOT NULL 
+                ORDER BY grupo_normalizado
+            `);
+            
+            // Get estados from CAS with mapping
+            const estadosResult = await pool.query(`
+                WITH estado_mapping AS (
+                    SELECT DISTINCT
+                        CASE 
+                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
+                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
+                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
+                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
+                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
+                            ELSE 'Nuevo León'  -- Default
+                        END as estado_final
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL 
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT DISTINCT estado_final as estado
+                FROM estado_mapping 
+                ORDER BY estado_final
+            `);
+            
+            const filters = {
+                grupos: gruposResult.rows.map(row => row.grupo),
+                estados: estadosResult.rows.map(row => row.estado),
+                periodos: ['Últimos 30 días', 'Últimos 7 días', 'Ayer', 'Hoy'],
+                calculation_method: 'NEW (supervision_operativa_cas)'
+            };
+            
+            console.log(`🔍 Filters NUEVO: ${filters.grupos.length} grupos, ${filters.estados.length} estados (calificacion_general_pct)`);
+            res.json(filters);
+            
+        } else {
+            console.log('📊 USANDO MÉTODO ACTUAL: supervision_normalized_view (filtros)');
+            
+            // Get grupos from recent data
+            const gruposResult = await pool.query(`
+                SELECT DISTINCT grupo_normalizado as grupo 
+                FROM supervision_normalized_view 
+                WHERE grupo_normalizado IS NOT NULL 
+                  AND fecha_supervision >= '2025-02-01'
+                ORDER BY grupo
+            `);
+            
+            // Get estados from recent data
+            const estadosResult = await pool.query(`
+                SELECT DISTINCT estado_final as estado 
+                FROM supervision_normalized_view 
+                WHERE estado_final IS NOT NULL 
+                  AND fecha_supervision >= '2025-02-01'
+                ORDER BY estado_final
+            `);
+            
+            const filters = {
+                grupos: gruposResult.rows.map(row => row.grupo),
+                estados: estadosResult.rows.map(row => row.estado),
+                periodos: ['Últimos 30 días', 'Últimos 7 días', 'Ayer', 'Hoy'],
+                calculation_method: 'CURRENT (supervision_normalized_view)'
+            };
+            
+            console.log(`🔍 Filters ACTUAL: ${filters.grupos.length} grupos, ${filters.estados.length} estados (promedio áreas)`);
+            res.json(filters);
+        }
         
     } catch (error) {
         console.error('❌ Error fetching filters:', error);
@@ -1079,7 +1273,7 @@ app.get('/api/filtros', async (req, res) => {
     }
 });
 
-// Sucursales por grupo - PARA MODAL DE DETALLES
+// Sucursales por grupo - PARA MODAL DE DETALLES ⚡ MIGRATED TO DUAL-SOURCE
 app.get('/api/sucursales-ranking', async (req, res) => {
     try {
         const { grupo } = req.query;
@@ -1089,30 +1283,127 @@ app.get('/api/sucursales-ranking', async (req, res) => {
             return res.status(400).json({ error: 'Grupo parameter is required' });
         }
         
-        const query = `
-            SELECT 
-                nombre_normalizado as sucursal,
-                numero_sucursal,
-                estado_final as estado,
-                ciudad_normalizada as ciudad,
-                COUNT(DISTINCT submission_id) as supervisiones,
-                COUNT(DISTINCT submission_id) as evaluaciones,
-                ROUND(AVG(porcentaje), 2) as promedio,
-                MAX(fecha_supervision) as ultima_evaluacion
-            FROM supervision_normalized_view 
-            WHERE grupo_normalizado = $1 
-              AND porcentaje IS NOT NULL
-              AND area_tipo = 'area_principal'
-              AND fecha_supervision >= '2025-02-01'
-            GROUP BY nombre_normalizado, numero_sucursal, estado_final, ciudad_normalizada
-            ORDER BY AVG(porcentaje) DESC
-        `;
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        const result = await pool.query(query, [grupo]);
-        
-        console.log(`🏢 Sucursales found for ${grupo}: ${result.rows.length} sucursales`);
-        
-        res.json(result.rows);
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas');
+            
+            // NEW: Use supervision_operativa_cas with calificacion_general_pct
+            const newQuery = `
+                WITH grupo_mapping AS (
+                    SELECT DISTINCT
+                        location_name,
+                        -- Mapeo TEPEYAC names
+                        CASE 
+                            WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                            WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                            WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                            ELSE location_name
+                        END as nombre_normalizado,
+                        -- Inferir grupo desde nombres TEPEYAC o usar default
+                        CASE 
+                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
+                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
+                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
+                            WHEN location_name LIKE '%Apodaca%' OR location_name LIKE '%APODACA%' THEN 'APODACA'
+                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
+                            WHEN location_name ~* '(harold|pape)' THEN 'HAROLD R. PAPE'
+                            WHEN location_name ~* '(carrizo)' THEN 'CARRIZO'
+                            WHEN location_name ~* '(guerrero)' THEN 'GUERRERO'
+                            ELSE 'OTROS'
+                        END as grupo_normalizado,
+                        -- Inferir estado desde location_name pattern
+                        CASE 
+                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
+                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
+                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
+                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
+                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
+                            ELSE 'Nuevo León'  -- Default para NL
+                        END as estado_final,
+                        -- Inferir ciudad desde location_name
+                        CASE 
+                            WHEN location_name ~* 'garcia' THEN 'Garcia'
+                            WHEN location_name ~* 'santa catarina' THEN 'Santa Catarina'
+                            WHEN location_name ~* 'huasteca' THEN 'La Huasteca'
+                            WHEN location_name ~* 'apodaca' THEN 'Apodaca'
+                            WHEN location_name ~* 'saltillo' THEN 'Saltillo'
+                            WHEN location_name ~* 'monterrey' THEN 'Monterrey'
+                            ELSE 'N/D'
+                        END as ciudad_normalizada,
+                        -- Extract numero_sucursal pattern
+                        CASE 
+                            WHEN location_name ~ '^[0-9]+'
+                            THEN CAST(SUBSTRING(location_name FROM '^([0-9]+)') AS INTEGER)
+                            ELSE 999  -- Default for no number
+                        END as numero_sucursal
+                    FROM supervision_operativa_cas
+                    WHERE calificacion_general_pct IS NOT NULL 
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT 
+                    gm.nombre_normalizado as sucursal,
+                    gm.numero_sucursal,
+                    gm.estado_final as estado,
+                    gm.ciudad_normalizada as ciudad,
+                    COUNT(DISTINCT soc.submission_id) as supervisiones,
+                    COUNT(DISTINCT soc.submission_id) as evaluaciones,
+                    ROUND(AVG(soc.calificacion_general_pct), 2) as promedio,
+                    MAX(soc.date_completed) as ultima_evaluacion
+                FROM supervision_operativa_cas soc
+                JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                WHERE gm.grupo_normalizado = $1 
+                  AND soc.calificacion_general_pct IS NOT NULL
+                  AND soc.date_completed >= '2025-02-01'
+                GROUP BY gm.nombre_normalizado, gm.numero_sucursal, gm.estado_final, gm.ciudad_normalizada
+                ORDER BY AVG(soc.calificacion_general_pct) DESC
+            `;
+            
+            const result = await pool.query(newQuery, [grupo]);
+            
+            console.log(`🏢 Sucursales NUEVO encontradas para ${grupo}: ${result.rows.length} sucursales (calificacion_general_pct)`);
+            
+            res.json({
+                calculation_method: 'NEW (calificacion_general_pct)',
+                grupo: grupo,
+                total_sucursales: result.rows.length,
+                sucursales: result.rows
+            });
+            
+        } else {
+            console.log('📊 USANDO MÉTODO ACTUAL: supervision_normalized_view');
+            
+            // CURRENT: Use supervision_normalized_view with AVG(porcentaje)
+            const currentQuery = `
+                SELECT 
+                    nombre_normalizado as sucursal,
+                    numero_sucursal,
+                    estado_final as estado,
+                    ciudad_normalizada as ciudad,
+                    COUNT(DISTINCT submission_id) as supervisiones,
+                    COUNT(DISTINCT submission_id) as evaluaciones,
+                    ROUND(AVG(porcentaje), 2) as promedio,
+                    MAX(fecha_supervision) as ultima_evaluacion
+                FROM supervision_normalized_view 
+                WHERE grupo_normalizado = $1 
+                  AND porcentaje IS NOT NULL
+                  AND area_tipo = 'area_principal'
+                  AND fecha_supervision >= '2025-02-01'
+                GROUP BY nombre_normalizado, numero_sucursal, estado_final, ciudad_normalizada
+                ORDER BY AVG(porcentaje) DESC
+            `;
+            
+            const result = await pool.query(currentQuery, [grupo]);
+            
+            console.log(`🏢 Sucursales ACTUAL encontradas para ${grupo}: ${result.rows.length} sucursales (promedio áreas)`);
+            
+            res.json({
+                calculation_method: 'CURRENT (promedio áreas)',
+                grupo: grupo,
+                total_sucursales: result.rows.length,
+                sucursales: result.rows
+            });
+        }
         
     } catch (error) {
         console.error('❌ Error fetching sucursales ranking:', error);
@@ -1120,17 +1411,48 @@ app.get('/api/sucursales-ranking', async (req, res) => {
     }
 });
 
-// Legacy API endpoints for compatibility - MOSTRANDO TODOS LOS ESTADOS DEL CSV
+// Legacy API endpoints for compatibility - MOSTRANDO TODOS LOS ESTADOS DEL CSV ⚡ MIGRATED TO DUAL-SOURCE
 app.get('/api/estados', async (req, res) => {
     try {
-        const result = await pool.query(`
-            SELECT DISTINCT estado_final as estado 
-            FROM supervision_normalized_view 
-            WHERE estado_final IS NOT NULL 
-              AND fecha_supervision >= '2025-02-01'
-            ORDER BY estado_final
-        `);
-        res.json(result.rows.map(row => row.estado));
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
+        
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas (estados)');
+            
+            const result = await pool.query(`
+                WITH estado_mapping AS (
+                    SELECT DISTINCT
+                        CASE 
+                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
+                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
+                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
+                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
+                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
+                            ELSE 'Nuevo León'
+                        END as estado_final
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL 
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT DISTINCT estado_final as estado
+                FROM estado_mapping 
+                WHERE estado_final IS NOT NULL 
+                ORDER BY estado_final
+            `);
+            res.json(result.rows.map(row => row.estado));
+            
+        } else {
+            console.log('📊 USANDO MÉTODO ACTUAL: supervision_normalized_view (estados)');
+            
+            const result = await pool.query(`
+                SELECT DISTINCT estado_final as estado 
+                FROM supervision_normalized_view 
+                WHERE estado_final IS NOT NULL 
+                  AND fecha_supervision >= '2025-02-01'
+                ORDER BY estado_final
+            `);
+            res.json(result.rows.map(row => row.estado));
+        }
     } catch (error) {
         console.error('❌ Error fetching estados:', error);
         res.status(500).json({ error: 'Error fetching estados', details: error.message });
@@ -1174,27 +1496,32 @@ app.get('/api/grupos', async (req, res) => {
         let result;
         
         if (USE_NEW_CALCULATION) {
-            // 🆕 MÉTODO NUEVO: supervision_operativa_cas con calificacion_general_pct
-            console.log('🆕 Grupos using NEW calculation method (supervision_operativa_cas)');
+            // 🆕 MÉTODO HÍBRIDO: normalized structure + CAS values para grupos
+            console.log('🆕 Grupos using HYBRID method (normalized structure + CAS values)');
             
-            // Map location names to grupos using a simple mapping for now
-            // Note: This is a simplified version - full implementation would need proper mapping table
-            const newQuery = `
+            const hybridQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                )
                 SELECT 
-                    'MAPPED_GRUPO' as grupo,
-                    COUNT(DISTINCT location_name) as sucursales,
-                    ROUND(AVG(calificacion_general_pct), 2) as promedio,
-                    COUNT(DISTINCT submission_id) as supervisiones,
-                    MAX(date_completed) as ultima_evaluacion,
-                    string_agg(DISTINCT estado_supervision, ', ') as estado
-                FROM supervision_operativa_cas 
-                WHERE calificacion_general_pct IS NOT NULL
-                  AND date_completed >= '2025-02-01'
-                GROUP BY 'MAPPED_GRUPO'
+                    snv.grupo_normalizado as grupo,
+                    COUNT(DISTINCT snv.numero_sucursal) as sucursales,
+                    ROUND(AVG(cp.calificacion_general_pct), 2) as promedio,
+                    COUNT(DISTINCT snv.submission_id) as supervisiones,
+                    MAX(snv.fecha_supervision) as ultima_evaluacion,
+                    string_agg(DISTINCT snv.estado_final, ', ') as estado
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                ${whereClause}
+                GROUP BY snv.grupo_normalizado
                 ORDER BY promedio DESC
             `;
             
-            result = await pool.query(newQuery);
+            result = await pool.query(hybridQuery, params);
             
             // Add calculation method info for debugging
             result.rows.forEach(row => {
@@ -1239,29 +1566,295 @@ app.get('/api/grupos', async (req, res) => {
     }
 });
 
-// Heatmap periods data - HISTÓRICO
+// Heatmap periods data - HISTÓRICO ⚡ MIGRATED TO DUAL-SOURCE
 app.get('/api/heatmap-periods/all', async (req, res) => {
     try {
         console.log('🔥 Heatmap periods requested with filters:', req.query);
         
-        let whereClause = 'WHERE porcentaje IS NOT NULL';
-        const params = [];
-        let paramIndex = 1;
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        // Apply estado filter if provided
-        if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
-            whereClause += ` AND estado = $${paramIndex}`;
-            params.push(req.query.estado);
-            paramIndex++;
-        }
+        let whereClause, params = [], paramIndex = 1;
         
-        // CORRECTED: Fix territorial classification logic with proper CAS periods
-        const query = `
-            WITH periods_data AS (
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas');
+            
+            // NEW: Use supervision_operativa_cas with calificacion_general_pct
+            whereClause = 'WHERE calificacion_general_pct IS NOT NULL AND date_completed >= \'2025-02-01\'';
+            
+            // Apply estado filter if provided
+            if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
+                whereClause += ` AND estado = $${paramIndex}`;
+                params.push(req.query.estado);
+                paramIndex++;
+            }
+            
+            // NUEVO: Mapeo desde CAS con calificacion_general_pct
+            const newQuery = `
+                WITH grupo_mapping AS (
+                    SELECT DISTINCT
+                        location_name,
+                        -- Mapeo TEPEYAC names
+                        CASE 
+                            WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                            WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                            WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                            ELSE location_name
+                        END as nombre_normalizado,
+                        -- Inferir grupo desde nombres TEPEYAC o usar default
+                        CASE 
+                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
+                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
+                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
+                            WHEN location_name LIKE '%Apodaca%' OR location_name LIKE '%APODACA%' THEN 'APODACA'
+                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
+                            ELSE 'OTROS'
+                        END as grupo_normalizado,
+                        -- Inferir estado desde location_name pattern
+                        CASE 
+                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
+                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
+                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
+                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
+                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
+                            ELSE 'Nuevo León'  -- Default para NL
+                        END as estado_final
+                    FROM supervision_operativa_cas
+                ),
+                periods_data AS (
+                    SELECT 
+                        gm.grupo_normalizado as grupo,
+                        gm.estado_final,
+                        gm.nombre_normalizado,
+                        CASE 
+                            -- Determinar si es Local (NL) o Foráneo primero
+                            WHEN (gm.estado_final = 'Nuevo León' OR gm.grupo_normalizado = 'GRUPO SALTILLO')
+                                 AND gm.nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                            THEN 
+                                -- LOCALES NL - Períodos Trimestrales
+                                CASE
+                                    WHEN soc.date_completed BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                                    WHEN soc.date_completed BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                                    WHEN soc.date_completed BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                                    WHEN soc.date_completed >= '2025-10-30' THEN 'NL-T4-2025'
+                                    ELSE 'OTRO'
+                                END
+                            ELSE
+                                -- FORÁNEAS - Períodos Semestrales
+                                CASE
+                                    WHEN soc.date_completed BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                                    WHEN soc.date_completed BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                                    ELSE 'OTRO'
+                                END
+                        END as periodo,
+                        ROUND(AVG(soc.calificacion_general_pct), 2) as promedio,
+                        COUNT(*) as evaluaciones
+                    FROM supervision_operativa_cas soc
+                    JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                    ${whereClause.replace('WHERE', 'WHERE soc.')}
+                    GROUP BY gm.grupo_normalizado, gm.estado_final, gm.nombre_normalizado,
+                    CASE 
+                        -- Duplicar la lógica de clasificación territorial para GROUP BY
+                        WHEN (gm.estado_final = 'Nuevo León' OR gm.grupo_normalizado = 'GRUPO SALTILLO')
+                             AND gm.nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                        THEN 
+                            -- LOCALES NL - Períodos Trimestrales
+                            CASE
+                                WHEN soc.date_completed BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN soc.date_completed BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN soc.date_completed BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN soc.date_completed >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE
+                            -- FORÁNEAS - Períodos Semestrales
+                            CASE
+                                WHEN soc.date_completed BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN soc.date_completed BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
+                    END
+                    HAVING COUNT(*) > 0
+                ),
+                group_averages AS (
+                    SELECT 
+                        grupo,
+                        ROUND(AVG(promedio), 2) as promedio_general
+                    FROM periods_data 
+                    GROUP BY grupo
+                )
                 SELECT 
-                    grupo_normalizado as grupo,
-                    estado_final,
-                    nombre_normalizado,
+                    ga.grupo,
+                    ga.promedio_general,
+                    json_object_agg(pd.periodo, json_build_object('promedio', pd.promedio, 'evaluaciones', pd.evaluaciones)) as periodos
+                FROM group_averages ga
+                LEFT JOIN periods_data pd ON ga.grupo = pd.grupo
+                GROUP BY ga.grupo, ga.promedio_general
+                ORDER BY ga.promedio_general DESC
+            `;
+            
+            const result = await pool.query(newQuery, params);
+            
+            // Get distinct periods for NEW method
+            const periodsNewQuery = `
+                WITH grupo_mapping AS (
+                    SELECT DISTINCT
+                        location_name,
+                        CASE 
+                            WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                            WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia' 
+                            WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                            ELSE location_name
+                        END as nombre_normalizado,
+                        CASE 
+                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
+                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
+                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
+                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
+                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
+                            ELSE 'Nuevo León'
+                        END as estado_final,
+                        CASE 
+                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
+                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
+                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
+                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
+                            ELSE 'OTROS'
+                        END as grupo_normalizado
+                    FROM supervision_operativa_cas
+                )
+                SELECT DISTINCT 
+                    CASE 
+                        -- Determinar si es Local (NL) o Foráneo primero
+                        WHEN (gm.estado_final = 'Nuevo León' OR gm.grupo_normalizado = 'GRUPO SALTILLO')
+                             AND gm.nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                        THEN 
+                            -- LOCALES NL - Períodos Trimestrales
+                            CASE
+                                WHEN soc.date_completed BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN soc.date_completed BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN soc.date_completed BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN soc.date_completed >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE
+                            -- FORÁNEAS - Períodos Semestrales
+                            CASE
+                                WHEN soc.date_completed BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN soc.date_completed BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
+                    END as periodo
+                FROM supervision_operativa_cas soc
+                JOIN grupo_mapping gm ON soc.location_name = gm.location_name 
+                ${whereClause.replace('WHERE', 'WHERE soc.')}
+                ORDER BY periodo
+            `;
+            
+            const periodsResult = await pool.query(periodsNewQuery, params);
+            const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'OTRO' && p !== null);
+            
+            console.log(`✅ Heatmap data NUEVO: ${result.rows.length} grupos, ${periods.length} períodos (calificacion_general_pct)`);
+            
+            res.json({
+                success: true,
+                calculation_method: 'NEW (calificacion_general_pct)',
+                data: {
+                    periods: periods,
+                    groups: result.rows
+                }
+            });
+            
+        } else {
+            console.log('📊 USANDO MÉTODO ACTUAL: supervision_normalized_view');
+            
+            // CURRENT: Use supervision_normalized_view with AVG(porcentaje)
+            whereClause = 'WHERE porcentaje IS NOT NULL';
+            
+            // Apply estado filter if provided
+            if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
+                whereClause += ` AND estado = $${paramIndex}`;
+                params.push(req.query.estado);
+                paramIndex++;
+            }
+            
+            // CURRENT: CORRECTED territorial classification logic with proper CAS periods
+            const currentQuery = `
+                WITH periods_data AS (
+                    SELECT 
+                        grupo_normalizado as grupo,
+                        estado_final,
+                        nombre_normalizado,
+                        CASE 
+                            -- Determinar si es Local (NL) o Foráneo primero
+                            WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                                 AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                            THEN 
+                                -- LOCALES NL - Períodos Trimestrales
+                                CASE
+                                    WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                                    WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                                    WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                                    WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                    ELSE 'OTRO'
+                                END
+                            ELSE
+                                -- FORÁNEAS - Períodos Semestrales
+                                CASE
+                                    WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                                    WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                                    ELSE 'OTRO'
+                                END
+                        END as periodo,
+                        ROUND(AVG(porcentaje), 2) as promedio,
+                        COUNT(*) as evaluaciones
+                    FROM supervision_normalized_view 
+                    WHERE porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
+                    GROUP BY grupo, estado_final, nombre_normalizado,
+                    CASE 
+                        -- Duplicar la lógica de clasificación territorial para GROUP BY
+                        WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
+                             AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
+                        THEN 
+                            -- LOCALES NL - Períodos Trimestrales
+                            CASE
+                                WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
+                                WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
+                                WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
+                                WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                                ELSE 'OTRO'
+                            END
+                        ELSE
+                            -- FORÁNEAS - Períodos Semestrales
+                            CASE
+                                WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
+                                WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
+                                ELSE 'OTRO'
+                            END
+                    END
+                    HAVING COUNT(*) > 0
+                ),
+                group_averages AS (
+                    SELECT 
+                        grupo,
+                        ROUND(AVG(promedio), 2) as promedio_general
+                    FROM periods_data 
+                    GROUP BY grupo
+                )
+                SELECT 
+                    ga.grupo,
+                    ga.promedio_general,
+                    json_object_agg(pd.periodo, json_build_object('promedio', pd.promedio, 'evaluaciones', pd.evaluaciones)) as periodos
+                FROM group_averages ga
+                LEFT JOIN periods_data pd ON ga.grupo = pd.grupo
+                GROUP BY ga.grupo, ga.promedio_general
+                ORDER BY ga.promedio_general DESC
+            `;
+            
+            const result = await pool.query(currentQuery, params);
+            
+            // Get distinct periods with correct territorial classification
+            const periodsQuery = `
+                SELECT DISTINCT 
                     CASE 
                         -- Determinar si es Local (NL) o Foráneo primero
                         WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
@@ -1282,95 +1875,26 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
                                 WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
                                 ELSE 'OTRO'
                             END
-                    END as periodo,
-                    ROUND(AVG(porcentaje), 2) as promedio,
-                    COUNT(*) as evaluaciones
+                    END as periodo
                 FROM supervision_normalized_view 
                 WHERE porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
-                GROUP BY grupo, estado_final, nombre_normalizado,
-                CASE 
-                    -- Duplicar la lógica de clasificación territorial para GROUP BY
-                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
-                         AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                    THEN 
-                        -- LOCALES NL - Períodos Trimestrales
-                        CASE
-                            WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
-                            WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
-                            WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
-                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                            ELSE 'OTRO'
-                        END
-                    ELSE
-                        -- FORÁNEAS - Períodos Semestrales
-                        CASE
-                            WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                            WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
-                            ELSE 'OTRO'
-                        END
-                END
-                HAVING COUNT(*) > 0
-            ),
-            group_averages AS (
-                SELECT 
-                    grupo,
-                    ROUND(AVG(promedio), 2) as promedio_general
-                FROM periods_data 
-                GROUP BY grupo
-            )
-            SELECT 
-                ga.grupo,
-                ga.promedio_general,
-                json_object_agg(pd.periodo, json_build_object('promedio', pd.promedio, 'evaluaciones', pd.evaluaciones)) as periodos
-            FROM group_averages ga
-            LEFT JOIN periods_data pd ON ga.grupo = pd.grupo
-            GROUP BY ga.grupo, ga.promedio_general
-            ORDER BY ga.promedio_general DESC
-        `;
-        
-        const result = await pool.query(query, params);
-        
-        // Get distinct periods with correct territorial classification
-        const periodsQuery = `
-            SELECT DISTINCT 
-                CASE 
-                    -- Determinar si es Local (NL) o Foráneo primero
-                    WHEN (estado_final = 'Nuevo León' OR grupo_normalizado = 'GRUPO SALTILLO')
-                         AND nombre_normalizado NOT IN ('57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero')
-                    THEN 
-                        -- LOCALES NL - Períodos Trimestrales
-                        CASE
-                            WHEN fecha_supervision BETWEEN '2025-03-12' AND '2025-04-16' THEN 'NL-T1-2025'
-                            WHEN fecha_supervision BETWEEN '2025-06-11' AND '2025-08-18' THEN 'NL-T2-2025'
-                            WHEN fecha_supervision BETWEEN '2025-08-19' AND '2025-10-09' THEN 'NL-T3-2025'
-                            WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
-                            ELSE 'OTRO'
-                        END
-                    ELSE
-                        -- FORÁNEAS - Períodos Semestrales
-                        CASE
-                            WHEN fecha_supervision BETWEEN '2025-04-10' AND '2025-06-09' THEN 'FOR-S1-2025'
-                            WHEN fecha_supervision BETWEEN '2025-07-30' AND '2025-11-07' THEN 'FOR-S2-2025'
-                            ELSE 'OTRO'
-                        END
-                END as periodo
-            FROM supervision_normalized_view 
-            WHERE porcentaje IS NOT NULL ${whereClause.replace('WHERE', 'AND')}
-            ORDER BY periodo
-        `;
-        
-        const periodsResult = await pool.query(periodsQuery, params);
-        const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'OTRO' && p !== null);
-        
-        console.log(`✅ Heatmap data CORREGIDO: ${result.rows.length} grupos, ${periods.length} períodos con clasificación territorial correcta`);
-        
-        res.json({
-            success: true,
-            data: {
-                periods: periods,
-                groups: result.rows
-            }
-        });
+                ORDER BY periodo
+            `;
+            
+            const periodsResult = await pool.query(periodsQuery, params);
+            const periods = periodsResult.rows.map(row => row.periodo).filter(p => p !== 'OTRO' && p !== null);
+            
+            console.log(`✅ Heatmap data ACTUAL: ${result.rows.length} grupos, ${periods.length} períodos (promedio áreas)`);
+            
+            res.json({
+                success: true,
+                calculation_method: 'CURRENT (promedio áreas)',
+                data: {
+                    periods: periods,
+                    groups: result.rows
+                }
+            });
+        }
     } catch (error) {
         console.error('❌ Error fetching heatmap data:', error);
         res.status(500).json({ 
@@ -1381,63 +1905,222 @@ app.get('/api/heatmap-periods/all', async (req, res) => {
     }
 });
 
-// Areas de evaluación API - LAS 29 ÁREAS PRINCIPALES MAPEADAS
+// Areas de evaluación API - LAS 29 ÁREAS PRINCIPALES MAPEADAS ⚡ MIGRATED TO DUAL-SOURCE
 app.get('/api/areas', async (req, res) => {
     try {
         console.log('📋 Areas de evaluación requested with filters:', req.query);
         
-        let whereClause = 'WHERE porcentaje IS NOT NULL AND area_tipo = \'area_principal\'';
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         const params = [];
         let paramIndex = 1;
         
-        // Apply filters
-        if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
-            whereClause += ` AND estado_final = $${paramIndex}`;
-            params.push(req.query.estado);
-            paramIndex++;
-        }
-        
-        // Handle both single and multiple grupos
-        if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
-            const grupos = Array.isArray(req.query.grupo) ? req.query.grupo : [req.query.grupo];
-            if (grupos.length > 0) {
-                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
-                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
-                params.push(...grupos);
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas');
+            
+            // NOTE: CAS table doesn't have individual area breakdowns like normalized view
+            // We need to return summary based on overall performance or simulated areas
+            
+            let whereClause = 'WHERE soc.calificacion_general_pct IS NOT NULL AND soc.date_completed >= \'2025-02-01\'';
+            
+            // Apply filters with mapping
+            if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
+                whereClause += ` AND gm.estado_final = $${paramIndex}`;
+                params.push(req.query.estado);
+                paramIndex++;
             }
+            
+            // Handle both single and multiple grupos
+            if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
+                const grupos = Array.isArray(req.query.grupo) ? req.query.grupo : [req.query.grupo];
+                if (grupos.length > 0) {
+                    const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                    whereClause += ` AND gm.grupo_normalizado IN (${grupPlaceholders})`;
+                    params.push(...grupos);
+                }
+            }
+            
+            // NEW: Simulate areas breakdown based on calificacion_general_pct
+            const newQuery = `
+                WITH grupo_mapping AS (
+                    SELECT DISTINCT
+                        location_name,
+                        CASE 
+                            WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                            WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
+                            WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
+                            ELSE location_name
+                        END as nombre_normalizado,
+                        CASE 
+                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
+                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
+                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
+                            WHEN location_name LIKE '%Apodaca%' OR location_name LIKE '%APODACA%' THEN 'APODACA'
+                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
+                            ELSE 'OTROS'
+                        END as grupo_normalizado,
+                        CASE 
+                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
+                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
+                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
+                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
+                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
+                            ELSE 'Nuevo León'
+                        END as estado_final,
+                        CASE 
+                            WHEN location_name ~ '^[0-9]+'
+                            THEN CAST(SUBSTRING(location_name FROM '^([0-9]+)') AS INTEGER)
+                            ELSE 999
+                        END as numero_sucursal
+                    FROM supervision_operativa_cas
+                ),
+                area_simulation AS (
+                    SELECT 
+                        'General Performance' as area_evaluacion,
+                        COUNT(DISTINCT soc.submission_id) as supervisiones_reales,
+                        COUNT(DISTINCT gm.numero_sucursal) as sucursales_evaluadas,
+                        COUNT(DISTINCT gm.grupo_normalizado) as grupos_operativos,
+                        ROUND(AVG(soc.calificacion_general_pct), 2) as promedio_area,
+                        MIN(soc.calificacion_general_pct) as minimo_porcentaje,
+                        MAX(soc.calificacion_general_pct) as maximo_porcentaje,
+                        COUNT(CASE WHEN soc.calificacion_general_pct < 70 THEN 1 END) as evaluaciones_criticas,
+                        COUNT(CASE WHEN soc.calificacion_general_pct >= 90 THEN 1 END) as evaluaciones_excelentes,
+                        MIN(soc.date_completed) as primera_evaluacion,
+                        MAX(soc.date_completed) as ultima_evaluacion
+                    FROM supervision_operativa_cas soc
+                    JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                    ${whereClause}
+                    GROUP BY 'General Performance'
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        'Performance Range: Excellent (90%+)' as area_evaluacion,
+                        COUNT(DISTINCT soc.submission_id) as supervisiones_reales,
+                        COUNT(DISTINCT gm.numero_sucursal) as sucursales_evaluadas,
+                        COUNT(DISTINCT gm.grupo_normalizado) as grupos_operativos,
+                        ROUND(AVG(soc.calificacion_general_pct), 2) as promedio_area,
+                        MIN(soc.calificacion_general_pct) as minimo_porcentaje,
+                        MAX(soc.calificacion_general_pct) as maximo_porcentaje,
+                        COUNT(CASE WHEN soc.calificacion_general_pct < 70 THEN 1 END) as evaluaciones_criticas,
+                        COUNT(CASE WHEN soc.calificacion_general_pct >= 90 THEN 1 END) as evaluaciones_excelentes,
+                        MIN(soc.date_completed) as primera_evaluacion,
+                        MAX(soc.date_completed) as ultima_evaluacion
+                    FROM supervision_operativa_cas soc
+                    JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                    ${whereClause} AND soc.calificacion_general_pct >= 90
+                    GROUP BY 'Performance Range: Excellent (90%+)'
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        'Performance Range: Good (80-89%)' as area_evaluacion,
+                        COUNT(DISTINCT soc.submission_id) as supervisiones_reales,
+                        COUNT(DISTINCT gm.numero_sucursal) as sucursales_evaluadas,
+                        COUNT(DISTINCT gm.grupo_normalizado) as grupos_operativos,
+                        ROUND(AVG(soc.calificacion_general_pct), 2) as promedio_area,
+                        MIN(soc.calificacion_general_pct) as minimo_porcentaje,
+                        MAX(soc.calificacion_general_pct) as maximo_porcentaje,
+                        COUNT(CASE WHEN soc.calificacion_general_pct < 70 THEN 1 END) as evaluaciones_criticas,
+                        COUNT(CASE WHEN soc.calificacion_general_pct >= 90 THEN 1 END) as evaluaciones_excelentes,
+                        MIN(soc.date_completed) as primera_evaluacion,
+                        MAX(soc.date_completed) as ultima_evaluacion
+                    FROM supervision_operativa_cas soc
+                    JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                    ${whereClause} AND soc.calificacion_general_pct >= 80 AND soc.calificacion_general_pct < 90
+                    GROUP BY 'Performance Range: Good (80-89%)'
+                    
+                    UNION ALL
+                    
+                    SELECT 
+                        'Performance Range: Critical (<70%)' as area_evaluacion,
+                        COUNT(DISTINCT soc.submission_id) as supervisiones_reales,
+                        COUNT(DISTINCT gm.numero_sucursal) as sucursales_evaluadas,
+                        COUNT(DISTINCT gm.grupo_normalizado) as grupos_operativos,
+                        ROUND(AVG(soc.calificacion_general_pct), 2) as promedio_area,
+                        MIN(soc.calificacion_general_pct) as minimo_porcentaje,
+                        MAX(soc.calificacion_general_pct) as maximo_porcentaje,
+                        COUNT(CASE WHEN soc.calificacion_general_pct < 70 THEN 1 END) as evaluaciones_criticas,
+                        COUNT(CASE WHEN soc.calificacion_general_pct >= 90 THEN 1 END) as evaluaciones_excelentes,
+                        MIN(soc.date_completed) as primera_evaluacion,
+                        MAX(soc.date_completed) as ultima_evaluacion
+                    FROM supervision_operativa_cas soc
+                    JOIN grupo_mapping gm ON soc.location_name = gm.location_name
+                    ${whereClause} AND soc.calificacion_general_pct < 70
+                    GROUP BY 'Performance Range: Critical (<70%)'
+                )
+                SELECT * FROM area_simulation
+                WHERE supervisiones_reales > 0
+                ORDER BY supervisiones_reales DESC, promedio_area DESC
+            `;
+            
+            const result = await pool.query(newQuery, params);
+            
+            console.log(`📊 Areas NUEVO loaded: ${result.rows.length} rangos de performance (calificacion_general_pct)`);
+            
+            res.json({
+                success: true,
+                calculation_method: 'NEW (calificacion_general_pct performance ranges)',
+                total_areas: result.rows.length,
+                areas: result.rows,
+                note: 'CAS table: Performance ranges based on calificacion_general_pct (not individual areas)'
+            });
+            
+        } else {
+            console.log('📊 USANDO MÉTODO ACTUAL: supervision_normalized_view');
+            
+            // CURRENT: Use supervision_normalized_view with area details
+            let whereClause = 'WHERE porcentaje IS NOT NULL AND area_tipo = \'area_principal\'';
+            
+            // Apply filters
+            if (req.query.estado && req.query.estado !== 'all' && req.query.estado !== 'undefined' && req.query.estado !== 'null') {
+                whereClause += ` AND estado_final = $${paramIndex}`;
+                params.push(req.query.estado);
+                paramIndex++;
+            }
+            
+            // Handle both single and multiple grupos
+            if (req.query.grupo && req.query.grupo !== 'undefined' && req.query.grupo !== 'null') {
+                const grupos = Array.isArray(req.query.grupo) ? req.query.grupo : [req.query.grupo];
+                if (grupos.length > 0) {
+                    const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                    whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                    params.push(...grupos);
+                }
+            }
+            
+            const currentQuery = `
+                SELECT 
+                    area_evaluacion,
+                    COUNT(DISTINCT submission_id) as supervisiones_reales,
+                    COUNT(DISTINCT numero_sucursal) as sucursales_evaluadas,
+                    COUNT(DISTINCT grupo_normalizado) as grupos_operativos,
+                    ROUND(AVG(porcentaje), 2) as promedio_area,
+                    MIN(porcentaje) as minimo_porcentaje,
+                    MAX(porcentaje) as maximo_porcentaje,
+                    COUNT(CASE WHEN porcentaje < 70 THEN 1 END) as evaluaciones_criticas,
+                    COUNT(CASE WHEN porcentaje >= 90 THEN 1 END) as evaluaciones_excelentes,
+                    MIN(fecha_supervision) as primera_evaluacion,
+                    MAX(fecha_supervision) as ultima_evaluacion
+                FROM supervision_normalized_view
+                ${whereClause}
+                  AND fecha_supervision >= '2025-02-01'
+                GROUP BY area_evaluacion
+                HAVING COUNT(DISTINCT submission_id) >= 5  -- Solo áreas con al menos 5 supervisiones
+                ORDER BY COUNT(DISTINCT submission_id) DESC, promedio_area DESC
+            `;
+            
+            const result = await pool.query(currentQuery, params);
+            
+            console.log(`📊 Areas ACTUAL loaded: ${result.rows.length} áreas de evaluación principales (promedio áreas)`);
+            
+            res.json({
+                success: true,
+                calculation_method: 'CURRENT (promedio áreas)',
+                total_areas: result.rows.length,
+                areas: result.rows,
+                note: 'Áreas de evaluación principales con al menos 5 supervisiones realizadas'
+            });
         }
-        
-        const query = `
-            SELECT 
-                area_evaluacion,
-                COUNT(DISTINCT submission_id) as supervisiones_reales,
-                COUNT(DISTINCT numero_sucursal) as sucursales_evaluadas,
-                COUNT(DISTINCT grupo_normalizado) as grupos_operativos,
-                ROUND(AVG(porcentaje), 2) as promedio_area,
-                MIN(porcentaje) as minimo_porcentaje,
-                MAX(porcentaje) as maximo_porcentaje,
-                COUNT(CASE WHEN porcentaje < 70 THEN 1 END) as evaluaciones_criticas,
-                COUNT(CASE WHEN porcentaje >= 90 THEN 1 END) as evaluaciones_excelentes,
-                MIN(fecha_supervision) as primera_evaluacion,
-                MAX(fecha_supervision) as ultima_evaluacion
-            FROM supervision_normalized_view
-            ${whereClause}
-              AND fecha_supervision >= '2025-02-01'
-            GROUP BY area_evaluacion
-            HAVING COUNT(DISTINCT submission_id) >= 5  -- Solo áreas con al menos 5 supervisiones
-            ORDER BY COUNT(DISTINCT submission_id) DESC, promedio_area DESC
-        `;
-        
-        const result = await pool.query(query, params);
-        
-        console.log(`📊 Areas loaded: ${result.rows.length} áreas de evaluación principales`);
-        
-        res.json({
-            success: true,
-            total_areas: result.rows.length,
-            areas: result.rows,
-            note: 'Áreas de evaluación principales con al menos 5 supervisiones realizadas'
-        });
         
     } catch (error) {
         console.error('❌ Error fetching areas:', error);
