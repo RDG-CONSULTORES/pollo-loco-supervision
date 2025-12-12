@@ -5745,6 +5745,10 @@
         
         function renderLocalHeatmap(data) {
             const localContainer = document.getElementById('local-heatmap');
+            if (!localContainer) {
+                console.error('❌ Local heatmap container not found!');
+                return;
+            }
             const { groups, periods } = data;
             
             // Filter local groups and T periods
@@ -5765,6 +5769,10 @@
         
         function renderForeignHeatmap(data) {
             const foreignContainer = document.getElementById('foreign-heatmap');
+            if (!foreignContainer) {
+                console.error('❌ Foreign heatmap container not found!');
+                return;
+            }
             const { groups, periods } = data;
             
             // Filter foreign groups and FOR periods
@@ -5857,7 +5865,9 @@
             
             tableHTML += '</tbody></table>';
             
+            console.log(`✅ Generated HTML for ${title}:`, tableHTML.length, 'characters');
             container.innerHTML = tableHTML;
+            console.log(`📝 Container updated for ${title}:`, container.children.length, 'children');
         }
         
         function calculateGroupAverage(group) {
