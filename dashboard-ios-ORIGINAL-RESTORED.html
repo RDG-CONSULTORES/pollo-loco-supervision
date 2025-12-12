@@ -1965,6 +1965,12 @@
             background: linear-gradient(135deg, #FF6B6B 0%, #d32f2f 100%);
         }
 
+        .mckinsey-no-data {
+            background: #f8f9fa;
+            color: #6c757d;
+            border: 1px dashed #dee2e6;
+        }
+
         /* McKinsey Heatmap Table Styles */
         .mckinsey-heatmap-table {
             width: 100%;
@@ -5656,42 +5662,11 @@
                     return;
                 }
                 
-                // FIXED: Use the same normalized data source as main dashboard
-                // Use /api/grupos which has the 20 normalized groups
-                const endpoint = `${API_BASE}/grupos${buildQueryString()}`;
-                console.log('🎯 Using normalized endpoint:', endpoint);
+                // RESTORED: Use historic periods data for proper heatmap
+                await loadMckinseyHistoricData();
                 
-                const data = await cachedFetch(endpoint);
-                
-                // Store grupos data for reuse
-                window.dashboardGrupos = data;
-                
-                // /api/grupos returns array directly, not wrapped in {success, data}
-                if (Array.isArray(data) && data.length > 0) {
-                    console.log('✅ Historic data loaded:', data.length, 'groups');
-                    console.log('📊 Groups received:', data.map(g => g.grupo || g.name));
-                    
-                    // Convert to periods format for McKinsey display
-                    const periodsData = convertToPeriodsFormat(data);
-                    console.log('📅 Periods available:', Object.keys(periodsData.periods));
-                    
-                    // Update executive summary KPIs
-                    updateExecutiveSummary(periodsData);
-                    
-                    // Render separate heatmaps
-                    renderLocalHeatmap(periodsData);
-                    renderForeignHeatmap(periodsData);
-                    
-                    // Generate insights
-                    generatePerformanceInsights(periodsData);
-                    
-                    // Mark as loaded to prevent redundant calls
-                    window.mckinseyDataLoaded = true;
-                    console.log('🏁 McKinsey data loading complete');
-                    
-                } else {
-                    throw new Error('Error loading historic data');
-                }
+                // Mark as loaded to prevent redundant calls
+                window.mckinseyDataLoaded = true;
                 
             } catch (error) {
                 console.error('❌ Error loading McKinsey historic:', error);
@@ -5699,44 +5674,7 @@
             }
         }
         
-        // Convert /api/grupos data to periods format for McKinsey display
-        function convertToPeriodsFormat(gruposData) {
-            const periods = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
-            
-            // Convert each group to have periods structure
-            const groups = gruposData.map(group => {
-                const groupName = group.grupo; // /api/grupos uses 'grupo' field
-                
-                // Create periods object with mock data for now
-                // In a real implementation, this would come from the server
-                const periodsObj = {};
-                periods.forEach(period => {
-                    // Use group's current performance as base, with small variations
-                    const basePerf = group.promedio || 85; // /api/grupos uses 'promedio' field
-                    const variation = (Math.random() - 0.5) * 10; // ±5% variation
-                    
-                    periodsObj[period] = {
-                        promedio: Math.max(70, Math.min(100, basePerf + variation)),
-                        supervisiones: Math.floor(Math.random() * 10) + 5,
-                        diferencia: variation
-                    };
-                });
-                
-                return {
-                    grupo: groupName,
-                    name: groupName,
-                    periods: periodsObj,
-                    performance: group.promedio || 85,
-                    sucursales: group.sucursales || 5,
-                    supervisiones: group.supervisiones || 15
-                };
-            });
-            
-            return {
-                groups: groups,
-                periods: periods
-            };
-        }
+        // RESTORED: Historic period-based functions are now handled by loadMckinseyHistoricData
         
         function updateExecutiveSummary(data) {
             const { groups, periods } = data;
@@ -6004,13 +5942,71 @@
             });
         }
         
-        // SIMPLIFIED: Render McKinsey view with real current data
-        function renderMckinseyWithRealData(gruposData) {
-            console.log('📊 Rendering McKinsey with real data:', gruposData.length, 'groups');
-            console.log('🔍 Sample group data:', gruposData[0]);
+        // RESTORED: Render McKinsey view with historical period data
+        async function loadMckinseyHistoricData() {
+            try {
+                console.log('📊 Loading McKinsey Historic data with periods...');
+                
+                // Use the existing heatmap-periods endpoint for real period data
+                const endpoint = `${API_BASE}/heatmap-periods/all${buildQueryString()}`;
+                console.log('🔗 Fetching from endpoint:', endpoint);
+                
+                const data = await cachedFetch(endpoint);
+                console.log('✅ Historic period data loaded:', data);
+                
+                if (data && data.data && data.data.groups) {
+                    renderMckinseyWithHistoricData(data.data);
+                } else {
+                    throw new Error('Invalid historic data structure');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading McKinsey historic data:', error);
+                showMckinseyError(error.message);
+                
+                // Fallback to simple current data
+                try {
+                    const endpoint = `${API_BASE}/grupos${buildQueryString()}`;
+                    const fallbackData = await cachedFetch(endpoint);
+                    renderMckinseyFallback(fallbackData);
+                } catch (fallbackError) {
+                    console.error('❌ Fallback also failed:', fallbackError);
+                }
+            }
+        }
+        
+        function renderMckinseyWithHistoricData(data) {
+            console.log('🎯 Rendering McKinsey with historic periods:', data.groups?.length, 'groups');
+            console.log('📅 Available periods:', data.periods);
             
-            // Update executive summary with real data
-            const totalSupervisiones = gruposData.reduce((sum, g) => sum + parseInt(g.supervisiones || 0), 0);
+            const { groups, periods } = data;
+            
+            if (!groups || groups.length === 0) {
+                showMckinseyError('No groups data available');
+                return;
+            }
+            
+            // Calculate executive summary from historic data
+            updateMckinseyKPIs(groups);
+            
+            // Separate periods into local (T1-T4) and foreign (S1-S2)
+            const localPeriods = periods.filter(p => p.includes('T')).sort();  // NL-T1, NL-T2, etc.
+            const foreignPeriods = periods.filter(p => p.includes('S')).sort(); // FOR-S1, FOR-S2
+            
+            console.log('🏠 Local periods:', localPeriods);
+            console.log('🌍 Foreign periods:', foreignPeriods);
+            
+            // Render period-based heatmaps
+            renderLocalHeatmapWithPeriods(groups, localPeriods);
+            renderForeignHeatmapWithPeriods(groups, foreignPeriods);
+            
+            console.log('✅ McKinsey historic view rendered successfully');
+        }
+        
+        function renderMckinseyFallback(gruposData) {
+            console.log('⚠️ Using fallback current data for McKinsey view');
+            
+            // Update executive summary with current data
             const avgPerformance = gruposData.length > 0 
                 ? (gruposData.reduce((sum, g) => sum + parseFloat(g.promedio || 0), 0) / gruposData.length).toFixed(1)
                 : 0;
@@ -6023,7 +6019,7 @@
             document.getElementById('vs-target').textContent = vsTarget + '%';
             document.getElementById('groups-target').textContent = groupsAboveTarget + '/20';
             
-            // Mock trend (since we don't have historical data yet)
+            // Mock trend (since we don't have historical data)
             const trendElement = document.getElementById('trend-indicator');
             trendElement.textContent = '+2.1%';
             trendElement.className = 'kpi-value trend positive';
@@ -6031,8 +6027,6 @@
             // Render simplified heatmaps with current data
             renderSimpleLocalHeatmap(gruposData);
             renderSimpleForeignHeatmap(gruposData);
-            
-            console.log('✅ McKinsey view rendered with real data');
         }
         
         function renderSimpleLocalHeatmap(grupos) {
@@ -6111,6 +6105,184 @@
             
             html += '</tbody></table>';
             container.innerHTML = html;
+        }
+        
+        function updateMckinseyKPIs(groups) {
+            // Calculate overall performance from historic groups data
+            const groupsWithData = groups.filter(g => g.promedio_general && g.promedio_general > 0);
+            const avgPerformance = groupsWithData.length > 0 
+                ? (groupsWithData.reduce((sum, g) => sum + parseFloat(g.promedio_general), 0) / groupsWithData.length).toFixed(1)
+                : 0;
+            
+            const target = 90;
+            const vsTarget = (parseFloat(avgPerformance) - target > 0 ? '+' : '') + (parseFloat(avgPerformance) - target).toFixed(1);
+            const groupsAboveTarget = groupsWithData.filter(g => parseFloat(g.promedio_general) >= target).length;
+            
+            // Update KPIs with calculated data
+            document.getElementById('current-performance').textContent = avgPerformance + '%';
+            document.getElementById('vs-target').textContent = vsTarget + '%';
+            document.getElementById('groups-target').textContent = groupsAboveTarget + '/' + groups.length;
+            
+            // Mock trend for now
+            const trendElement = document.getElementById('trend-indicator');
+            trendElement.textContent = '+2.1%';
+            trendElement.className = 'kpi-value trend positive';
+            
+            console.log('📊 KPIs updated:', { avgPerformance, vsTarget, groupsAboveTarget });
+        }
+        
+        function renderLocalHeatmapWithPeriods(groups, localPeriods) {
+            const container = document.getElementById('local-heatmap').querySelector('.heatmap-grid');
+            
+            // Filter groups that have local data (based on territorial classification and mixed groups)
+            const localGroups = groups.filter(group => {
+                // Check if group has any local periods data
+                if (!group.periodos) return false;
+                
+                const hasLocalPeriods = localPeriods.some(period => group.periodos[period]);
+                return hasLocalPeriods || isLocalGroup(group.grupo);
+            });
+            
+            if (localGroups.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No local historic data available</p>';
+                return;
+            }
+            
+            // Build period-based heatmap table
+            let html = `
+                <table class="mckinsey-heatmap-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Local Groups (${localGroups.length})</th>
+            `;
+            
+            // Add period headers (T1, T2, T3, T4)
+            localPeriods.forEach(period => {
+                const periodLabel = period.split('-')[1]; // Extract T1, T2, etc.
+                html += `<th>${periodLabel}</th>`;
+            });
+            
+            html += `
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            // Sort by average performance
+            localGroups.sort((a, b) => parseFloat(b.promedio_general || 0) - parseFloat(a.promedio_general || 0));
+            
+            localGroups.forEach(group => {
+                html += `<tr><td><strong>${group.grupo}</strong></td>`;
+                
+                // Add period data cells
+                localPeriods.forEach(period => {
+                    const periodData = group.periodos && group.periodos[period] 
+                        ? group.periodos[period] 
+                        : null;
+                    
+                    if (periodData && periodData.promedio > 0) {
+                        const performance = parseFloat(periodData.promedio).toFixed(1);
+                        const cellClass = getMckinseyCellClass(parseFloat(periodData.promedio));
+                        html += `<td><div class="mckinsey-cell ${cellClass}">${performance}%</div></td>`;
+                    } else {
+                        html += `<td><div class="mckinsey-cell mckinsey-no-data">--</div></td>`;
+                    }
+                });
+                
+                // Add average column
+                const avgPerformance = parseFloat(group.promedio_general || 0).toFixed(1);
+                const avgCellClass = getMckinseyCellClass(parseFloat(group.promedio_general || 0));
+                html += `<td><div class="mckinsey-cell ${avgCellClass}"><strong>${avgPerformance}%</strong></div></td>`;
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            
+            console.log('🏠 Local heatmap rendered with', localGroups.length, 'groups and', localPeriods.length, 'periods');
+        }
+        
+        function renderForeignHeatmapWithPeriods(groups, foreignPeriods) {
+            const container = document.getElementById('foreign-heatmap').querySelector('.heatmap-grid');
+            
+            // Filter groups that have foreign data
+            const foreignGroups = groups.filter(group => {
+                // Check if group has any foreign periods data
+                if (!group.periodos) return false;
+                
+                const hasForeignPeriods = foreignPeriods.some(period => group.periodos[period]);
+                return hasForeignPeriods || isForaneaGroup(group.grupo);
+            });
+            
+            if (foreignGroups.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No foreign historic data available</p>';
+                return;
+            }
+            
+            // Build period-based heatmap table
+            let html = `
+                <table class="mckinsey-heatmap-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align: left;">Foreign Groups (${foreignGroups.length})</th>
+            `;
+            
+            // Add period headers (S1, S2)
+            foreignPeriods.forEach(period => {
+                const periodLabel = period.split('-')[1]; // Extract S1, S2, etc.
+                html += `<th>${periodLabel}</th>`;
+            });
+            
+            html += `
+                            <th>Promedio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            // Sort by average performance
+            foreignGroups.sort((a, b) => parseFloat(b.promedio_general || 0) - parseFloat(a.promedio_general || 0));
+            
+            foreignGroups.forEach(group => {
+                html += `<tr><td><strong>${group.grupo}</strong></td>`;
+                
+                // Add period data cells
+                foreignPeriods.forEach(period => {
+                    const periodData = group.periodos && group.periodos[period] 
+                        ? group.periodos[period] 
+                        : null;
+                    
+                    if (periodData && periodData.promedio > 0) {
+                        const performance = parseFloat(periodData.promedio).toFixed(1);
+                        const cellClass = getMckinseyCellClass(parseFloat(periodData.promedio));
+                        html += `<td><div class="mckinsey-cell ${cellClass}">${performance}%</div></td>`;
+                    } else {
+                        html += `<td><div class="mckinsey-cell mckinsey-no-data">--</div></td>`;
+                    }
+                });
+                
+                // Add average column
+                const avgPerformance = parseFloat(group.promedio_general || 0).toFixed(1);
+                const avgCellClass = getMckinseyCellClass(parseFloat(group.promedio_general || 0));
+                html += `<td><div class="mckinsey-cell ${avgCellClass}"><strong>${avgPerformance}%</strong></div></td>`;
+                
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            
+            console.log('🌍 Foreign heatmap rendered with', foreignGroups.length, 'groups and', foreignPeriods.length, 'periods');
+        }
+        
+        function getMckinseyCellClass(performance) {
+            if (performance >= 90) return 'mckinsey-excellent';
+            if (performance >= 80) return 'mckinsey-good';
+            if (performance >= 70) return 'mckinsey-average';
+            if (performance > 0) return 'mckinsey-poor';
+            return 'mckinsey-no-data';
         }
         
         // Helper functions for territorial classification
