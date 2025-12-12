@@ -5558,13 +5558,15 @@
             try {
                 console.log('🚀 Loading optimized popup for:', sucursalName);
                 
+                let data = null;
+                
                 // OPTIMIZED: Check cache first for instant loading
                 const cacheKey = `${sucursalName}-${estado}`;
                 const cached = popupCache[cacheKey];
                 
                 if (cached && (Date.now() - cached.timestamp < POPUP_CACHE_DURATION)) {
                     console.log('⚡ Using cached data for instant popup');
-                    const data = cached.data;
+                    data = cached.data;
                 } else {
                     // OPTIMIZED: Fetch with timeout and cache
                     console.log('🌐 Fetching fresh popup data...');
@@ -5579,7 +5581,7 @@
                         clearTimeout(timeoutId);
                         
                         if (response.ok) {
-                            const data = await response.json();
+                            data = await response.json();
                             
                             // Cache successful response
                             popupCache[cacheKey] = {
@@ -5595,7 +5597,7 @@
                         console.log('⚠️ API timeout or error, using optimized fallback');
                         
                         // OPTIMIZED FALLBACK: Rich basic data instead of loading states
-                        const data = {
+                        data = {
                             success: true,
                             sucursal: sucursalName,
                             performance_general: {
