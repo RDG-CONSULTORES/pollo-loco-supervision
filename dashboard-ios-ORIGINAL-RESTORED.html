@@ -5627,18 +5627,19 @@
                 console.log('📊 Loading McKinsey historic analysis...');
                 
                 // FIXED: Use the same normalized data source as main dashboard
-                // Instead of heatmap-periods/all, use grupos-operativos which has the 20 normalized groups
-                const endpoint = `${API_BASE}/grupos-operativos${buildQueryString()}`;
+                // Use /api/grupos which has the 20 normalized groups
+                const endpoint = `${API_BASE}/grupos${buildQueryString()}`;
                 console.log('🎯 Using normalized endpoint:', endpoint);
                 
                 const data = await cachedFetch(endpoint);
                 
-                if (data.success) {
-                    console.log('✅ Historic data loaded:', data.data.length, 'groups');
-                    console.log('📊 Groups received:', data.data.map(g => g.name || g.grupo));
+                // /api/grupos returns array directly, not wrapped in {success, data}
+                if (Array.isArray(data) && data.length > 0) {
+                    console.log('✅ Historic data loaded:', data.length, 'groups');
+                    console.log('📊 Groups received:', data.map(g => g.grupo || g.name));
                     
                     // Convert to periods format for McKinsey display
-                    const periodsData = convertToPeriodsFormat(data.data);
+                    const periodsData = convertToPeriodsFormat(data);
                     console.log('📅 Periods available:', Object.keys(periodsData.periods));
                     
                     // Update executive summary KPIs
@@ -5661,20 +5662,20 @@
             }
         }
         
-        // Convert grupos-operativos data to periods format for McKinsey display
+        // Convert /api/grupos data to periods format for McKinsey display
         function convertToPeriodsFormat(gruposData) {
             const periods = ['T1-2025', 'T2-2025', 'T3-2025', 'T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
             
             // Convert each group to have periods structure
             const groups = gruposData.map(group => {
-                const groupName = group.name || group.grupo;
+                const groupName = group.grupo; // /api/grupos uses 'grupo' field
                 
                 // Create periods object with mock data for now
                 // In a real implementation, this would come from the server
                 const periodsObj = {};
                 periods.forEach(period => {
                     // Use group's current performance as base, with small variations
-                    const basePerf = group.performance || group.promedio_general || 85;
+                    const basePerf = group.promedio || 85; // /api/grupos uses 'promedio' field
                     const variation = (Math.random() - 0.5) * 10; // ±5% variation
                     
                     periodsObj[period] = {
@@ -5688,7 +5689,7 @@
                     grupo: groupName,
                     name: groupName,
                     periods: periodsObj,
-                    performance: group.performance || group.promedio_general || 85,
+                    performance: group.promedio || 85,
                     sucursales: group.sucursales || 5,
                     supervisiones: group.supervisiones || 15
                 };
