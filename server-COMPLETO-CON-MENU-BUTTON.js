@@ -1401,11 +1401,20 @@ app.get('/api/sucursales-ranking', async (req, res) => {
             
             console.log(`🏢 Sucursales HÍBRIDO encontradas para ${grupo}: ${result.rows.length} sucursales (normalized structure + CAS values)`);
             
+            // Convert numeric fields from strings to numbers for frontend compatibility
+            const sucursalesFormatted = result.rows.map(row => ({
+                ...row,
+                numero_sucursal: parseInt(row.numero_sucursal),
+                supervisiones: parseInt(row.supervisiones),
+                evaluaciones: parseInt(row.evaluaciones),
+                promedio: parseFloat(row.promedio)
+            }));
+            
             res.json({
                 calculation_method: 'NEW (hybrid - normalized structure + CAS values)',
                 grupo: grupo,
                 total_sucursales: result.rows.length,
-                sucursales: result.rows
+                sucursales: sucursalesFormatted
             });
             
         } else {
@@ -1435,11 +1444,20 @@ app.get('/api/sucursales-ranking', async (req, res) => {
             
             console.log(`🏢 Sucursales ACTUAL encontradas para ${grupo}: ${result.rows.length} sucursales (promedio áreas)`);
             
+            // Convert numeric fields from strings to numbers for frontend compatibility
+            const sucursalesFormatted = result.rows.map(row => ({
+                ...row,
+                numero_sucursal: parseInt(row.numero_sucursal),
+                supervisiones: parseInt(row.supervisiones),
+                evaluaciones: parseInt(row.evaluaciones),
+                promedio: parseFloat(row.promedio)
+            }));
+            
             res.json({
                 calculation_method: 'CURRENT (promedio áreas)',
                 grupo: grupo,
                 total_sucursales: result.rows.length,
-                sucursales: result.rows
+                sucursales: sucursalesFormatted
             });
         }
         
