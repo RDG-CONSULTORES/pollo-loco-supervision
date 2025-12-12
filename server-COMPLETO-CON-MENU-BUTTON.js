@@ -365,13 +365,88 @@ app.get('/api/sucursal-detail', async (req, res) => {
             }));
         }
         
-        // Add tendencias for both methods - mock for now since both use same logic
-        sucursalData.tendencias = [
-            { periodo: 'NL-T1-2025', performance: '93.79' },
-            { periodo: 'NL-T2-2025', performance: '92.93' },
-            { periodo: 'NL-T3-2025', performance: '89.95' },
-            { periodo: 'NL-T4-2025', performance: '88.11' }
-        ];
+        // Get tendencias by CAS periods - USING PROPER DUAL-SOURCE STRATEGY
+        if (USE_NEW_CALCULATION) {
+            // NEW METHOD: Use calificacion_general_pct for real values
+            const tendenciasQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                )
+                SELECT 
+                    CASE 
+                        WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                        WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                        WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                        WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                        ELSE 'OTRO'
+                    END as periodo,
+                    ROUND(AVG(cp.calificacion_general_pct), 2) as performance
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                ${whereClause}
+                  AND snv.fecha_supervision >= '2025-02-01'
+                GROUP BY 
+                    CASE 
+                        WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                        WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                        WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                        WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                        ELSE 'OTRO'
+                    END
+                HAVING 
+                    CASE 
+                        WHEN snv.fecha_supervision >= '2025-03-12' AND snv.fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                        WHEN snv.fecha_supervision >= '2025-06-11' AND snv.fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                        WHEN snv.fecha_supervision >= '2025-08-19' AND snv.fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                        WHEN snv.fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                        ELSE 'OTRO'
+                    END != 'OTRO'
+                ORDER BY periodo
+            `;
+            
+            const tendenciasResult = await pool.query(tendenciasQuery, params);
+            sucursalData.tendencias = tendenciasResult.rows;
+        } else {
+            // CURRENT METHOD: Use AVG(porcentaje) 
+            const tendenciasQuery = `
+                SELECT 
+                    CASE 
+                        WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                        WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                        WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                        WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                        ELSE 'OTRO'
+                    END as periodo,
+                    ROUND(AVG(porcentaje), 2) as performance
+                FROM supervision_normalized_view 
+                ${whereClause}
+                  AND fecha_supervision >= '2025-02-01'
+                GROUP BY 
+                    CASE 
+                        WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                        WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                        WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                        WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                        ELSE 'OTRO'
+                    END
+                HAVING 
+                    CASE 
+                        WHEN fecha_supervision >= '2025-03-12' AND fecha_supervision <= '2025-04-16' THEN 'NL-T1-2025'
+                        WHEN fecha_supervision >= '2025-06-11' AND fecha_supervision <= '2025-08-18' THEN 'NL-T2-2025'
+                        WHEN fecha_supervision >= '2025-08-19' AND fecha_supervision <= '2025-10-09' THEN 'NL-T3-2025'
+                        WHEN fecha_supervision >= '2025-10-30' THEN 'NL-T4-2025'
+                        ELSE 'OTRO'
+                    END != 'OTRO'
+                ORDER BY periodo
+            `;
+            
+            const tendenciasResult = await pool.query(tendenciasQuery, params);
+            sucursalData.tendencias = tendenciasResult.rows;
+        }
         
         console.log('✅ Sucursal detail loaded successfully');
         res.json(sucursalData);
