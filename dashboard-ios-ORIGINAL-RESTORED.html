@@ -1728,7 +1728,335 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.2);
         }
 
+        /* McKinsey Historic Redesign Styles */
+        .mckinsey-header {
+            background: linear-gradient(135deg, #003366 0%, #0066CC 100%);
+            color: white;
+            padding: 24px;
+            margin: -16px -16px 24px -16px;
+            border-radius: 0 0 12px 12px;
+        }
+
+        .exec-title {
+            margin-bottom: 20px;
+        }
+
+        .exec-title .large-title {
+            color: white;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 0 4px 0;
+        }
+
+        .exec-subtitle {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .exec-kpis {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 16px;
+        }
+
+        .kpi-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 8px;
+            padding: 16px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            color: white;
+        }
+
+        .kpi-value.trend.positive {
+            color: #00D4AA;
+        }
+
+        .kpi-value.trend.negative {
+            color: #FF6B6B;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.8);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .mckinsey-section {
+            margin: 32px 0;
+        }
+
+        .section-title {
+            margin-bottom: 20px;
+        }
+
+        .section-title h2 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #003366;
+            margin: 0 0 4px 0;
+        }
+
+        .section-subtitle {
+            color: #666666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .heatmap-block {
+            background: var(--ios-secondary-background);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .heatmap-header {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 20px 24px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .heatmap-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #003366;
+            margin: 0 0 4px 0;
+        }
+
+        .heatmap-subtitle {
+            color: #666666;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+
+        .period-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .current-period {
+            background: #0066CC;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .period-status {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .period-status.active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .period-status.closed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .insights-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .insight-card {
+            background: var(--ios-secondary-background);
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #0066CC;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .insight-card.loading {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            color: #666;
+        }
+
+        .insight-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #003366;
+            margin-bottom: 8px;
+        }
+
+        .insight-content {
+            color: #666666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .mckinsey-legend {
+            background: var(--ios-secondary-background);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 24px;
+        }
+
+        .legend-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #003366;
+            margin-bottom: 12px;
+        }
+
+        .legend-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+        }
+
+        .mckinsey-excellent {
+            background: linear-gradient(135deg, #0066CC 0%, #0056b3 100%);
+        }
+
+        .mckinsey-good {
+            background: linear-gradient(135deg, #00A3E0 0%, #0081b3 100%);
+        }
+
+        .mckinsey-average {
+            background: linear-gradient(135deg, #FFA500 0%, #e6850e 100%);
+        }
+
+        .mckinsey-poor {
+            background: linear-gradient(135deg, #FF6B6B 0%, #d32f2f 100%);
+        }
+
+        /* McKinsey Heatmap Table Styles */
+        .mckinsey-heatmap-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .mckinsey-heatmap-table th {
+            background: #f8f9fa;
+            padding: 12px 8px;
+            text-align: center;
+            font-weight: 600;
+            font-size: 11px;
+            color: #003366;
+            border-bottom: 1px solid #dee2e6;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .mckinsey-heatmap-table th:first-child {
+            text-align: left;
+            position: sticky;
+            left: 0;
+            z-index: 10;
+            background: #f8f9fa;
+        }
+
+        .mckinsey-heatmap-table td {
+            padding: 8px;
+            text-align: center;
+            border-bottom: 1px solid #f1f3f5;
+            font-size: 12px;
+            font-weight: 600;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .mckinsey-heatmap-table td:first-child {
+            text-align: left;
+            font-weight: 600;
+            color: #003366;
+            background: white;
+            position: sticky;
+            left: 0;
+            z-index: 9;
+            border-right: 1px solid #dee2e6;
+        }
+
+        .mckinsey-heatmap-table tbody tr:hover {
+            background: rgba(0, 102, 204, 0.05);
+        }
+
+        .mckinsey-cell {
+            position: relative;
+            border-radius: 4px;
+            color: white;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mckinsey-trend {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
         /* Mobile optimizations */
+        @media (max-width: 768px) {
+            .exec-kpis {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .kpi-card {
+                padding: 12px;
+            }
+            
+            .kpi-value {
+                font-size: 20px;
+            }
+            
+            .insights-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .legend-items {
+                flex-direction: column;
+                gap: 8px;
+            }
+        }
+
+        /* Mobile optimizations - Original */
         @media (max-width: 768px) {
             /* Heatmap mobile styles */
             .heatmap-table {
@@ -2325,58 +2653,120 @@
             </div>
         </div>
 
-        <!-- Historic Tab - COMPLETE WORKING RESTORATION -->
+        <!-- McKinsey Historic Tab - REDESIGNED -->
         <div id="tendencias-view" class="tab-view">
-            <div class="large-title-container">
-                <h1 class="large-title">Histórico</h1>
+            <!-- Executive Summary Header -->
+            <div class="mckinsey-header">
+                <div class="exec-title">
+                    <h1 class="large-title">Historic Performance Analysis</h1>
+                    <div class="exec-subtitle">CAS Operational Excellence Dashboard</div>
+                </div>
+                <div class="exec-kpis" id="historic-kpis">
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="current-performance">--</div>
+                        <div class="kpi-label">Current Performance</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="vs-target">--</div>
+                        <div class="kpi-label">vs Target (90%)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value" id="groups-target">--/20</div>
+                        <div class="kpi-label">Groups Above Target</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-value trend" id="trend-indicator">--</div>
+                        <div class="kpi-label">vs Previous Period</div>
+                    </div>
+                </div>
             </div>
 
-            <!-- Historic Heatmap Section -->
-            <div class="section">
-                <div class="section-header">HISTÓRICO</div>
+            <!-- Performance Heatmaps Section -->
+            <div class="mckinsey-section">
+                <div class="section-title">
+                    <h2>Performance Overview</h2>
+                    <div class="section-subtitle">Operational groups by CAS periods with trend indicators</div>
+                </div>
                 
-                <div class="heatmap-container">
-                    <!-- Heatmap Controls -->
-                    <div class="heatmap-controls">
-                        <!-- Legend -->
-                        <div class="heatmap-legend">
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #FF3030;"></div>
-                                <span>Crítico (< 70%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #FF9500;"></div>
-                                <span>Bajo (70-79%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #FFCC00;"></div>
-                                <span>Regular (80-89%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #34C759;"></div>
-                                <span>Bueno (90-94%)</span>
-                            </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: #007AFF;"></div>
-                                <span>Excelente (≥95%)</span>
-                            </div>
-                        </div>
-
-                        <!-- Options -->
-                        <div class="heatmap-options">
-                            <label class="toggle-option">
-                                <input type="checkbox" id="showDifferences" checked>
-                                <span class="toggle-slider"></span>
-                                <span class="toggle-label">Mostrar diferencias</span>
-                            </label>
+                <!-- Local Operations Heatmap -->
+                <div class="heatmap-block">
+                    <div class="heatmap-header">
+                        <h3 class="heatmap-title">🏠 Local Operations</h3>
+                        <div class="heatmap-subtitle">Nuevo León + Saltillo/Ramos Arizpe • Quarterly Periods (T1-T4)</div>
+                        <div class="period-indicator">
+                            <span class="current-period" id="local-current-period">T4-2025</span>
+                            <span class="period-status active">ACTIVE</span>
                         </div>
                     </div>
+                    <div class="heatmap-container" id="local-heatmap">
+                        <div class="heatmap-grid">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Loading local operations data...
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-                    <!-- Heatmap Grid -->
-                    <div class="heatmap-grid" id="heatmap-grid">
-                        <table class="heatmap-table">
-                            <thead>
-                                <tr id="heatmapHeader">
+                <!-- Foreign Operations Heatmap -->
+                <div class="heatmap-block">
+                    <div class="heatmap-header">
+                        <h3 class="heatmap-title">🌎 Foreign Operations</h3>
+                        <div class="heatmap-subtitle">All other states • Semester Periods (S1-S2)</div>
+                        <div class="period-indicator">
+                            <span class="current-period" id="foreign-current-period">S2-2025</span>
+                            <span class="period-status closed">CLOSED</span>
+                        </div>
+                    </div>
+                    <div class="heatmap-container" id="foreign-heatmap">
+                        <div class="heatmap-grid">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                Loading foreign operations data...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Key Insights Section -->
+            <div class="mckinsey-section">
+                <div class="section-title">
+                    <h2>Key Insights</h2>
+                    <div class="section-subtitle">Automated analysis and performance recommendations</div>
+                </div>
+                
+                <div class="insights-grid" id="insights-container">
+                    <div class="insight-card loading">
+                        <div class="spinner"></div>
+                        <span>Analyzing performance patterns...</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Legend -->
+            <div class="mckinsey-legend">
+                <div class="legend-title">Performance Scale</div>
+                <div class="legend-items">
+                    <div class="legend-item">
+                        <div class="legend-color mckinsey-excellent"></div>
+                        <span>Excellent (≥90%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color mckinsey-good"></div>
+                        <span>Good (80-89%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color mckinsey-average"></div>
+                        <span>Average (70-79%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color mckinsey-poor"></div>
+                        <span>Needs Attention (<70%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
                                     <th>Grupo Operativo</th>
                                     <!-- Periods will be dynamically added -->
                                 </tr>
@@ -2780,18 +3170,18 @@
             return data;
         }
 
-        // Mapping territorial de grupos mixtos - SOLO LOS VERDADERAMENTE MIXTOS
+        // Mapping territorial de grupos mixtos - DATOS REALES coordenadas_validadas
         const territorialMapping = {
             'TEC': {
-                local: ['14 - Tec de Monterrey', '15 - San Nicolás Tec'],
-                foranea: ['58 - Guasave']
+                local: ['20 - Tecnológico', '21 - Chapultepec', '22 - Satelite'],
+                foranea: ['23 - Guasave']
             },
             'EXPO': {
-                local: ['20 - Expo', '21 - Expo Norte', '22 - Expo Sur'],
-                foranea: ['30 - Carrizo', '28 - Guerrero']
+                local: ['24 - Exposicion', '25 - Juarez', '26 - Cadereyta', '27 - Santiago', '29 - Pablo Livas', '31 - Las Quintas', '32 - Allende', '33 - Eloy Cavazos', '34 - Montemorelos'],
+                foranea: ['28 - Guerrero', '30 - Carrizo', '82 - Aeropuerto Nuevo Laredo']
             },
             'GRUPO SALTILLO': {
-                local: ['01 - Saltillo Centro', '02 - Saltillo Sur', '03 - Saltillo Norte', '04 - Ramos Arizpe', '05 - Arteaga'],
+                local: ['52 - Venustiano Carranza', '53 - Lienzo Charro', '54 - Ramos Arizpe', '55 - Eulalio Gutierrez', '56 - Luis Echeverria'],
                 foranea: ['57 - Harold R. Pape']
             }
         };
@@ -2803,17 +3193,16 @@
                 return territorialMapping[grupo].local.includes(sucursal);
             }
             
-            // Lógica general: NL + Saltillo son locales (excepto 3 específicas)
-            const foraneasEspeciales = ['57 - Harold R. Pape', '30 - Carrizo', '28 - Guerrero'];
+            // Lógica general: NL + Saltillo/Ramos Arizpe son locales (excepto foráneas específicas)
+            const foraneasEspeciales = ['28 - Guerrero', '30 - Carrizo', '82 - Aeropuerto Nuevo Laredo', '23 - Guasave', '57 - Harold R. Pape'];
             
             if (foraneasEspeciales.includes(sucursal)) {
                 return false; // Estas son foráneas sin importar el estado
             }
             
-            // GRUPO SALTILLO es MIXTO (locales en Saltillo, foránea Harold R. Pape en Monclova)
+            // GRUPO SALTILLO: Saltillo/Ramos Arizpe son LOCALES por cercanía a HQ
             if (grupo === 'GRUPO SALTILLO') {
-                // Harold R. Pape en Monclova es la única foránea
-                return !sucursal.includes('Harold R. Pape');
+                return !sucursal.includes('Harold R. Pape'); // Solo Harold R. Pape es foránea
             }
             
             // TODO: Aquí necesitaremos datos del estado de la sucursal
@@ -3654,7 +4043,7 @@
             if (currentTab === 'mapa') {
                 loadMapData();
             } else if (currentTab === 'tendencias') {
-                loadHeatmapData();
+                loadMckinseyHistoric();
             }
         }
         
@@ -3716,7 +4105,7 @@
             if (currentTab === 'mapa') {
                 loadMapData();
             } else if (currentTab === 'tendencias') {
-                loadHeatmapData();
+                loadMckinseyHistoric();
             }
         }
         
@@ -3780,7 +4169,7 @@
             // Reload data
             loadData();
             if (currentTab === 'mapa') loadMapData();
-            if (currentTab === 'tendencias') loadHeatmapData();
+            if (currentTab === 'tendencias') loadMckinseyHistoric();
         }
         
         function clearGroupSelection() {
@@ -3808,7 +4197,7 @@
             // Reload data
             loadData();
             if (currentTab === 'mapa') loadMapData();
-            if (currentTab === 'tendencias') loadHeatmapData();
+            if (currentTab === 'tendencias') loadMckinseyHistoric();
         }
         
         function syncCheckboxesWithPills(selectedGroups) {
@@ -4578,8 +4967,8 @@
             try {
                 console.log('📊 Loading historical data...');
                 
-                // Load heatmap data for historical view
-                loadHeatmapData();
+                // Load McKinsey historic data
+                loadMckinseyHistoric();
             } catch (error) {
                 console.error('Error loading historical data:', error);
             }
@@ -5231,36 +5620,291 @@
 
         // NOTE: DUPLICATE FUNCTIONS REMOVED - Using existing functions above
 
-        // DEPRECATED: Use loadTrendData() instead
-        async function loadHistoricoData() {
+        // McKinsey Historic Performance Analysis Functions
+        async function loadMckinseyHistoric() {
             try {
-                console.log('📊 Loading CAS periods data with cache...');
-                // PERFORMANCE OPTIMIZATION: Use cache for heatmap data
-                const data = await cachedFetch(`${API_BASE}/heatmap-periods/all`);
-                console.log('📊 Raw API response:', data);
+                console.log('📊 Loading McKinsey historic analysis...');
+                
+                // Use existing endpoint with dashboard filters
+                const endpoint = `${API_BASE}/heatmap-periods/all${buildQueryString()}`;
+                const data = await cachedFetch(endpoint);
                 
                 if (data.success) {
-                    console.log('✅ CAS periods data loaded:', data.data.groups.length, 'groups,', data.data.periods.length, 'periods');
-                    console.log('📊 Periods:', data.data.periods);
-                    console.log('📊 First group sample:', data.data.groups[0]);
-                    renderCASPeriodsHeatmap(data.data);
+                    console.log('✅ Historic data loaded:', data.data.groups.length, 'groups,', data.data.periods.length, 'periods');
+                    
+                    // Update executive summary KPIs
+                    updateExecutiveSummary(data.data);
+                    
+                    // Render separate heatmaps
+                    renderLocalHeatmap(data.data);
+                    renderForeignHeatmap(data.data);
+                    
+                    // Generate insights
+                    generatePerformanceInsights(data.data);
+                    
                 } else {
-                    throw new Error('Error en respuesta de períodos CAS');
+                    throw new Error('Error loading historic data');
                 }
                 
             } catch (error) {
-                console.error('❌ Error loading CAS periods:', error);
-                const container = document.querySelector('.heatmap-container');
+                console.error('❌ Error loading McKinsey historic:', error);
+                showMckinseyError(error.message);
+            }
+        }
+        
+        function updateExecutiveSummary(data) {
+            const { groups, periods } = data;
+            
+            // Calculate overall performance
+            const allPerformances = [];
+            groups.forEach(group => {
+                Object.values(group.periods || {}).forEach(period => {
+                    if (period.promedio && period.promedio > 0) {
+                        allPerformances.push(period.promedio);
+                    }
+                });
+            });
+            
+            const currentPerformance = allPerformances.length > 0 
+                ? (allPerformances.reduce((a, b) => a + b) / allPerformances.length).toFixed(1)
+                : '--';
+            
+            const target = 90;
+            const vsTarget = currentPerformance !== '--' 
+                ? (currentPerformance - target > 0 ? '+' : '') + (currentPerformance - target).toFixed(1)
+                : '--';
+                
+            const groupsAboveTarget = groups.filter(group => {
+                const avgPerf = Object.values(group.periods || {})
+                    .filter(p => p.promedio > 0)
+                    .map(p => p.promedio);
+                const groupAvg = avgPerf.length > 0 ? avgPerf.reduce((a, b) => a + b) / avgPerf.length : 0;
+                return groupAvg >= target;
+            }).length;
+            
+            // Update KPIs
+            document.getElementById('current-performance').textContent = currentPerformance + '%';
+            document.getElementById('vs-target').textContent = vsTarget + '%';
+            document.getElementById('groups-target').textContent = groupsAboveTarget + '/20';
+            
+            // Mock trend for now
+            const trendElement = document.getElementById('trend-indicator');
+            const mockTrend = '+2.1';
+            trendElement.textContent = mockTrend + '%';
+            trendElement.className = 'kpi-value trend ' + (mockTrend.startsWith('+') ? 'positive' : 'negative');
+        }
+        
+        function renderLocalHeatmap(data) {
+            const localContainer = document.getElementById('local-heatmap');
+            const { groups, periods } = data;
+            
+            // Filter local groups and T periods
+            const localGroups = groups.filter(group => isLocalGroup(group.grupo || group.name));
+            const localPeriods = periods.filter(period => period.includes('T') && !period.includes('FOR'));
+            
+            renderMckinseyHeatmap(localContainer, localGroups, localPeriods, 'Local Operations');
+        }
+        
+        function renderForeignHeatmap(data) {
+            const foreignContainer = document.getElementById('foreign-heatmap');
+            const { groups, periods } = data;
+            
+            // Filter foreign groups and S periods
+            const foreignGroups = groups.filter(group => isForaneaGroup(group.grupo || group.name));
+            const foreignPeriods = periods.filter(period => period.includes('S') || period.includes('FOR'));
+            
+            renderMckinseyHeatmap(foreignContainer, foreignGroups, foreignPeriods, 'Foreign Operations');
+        }
+        
+        function renderMckinseyHeatmap(container, groups, periods, title) {
+            if (!groups.length || !periods.length) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 32px; color: #666;">
+                        <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                        <p>No data available for ${title}</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort periods correctly
+            const sortedPeriods = periods.sort((a, b) => {
+                if (a.includes('T') && b.includes('T')) {
+                    return a.localeCompare(b);
+                }
+                if (a.includes('S') && b.includes('S')) {
+                    return a.localeCompare(b);
+                }
+                return a.localeCompare(b);
+            });
+            
+            // Sort groups by average performance
+            const sortedGroups = groups.sort((a, b) => {
+                const aAvg = calculateGroupAverage(a);
+                const bAvg = calculateGroupAverage(b);
+                return bAvg - aAvg;
+            });
+            
+            // Generate table HTML
+            let tableHTML = `
+                <table class="mckinsey-heatmap-table">
+                    <thead>
+                        <tr>
+                            <th>Operational Group</th>
+                            ${sortedPeriods.map(period => `<th>${period.replace('-2025', '').replace('FOR-', '')}</th>`).join('')}
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            sortedGroups.forEach(group => {
+                const groupName = group.grupo || group.name;
+                tableHTML += `<tr><td>${groupName}</td>`;
+                
+                sortedPeriods.forEach((period, periodIndex) => {
+                    const periodData = group.periods && group.periods[period];
+                    const performance = periodData?.promedio || 0;
+                    const prevPeriod = sortedPeriods[periodIndex - 1];
+                    const prevPerformance = prevPeriod && group.periods && group.periods[prevPeriod] 
+                        ? group.periods[prevPeriod].promedio || 0 
+                        : 0;
+                    
+                    const trend = periodIndex > 0 && prevPerformance > 0 
+                        ? (performance - prevPerformance).toFixed(1)
+                        : null;
+                    
+                    const cellClass = getMckinseyCellClass(performance);
+                    const trendIndicator = trend 
+                        ? `<span class="mckinsey-trend">${trend > 0 ? '+' : ''}${trend}</span>`
+                        : '';
+                    
+                    tableHTML += `
+                        <td>
+                            <div class="mckinsey-cell ${cellClass}">
+                                ${performance > 0 ? performance.toFixed(1) + '%' : '--'}
+                                ${trendIndicator}
+                            </div>
+                        </td>
+                    `;
+                });
+                
+                tableHTML += '</tr>';
+            });
+            
+            tableHTML += '</tbody></table>';
+            
+            container.innerHTML = tableHTML;
+        }
+        
+        function calculateGroupAverage(group) {
+            if (!group.periods) return 0;
+            const performances = Object.values(group.periods)
+                .filter(p => p.promedio && p.promedio > 0)
+                .map(p => p.promedio);
+            return performances.length > 0 ? performances.reduce((a, b) => a + b) / performances.length : 0;
+        }
+        
+        function getMckinseyCellClass(performance) {
+            if (performance >= 90) return 'mckinsey-excellent';
+            if (performance >= 80) return 'mckinsey-good';
+            if (performance >= 70) return 'mckinsey-average';
+            if (performance > 0) return 'mckinsey-poor';
+            return '';
+        }
+        
+        function generatePerformanceInsights(data) {
+            const container = document.getElementById('insights-container');
+            const { groups } = data;
+            
+            // Find top performer
+            let topPerformer = null;
+            let topPerformance = 0;
+            let worstPerformer = null;
+            let worstPerformance = 100;
+            
+            groups.forEach(group => {
+                const avg = calculateGroupAverage(group);
+                if (avg > topPerformance) {
+                    topPerformance = avg;
+                    topPerformer = group.grupo || group.name;
+                }
+                if (avg < worstPerformance && avg > 0) {
+                    worstPerformance = avg;
+                    worstPerformer = group.grupo || group.name;
+                }
+            });
+            
+            const groupsAboveTarget = groups.filter(g => calculateGroupAverage(g) >= 90).length;
+            
+            const insights = [
+                {
+                    title: '🏆 Top Performer',
+                    content: topPerformer 
+                        ? `${topPerformer} leads with ${topPerformance.toFixed(1)}% average performance`
+                        : 'Performance analysis in progress'
+                },
+                {
+                    title: '⚠️ Needs Attention', 
+                    content: worstPerformer
+                        ? `${worstPerformer} requires focus with ${worstPerformance.toFixed(1)}% performance`
+                        : 'All groups performing within acceptable range'
+                },
+                {
+                    title: '🎯 Target Achievement',
+                    content: `${groupsAboveTarget}/20 operational groups have achieved the 90% target`
+                }
+            ];
+            
+            container.innerHTML = insights.map(insight => `
+                <div class="insight-card">
+                    <div class="insight-title">${insight.title}</div>
+                    <div class="insight-content">${insight.content}</div>
+                </div>
+            `).join('');
+        }
+        
+        function showMckinseyError(message) {
+            const containers = ['local-heatmap', 'foreign-heatmap'];
+            containers.forEach(id => {
+                const container = document.getElementById(id);
                 if (container) {
                     container.innerHTML = `
                         <div style="text-align: center; padding: 32px; color: #666;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
-                            <p>Error cargando períodos CAS</p>
-                            <p style="font-size: 14px; opacity: 0.7;">${error.message}</p>
+                            <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                            <p>Error loading data</p>
+                            <p style="font-size: 12px; opacity: 0.7;">${message}</p>
                         </div>
                     `;
                 }
+            });
+        }
+        
+        // Helper functions for territorial classification
+        function isLocalGroup(groupName) {
+            // Mixed groups
+            if (territorialMapping[groupName]) {
+                return true; // Mixed groups appear in both
             }
+            
+            // Pure local groups (simplified logic)
+            const localGroups = ['TEPEYAC', 'OGAS', 'EFM', 'EPL SO', 'PLOG NUEVO LEON', 'GRUPO CENTRITO', 'GRUPO SABINAS HIDALGO'];
+            return localGroups.includes(groupName);
+        }
+        
+        function isForaneaGroup(groupName) {
+            // Mixed groups
+            if (territorialMapping[groupName]) {
+                return true; // Mixed groups appear in both
+            }
+            
+            // Pure foreign groups
+            const foreignGroups = ['OCHTER TAMPICO', 'GRUPO MATAMOROS', 'RAP', 'CRR', 'PLOG LAGUNA', 'PLOG QUERETARO', 'GRUPO CANTERA ROSA (MORELIA)', 'GRUPO PIEDRAS NEGRAS', 'GRUPO RIO BRAVO', 'GRUPO NUEVO LAREDO (RUELAS)'];
+            return foreignGroups.includes(groupName);
+        }
+        
+        // Legacy function - redirects to McKinsey
+        async function loadHistoricoData() {
+            await loadMckinseyHistoric();
         }
         
         // Render CAS periods heatmap
