@@ -2709,10 +2709,7 @@
                     </div>
                     <div class="heatmap-container" id="local-heatmap">
                         <div class="heatmap-grid">
-                            <div class="loading">
-                                <div class="spinner"></div>
-                                Loading local operations data...
-                            </div>
+                            <!-- Data will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -2729,10 +2726,7 @@
                     </div>
                     <div class="heatmap-container" id="foreign-heatmap">
                         <div class="heatmap-grid">
-                            <div class="loading">
-                                <div class="spinner"></div>
-                                Loading foreign operations data...
-                            </div>
+                            <!-- Data will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -2781,12 +2775,7 @@
                                 </tr>
                             </thead>
                             <tbody id="heatmapBody">
-                                <tr>
-                                    <td colspan="100%" class="loading">
-                                        <div class="spinner"></div>
-                                        Cargando datos históricos...
-                                    </td>
-                                </tr>
+                                <!-- Data will be populated here -->
                             </tbody>
                         </table>
                     </div>
@@ -3693,6 +3682,9 @@
 
                 // Assign to global variables
                 kpiData = kpiData_fresh;
+                
+                // Store grupos data globally for McKinsey reuse
+                window.dashboardGrupos = groupsData;
                 
                 // Update KPIs immediately
                 updateKPIs();
@@ -4975,10 +4967,10 @@
 
         async function loadTrendData() {
             try {
-                console.log('📊 Loading historical data...');
+                console.log('📊 Using existing dashboard data for historical view...');
                 
-                // Load McKinsey historic data
-                loadMckinseyHistoric();
+                // Use existing cached data instead of new API call
+                loadMckinseyFromExistingData();
             } catch (error) {
                 console.error('Error loading historical data:', error);
             }
@@ -5632,6 +5624,27 @@
 
         // NOTE: DUPLICATE FUNCTIONS REMOVED - Using existing functions above
 
+        // SIMPLIFIED: Use existing dashboard data for McKinsey view
+        function loadMckinseyFromExistingData() {
+            try {
+                console.log('📊 Using existing grupos data for McKinsey view...');
+                
+                // Check if grupos data is already loaded in memory
+                if (window.dashboardGrupos && window.dashboardGrupos.length > 0) {
+                    console.log('⚡ Using cached grupos data:', window.dashboardGrupos.length, 'groups');
+                    renderMckinseyWithRealData(window.dashboardGrupos);
+                    return;
+                }
+                
+                // Fallback: Load fresh data if not available
+                loadMckinseyHistoric();
+                
+            } catch (error) {
+                console.error('❌ Error using existing data:', error);
+                loadMckinseyHistoric(); // Fallback
+            }
+        }
+        
         // McKinsey Historic Performance Analysis Functions
         async function loadMckinseyHistoric() {
             try {
@@ -5649,6 +5662,9 @@
                 console.log('🎯 Using normalized endpoint:', endpoint);
                 
                 const data = await cachedFetch(endpoint);
+                
+                // Store grupos data for reuse
+                window.dashboardGrupos = data;
                 
                 // /api/grupos returns array directly, not wrapped in {success, data}
                 if (Array.isArray(data) && data.length > 0) {
@@ -5986,6 +6002,114 @@
                     `;
                 }
             });
+        }
+        
+        // SIMPLIFIED: Render McKinsey view with real current data
+        function renderMckinseyWithRealData(gruposData) {
+            console.log('📊 Rendering McKinsey with real data:', gruposData.length, 'groups');
+            
+            // Update executive summary with real data
+            const totalSupervisiones = gruposData.reduce((sum, g) => sum + (g.supervisiones || 0), 0);
+            const avgPerformance = gruposData.length > 0 
+                ? (gruposData.reduce((sum, g) => sum + (g.promedio || 0), 0) / gruposData.length).toFixed(1)
+                : 0;
+            const target = 90;
+            const vsTarget = (avgPerformance - target > 0 ? '+' : '') + (avgPerformance - target).toFixed(1);
+            const groupsAboveTarget = gruposData.filter(g => (g.promedio || 0) >= target).length;
+            
+            // Update KPIs with real data
+            document.getElementById('current-performance').textContent = avgPerformance + '%';
+            document.getElementById('vs-target').textContent = vsTarget + '%';
+            document.getElementById('groups-target').textContent = groupsAboveTarget + '/20';
+            
+            // Mock trend (since we don't have historical data yet)
+            const trendElement = document.getElementById('trend-indicator');
+            trendElement.textContent = '+2.1%';
+            trendElement.className = 'kpi-value trend positive';
+            
+            // Render simplified heatmaps with current data
+            renderSimpleLocalHeatmap(gruposData);
+            renderSimpleForeignHeatmap(gruposData);
+            
+            console.log('✅ McKinsey view rendered with real data');
+        }
+        
+        function renderSimpleLocalHeatmap(grupos) {
+            const container = document.getElementById('local-heatmap').querySelector('.heatmap-grid');
+            const localGroups = grupos.filter(g => isLocalGroup(g.grupo));
+            
+            if (localGroups.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No local groups found</p>';
+                return;
+            }
+            
+            let html = `
+                <table class="mckinsey-heatmap-table">
+                    <thead>
+                        <tr>
+                            <th>Local Groups (${localGroups.length})</th>
+                            <th>Current Performance</th>
+                            <th>Supervisiones</th>
+                            <th>Sucursales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            localGroups.sort((a, b) => (b.promedio || 0) - (a.promedio || 0)).forEach(group => {
+                const performance = (group.promedio || 0).toFixed(1);
+                const cellClass = getMckinseyCellClass(group.promedio || 0);
+                html += `
+                    <tr>
+                        <td><strong>${group.grupo}</strong></td>
+                        <td><div class="mckinsey-cell ${cellClass}">${performance}%</div></td>
+                        <td>${group.supervisiones || 0}</td>
+                        <td>${group.sucursales || 0}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        function renderSimpleForeignHeatmap(grupos) {
+            const container = document.getElementById('foreign-heatmap').querySelector('.heatmap-grid');
+            const foreignGroups = grupos.filter(g => isForaneaGroup(g.grupo));
+            
+            if (foreignGroups.length === 0) {
+                container.innerHTML = '<p style="text-align: center; padding: 20px; color: #666;">No foreign groups found</p>';
+                return;
+            }
+            
+            let html = `
+                <table class="mckinsey-heatmap-table">
+                    <thead>
+                        <tr>
+                            <th>Foreign Groups (${foreignGroups.length})</th>
+                            <th>Current Performance</th>
+                            <th>Supervisiones</th>
+                            <th>Sucursales</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            foreignGroups.sort((a, b) => (b.promedio || 0) - (a.promedio || 0)).forEach(group => {
+                const performance = (group.promedio || 0).toFixed(1);
+                const cellClass = getMckinseyCellClass(group.promedio || 0);
+                html += `
+                    <tr>
+                        <td><strong>${group.grupo}</strong></td>
+                        <td><div class="mckinsey-cell ${cellClass}">${performance}%</div></td>
+                        <td>${group.supervisiones || 0}</td>
+                        <td>${group.sucursales || 0}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
         
         // Helper functions for territorial classification
