@@ -5758,6 +5758,7 @@
             
             console.log('🏠 Local Groups filtered:', localGroups.length, localGroups.map(g => g.grupo));
             console.log('📅 Local Periods:', localPeriods);
+            console.log('🎯 Sample group periods:', localGroups[0]?.periods);
             
             renderMckinseyHeatmap(localContainer, localGroups, localPeriods, 'Local Operations');
         }
@@ -5766,19 +5767,25 @@
             const foreignContainer = document.getElementById('foreign-heatmap');
             const { groups, periods } = data;
             
-            // Filter foreign groups and S periods
+            // Filter foreign groups and FOR periods
             const foreignGroups = groups.filter(group => isForaneaGroup(group.grupo || group.name));
-            const foreignPeriods = periods.filter(period => period.includes('S') || period.includes('FOR'));
+            const foreignPeriods = periods.filter(period => period.includes('FOR'));
+            
+            console.log('🌍 Foreign Groups filtered:', foreignGroups.length, foreignGroups.map(g => g.grupo));
+            console.log('📅 Foreign Periods:', foreignPeriods);
             
             renderMckinseyHeatmap(foreignContainer, foreignGroups, foreignPeriods, 'Foreign Operations');
         }
         
         function renderMckinseyHeatmap(container, groups, periods, title) {
+            console.log(`📊 Rendering ${title}:`, {groups: groups.length, periods: periods.length});
+            
             if (!groups.length || !periods.length) {
                 container.innerHTML = `
                     <div style="text-align: center; padding: 32px; color: #666;">
                         <i class="fas fa-info-circle" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
                         <p>No data available for ${title}</p>
+                        <small>Groups: ${groups.length}, Periods: ${periods.length}</small>
                     </div>
                 `;
                 return;
