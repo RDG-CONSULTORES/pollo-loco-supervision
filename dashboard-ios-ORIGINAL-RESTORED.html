@@ -6007,15 +6007,16 @@
         // SIMPLIFIED: Render McKinsey view with real current data
         function renderMckinseyWithRealData(gruposData) {
             console.log('📊 Rendering McKinsey with real data:', gruposData.length, 'groups');
+            console.log('🔍 Sample group data:', gruposData[0]);
             
             // Update executive summary with real data
-            const totalSupervisiones = gruposData.reduce((sum, g) => sum + (g.supervisiones || 0), 0);
+            const totalSupervisiones = gruposData.reduce((sum, g) => sum + parseInt(g.supervisiones || 0), 0);
             const avgPerformance = gruposData.length > 0 
-                ? (gruposData.reduce((sum, g) => sum + (g.promedio || 0), 0) / gruposData.length).toFixed(1)
+                ? (gruposData.reduce((sum, g) => sum + parseFloat(g.promedio || 0), 0) / gruposData.length).toFixed(1)
                 : 0;
             const target = 90;
-            const vsTarget = (avgPerformance - target > 0 ? '+' : '') + (avgPerformance - target).toFixed(1);
-            const groupsAboveTarget = gruposData.filter(g => (g.promedio || 0) >= target).length;
+            const vsTarget = (parseFloat(avgPerformance) - target > 0 ? '+' : '') + (parseFloat(avgPerformance) - target).toFixed(1);
+            const groupsAboveTarget = gruposData.filter(g => parseFloat(g.promedio || 0) >= target).length;
             
             // Update KPIs with real data
             document.getElementById('current-performance').textContent = avgPerformance + '%';
@@ -6056,9 +6057,9 @@
                     <tbody>
             `;
             
-            localGroups.sort((a, b) => (b.promedio || 0) - (a.promedio || 0)).forEach(group => {
-                const performance = (group.promedio || 0).toFixed(1);
-                const cellClass = getMckinseyCellClass(group.promedio || 0);
+            localGroups.sort((a, b) => parseFloat(b.promedio || 0) - parseFloat(a.promedio || 0)).forEach(group => {
+                const performance = parseFloat(group.promedio || 0).toFixed(1);
+                const cellClass = getMckinseyCellClass(parseFloat(group.promedio || 0));
                 html += `
                     <tr>
                         <td><strong>${group.grupo}</strong></td>
@@ -6095,9 +6096,9 @@
                     <tbody>
             `;
             
-            foreignGroups.sort((a, b) => (b.promedio || 0) - (a.promedio || 0)).forEach(group => {
-                const performance = (group.promedio || 0).toFixed(1);
-                const cellClass = getMckinseyCellClass(group.promedio || 0);
+            foreignGroups.sort((a, b) => parseFloat(b.promedio || 0) - parseFloat(a.promedio || 0)).forEach(group => {
+                const performance = parseFloat(group.promedio || 0).toFixed(1);
+                const cellClass = getMckinseyCellClass(parseFloat(group.promedio || 0));
                 html += `
                     <tr>
                         <td><strong>${group.grupo}</strong></td>
