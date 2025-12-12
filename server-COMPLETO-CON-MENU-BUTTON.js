@@ -18,6 +18,25 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+// Utility function to determine CAS period from date
+function determineCASPeriod(dateString) {
+    if (!dateString) return 'SIN-PERIODO';
+    
+    const date = new Date(dateString);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1; // JavaScript months are 0-based
+    
+    // Define periods based on CAS calendar
+    if (year === 2025) {
+        if (month >= 1 && month <= 3) return 'NL-T1-2025';
+        if (month >= 4 && month <= 6) return 'NL-T2-2025'; 
+        if (month >= 7 && month <= 9) return 'NL-T3-2025';
+        if (month >= 10 && month <= 12) return 'NL-T4-2025';
+    }
+    
+    return 'PERIODO-' + year + '-Q' + Math.ceil(month / 3);
+}
+
 // Log database connection info
 console.log('🔗 Database connection (NO FILTERS VERSION):');
 console.log('NODE_ENV:', process.env.NODE_ENV);
@@ -2438,7 +2457,7 @@ app.get('/api/analisis-critico', async (req, res) => {
             const areasResult = await pool.query(areasQuery, [sucursal.nombre_normalizado]);
             
             // Calcular período CAS actual
-            const periodoCAS = calculateCASPeriod(currentPerformance.fecha_mas_reciente);
+            const periodoCAS = determineCASPeriod(currentPerformance.fecha_mas_reciente);
             
             // Formatear respuesta con valores CAS
             const response = {
