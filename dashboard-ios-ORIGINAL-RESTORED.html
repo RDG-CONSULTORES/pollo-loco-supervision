@@ -5480,10 +5480,21 @@
             const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
             
             try {
-                console.log('🎯 Enriqueciendo tooltip para:', sucursalName);
+                console.log('🎯 Showing basic popup for:', sucursalName);
                 
-                const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`);
-                const data = await response.json();
+                // TEMPORARILY DISABLED: Enrich popup with analisis-critico data
+                // const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`);
+                // const data = await response.json();
+                
+                // Use basic data for popup instead
+                const data = {
+                    success: true,
+                    sucursal: sucursalName,
+                    performance: performance,
+                    estado: estado,
+                    grupo: grupoOperativo,
+                    message: 'Popup básico - Análisis crítico temporalmente deshabilitado'
+                };
                 
                 console.log('📊 Datos recibidos:', data);
                 
