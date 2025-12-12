@@ -5749,6 +5749,13 @@
                 console.error('❌ Local heatmap container not found!');
                 return;
             }
+            
+            // Find the correct target: .heatmap-grid inside the container
+            const targetContainer = localContainer.querySelector('.heatmap-grid');
+            if (!targetContainer) {
+                console.error('❌ Local heatmap-grid not found!');
+                return;
+            }
             const { groups, periods } = data;
             
             // Filter local groups and T periods
@@ -5764,13 +5771,20 @@
             console.log('📅 Local Periods:', localPeriods);
             console.log('🎯 Sample group periods:', localGroups[0]?.periods);
             
-            renderMckinseyHeatmap(localContainer, localGroups, localPeriods, 'Local Operations');
+            renderMckinseyHeatmap(targetContainer, localGroups, localPeriods, 'Local Operations');
         }
         
         function renderForeignHeatmap(data) {
             const foreignContainer = document.getElementById('foreign-heatmap');
             if (!foreignContainer) {
                 console.error('❌ Foreign heatmap container not found!');
+                return;
+            }
+            
+            // Find the correct target: .heatmap-grid inside the container
+            const targetContainer = foreignContainer.querySelector('.heatmap-grid');
+            if (!targetContainer) {
+                console.error('❌ Foreign heatmap-grid not found!');
                 return;
             }
             const { groups, periods } = data;
@@ -5782,7 +5796,7 @@
             console.log('🌍 Foreign Groups filtered:', foreignGroups.length, foreignGroups.map(g => g.grupo));
             console.log('📅 Foreign Periods:', foreignPeriods);
             
-            renderMckinseyHeatmap(foreignContainer, foreignGroups, foreignPeriods, 'Foreign Operations');
+            renderMckinseyHeatmap(targetContainer, foreignGroups, foreignPeriods, 'Foreign Operations');
         }
         
         function renderMckinseyHeatmap(container, groups, periods, title) {
