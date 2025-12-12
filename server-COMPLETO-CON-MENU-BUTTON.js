@@ -1168,43 +1168,132 @@ app.get('/api/mapa', async (req, res) => {
 // Historical data API - Show recent months
 app.get('/api/historico', async (req, res) => {
     try {
-        const { grupo } = req.query;
+        const { grupo, sucursal } = req.query;
         const cleanGrupo = (grupo && grupo !== 'undefined' && grupo !== 'null') ? grupo : 'all groups';
-        console.log('📈 Historical data requested for grupo:', cleanGrupo);
+        console.log('📈 Historical data requested for grupo:', cleanGrupo, 'sucursal:', sucursal);
         
-        let whereClause = `WHERE porcentaje IS NOT NULL`;
-        const params = [];
-        let paramIndex = 1;
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        // Show ALL data from February 2025 onwards
-        whereClause += ` AND fecha_supervision >= '2025-02-01'`;
-        
-        // Handle both single and multiple grupos
-        if (grupo && grupo !== 'undefined' && grupo !== 'null') {
-            const grupos = Array.isArray(grupo) ? grupo : [grupo];
-            if (grupos.length > 0) {
-                const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
-                whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
-                params.push(...grupos);
+        if (USE_NEW_CALCULATION) {
+            console.log('🆕 HISTÓRICO using HYBRID method (normalized structure + CAS values)');
+            
+            let whereClause = `WHERE snv.porcentaje IS NOT NULL AND snv.area_tipo = 'area_principal'`;
+            const params = [];
+            let paramIndex = 1;
+            
+            // Show ALL data from February 2025 onwards
+            whereClause += ` AND snv.fecha_supervision >= '2025-02-01'`;
+            
+            // Handle grupo filter
+            if (grupo && grupo !== 'undefined' && grupo !== 'null') {
+                const grupos = Array.isArray(grupo) ? grupo : [grupo];
+                if (grupos.length > 0) {
+                    const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                    whereClause += ` AND snv.grupo_normalizado IN (${grupPlaceholders})`;
+                    params.push(...grupos);
+                }
             }
+            
+            // Handle sucursal filter (CRITICAL FOR INDIVIDUAL VALUES)
+            if (sucursal && sucursal !== 'undefined' && sucursal !== 'null') {
+                whereClause += ` AND snv.nombre_normalizado = $${paramIndex}`;
+                params.push(sucursal);
+                paramIndex++;
+            }
+            
+            const hybridQuery = sucursal ? 
+            // INDIVIDUAL SUCURSAL: Show individual real values (85.34%, 88.71%, etc.)
+            `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                )
+                SELECT 
+                    snv.fecha_supervision as fecha,
+                    cp.calificacion_general_pct as calificacion_real,
+                    snv.submission_id,
+                    snv.nombre_normalizado as sucursal,
+                    'REAL' as tipo
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                ${whereClause}
+                GROUP BY snv.fecha_supervision, cp.calificacion_general_pct, snv.submission_id, snv.nombre_normalizado
+                ORDER BY snv.fecha_supervision DESC
+            ` :
+            // GROUP SUMMARY: Monthly averages
+            `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                )
+                SELECT 
+                    DATE_TRUNC('month', snv.fecha_supervision) as mes,
+                    ROUND(AVG(cp.calificacion_general_pct), 2) as promedio,
+                    COUNT(DISTINCT snv.submission_id) as evaluaciones,
+                    snv.grupo_normalizado as grupo
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                ${whereClause}
+                GROUP BY DATE_TRUNC('month', snv.fecha_supervision), snv.grupo_normalizado
+                ORDER BY mes DESC
+            `;
+            
+            const result = await pool.query(hybridQuery, params);
+            
+            if (sucursal) {
+                console.log(`📊 HISTÓRICO INDIVIDUAL HÍBRIDO para ${sucursal}: ${result.rows.length} supervisiones reales`);
+                result.rows.forEach((r, i) => {
+                    console.log(`  ${i+1}. ${r.fecha.toDateString()}: ${r.calificacion_real}% [REAL Zenput]`);
+                });
+            } else {
+                console.log(`📊 HISTÓRICO GRUPOS HÍBRIDO: ${result.rows.length} meses de datos`);
+            }
+            
+            res.json(result.rows);
+            
+        } else {
+            console.log('📊 HISTÓRICO using CURRENT method (supervision_normalized_view)');
+            
+            let whereClause = `WHERE porcentaje IS NOT NULL`;
+            const params = [];
+            let paramIndex = 1;
+            
+            // Show ALL data from February 2025 onwards
+            whereClause += ` AND fecha_supervision >= '2025-02-01'`;
+            
+            // Handle both single and multiple grupos
+            if (grupo && grupo !== 'undefined' && grupo !== 'null') {
+                const grupos = Array.isArray(grupo) ? grupo : [grupo];
+                if (grupos.length > 0) {
+                    const grupPlaceholders = grupos.map(() => `$${paramIndex++}`).join(', ');
+                    whereClause += ` AND grupo_normalizado IN (${grupPlaceholders})`;
+                    params.push(...grupos);
+                }
+            }
+            
+            const currentQuery = `
+                SELECT 
+                    DATE_TRUNC('month', fecha_supervision) as mes,
+                    ROUND(AVG(porcentaje), 2) as promedio,
+                    COUNT(*) as evaluaciones,
+                    grupo_normalizado as grupo
+                FROM supervision_normalized_view 
+                ${whereClause}
+                GROUP BY DATE_TRUNC('month', fecha_supervision), grupo_normalizado
+                ORDER BY mes DESC, grupo_normalizado
+            `;
+            
+            const result = await pool.query(currentQuery, params);
+            console.log(`📊 Historical data (últimos 6 meses): ${result.rows.length} data points`);
+            
+            res.json(result.rows);
         }
-        
-        const query = `
-            SELECT 
-                DATE_TRUNC('month', fecha_supervision) as mes,
-                ROUND(AVG(porcentaje), 2) as promedio,
-                COUNT(*) as evaluaciones,
-                grupo_normalizado as grupo
-            FROM supervision_normalized_view 
-            ${whereClause}
-            GROUP BY DATE_TRUNC('month', fecha_supervision), grupo_normalizado
-            ORDER BY mes DESC, grupo_normalizado
-        `;
-        
-        const result = await pool.query(query, params);
-        console.log(`📊 Historical data (últimos 6 meses): ${result.rows.length} data points`);
-        
-        res.json(result.rows);
         
     } catch (error) {
         console.error('❌ Error fetching historical data:', error);
