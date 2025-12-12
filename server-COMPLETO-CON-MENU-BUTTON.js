@@ -2342,123 +2342,270 @@ app.get('/api/analisis-critico', async (req, res) => {
             });
         }
         
-        // Buscar la sucursal por nombre o número - BÚSQUEDA MEJORADA
-        const sucursalQuery = `
-            SELECT 
-                nombre_normalizado,
-                numero_sucursal,
-                grupo_normalizado,
-                estado_final,
-                ciudad_normalizada,
-                lat_validada,
-                lng_validada,
-                MAX(fecha_supervision) as ultima_supervision
-            FROM supervision_normalized_view 
-            WHERE (nombre_normalizado ILIKE $1 
-                OR location_name ILIKE $1
-                OR numero_sucursal::text = $2
-                OR LOWER(nombre_normalizado) = LOWER($3))
-              AND area_tipo = 'area_principal'
-              AND porcentaje IS NOT NULL
-              AND fecha_supervision >= '2025-02-01'
-            GROUP BY nombre_normalizado, numero_sucursal, grupo_normalizado, estado_final, ciudad_normalizada, lat_validada, lng_validada
-            LIMIT 1
-        `;
+        // 🚀 DUAL-SOURCE STRATEGY: New calculation method for analisis-critico
+        const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
-        console.log('🔍 Buscando sucursal con ID:', id);
-        const sucursalResult = await pool.query(sucursalQuery, [`%${id}%`, id, id]);
-        
-        if (sucursalResult.rows.length === 0) {
-            console.log('❌ Sucursal no encontrada para ID:', id);
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Sucursal no encontrada',
-                debug: { searchId: id, query: sucursalQuery }
-            });
-        }
-        
-        const sucursal = sucursalResult.rows[0];
-        
-        // Obtener performance general actual
-        const performanceQuery = `
-            SELECT 
-                ROUND(AVG(porcentaje), 2) as promedio_actual,
-                COUNT(DISTINCT submission_id) as total_supervisiones,
-                MAX(fecha_supervision) as fecha_mas_reciente
-            FROM supervision_normalized_view 
-            WHERE nombre_normalizado = $1
-              AND area_tipo = 'area_principal'
-              AND porcentaje IS NOT NULL
-              AND fecha_supervision >= '2025-02-01'
-        `;
-        
-        const performanceResult = await pool.query(performanceQuery, [sucursal.nombre_normalizado]);
-        const currentPerformance = performanceResult.rows[0];
-        
-        // Obtener áreas de oportunidad (abajo de 80%)
-        const areasQuery = `
-            SELECT 
-                area_evaluacion,
-                ROUND(AVG(porcentaje), 2) as score_actual,
-                COUNT(DISTINCT submission_id) as supervisiones,
-                MAX(fecha_supervision) as ultima_evaluacion
-            FROM supervision_normalized_view 
-            WHERE nombre_normalizado = $1
-              AND area_tipo = 'area_principal'
-              AND porcentaje IS NOT NULL
-              AND fecha_supervision >= '2025-02-01'
-              AND area_evaluacion IS NOT NULL
-              AND area_evaluacion != ''
-            GROUP BY area_evaluacion
-            HAVING ROUND(AVG(porcentaje), 2) < 80
-            ORDER BY AVG(porcentaje) ASC
-            LIMIT 5
-        `;
-        
-        const areasResult = await pool.query(areasQuery, [sucursal.nombre_normalizado]);
-        
-        // Formatear respuesta
-        const response = {
-            success: true,
-            sucursal: sucursal.nombre_normalizado,
-            numero_sucursal: sucursal.numero_sucursal,
-            grupo_operativo: sucursal.grupo_normalizado,
-            estado: sucursal.estado_final,
-            ciudad: sucursal.ciudad_normalizada,
-            coordenadas: {
-                lat: sucursal.lat_validada,
-                lng: sucursal.lng_validada
-            },
-            performance_general: {
-                actual: currentPerformance.promedio_actual || 0,
-                anterior: 0, // Sin datos históricos por ahora
-                cambio: 0,
-                tendencia: "📊"
-            },
-            areas_criticas: areasResult.rows.map(area => ({
-                area_evaluacion: area.area_evaluacion,
-                score_actual: area.score_actual,
-                supervisiones: area.supervisiones,
-                tendencia: area.score_actual < 70 ? "🔴" : "🟡",
-                ultima_evaluacion: area.ultima_evaluacion
-            })),
-            ultima_supervision: sucursal.ultima_supervision,
-            total_supervisiones: currentPerformance.total_supervisiones,
-            periodos: {
-                actual: "Feb-Nov 2025",
-                anterior: "N/A",
-                es_fallback: false
-            },
-            metadata: {
-                areas_con_fallback: 0,
-                data_source: "supervision_normalized_view",
-                generado: new Date().toISOString()
+        if (USE_NEW_CALCULATION) {
+            // 🆕 MÉTODO NUEVO: supervision_operativa_cas con calificacion_general_pct
+            console.log('🔍 Análisis crítico using NEW calculation method (CAS)');
+            
+            // Buscar la sucursal en normalized_view para estructura y coordenadas
+            const sucursalQuery = `
+                SELECT DISTINCT
+                    nombre_normalizado,
+                    numero_sucursal,
+                    grupo_normalizado,
+                    estado_final,
+                    ciudad_normalizada,
+                    lat_validada,
+                    lng_validada
+                FROM supervision_normalized_view 
+                WHERE (nombre_normalizado ILIKE $1 
+                    OR location_name ILIKE $1
+                    OR numero_sucursal::text = $2
+                    OR LOWER(nombre_normalizado) = LOWER($3))
+                  AND area_tipo = 'area_principal'
+                  AND fecha_supervision >= '2025-02-01'
+                LIMIT 1
+            `;
+            
+            console.log('🔍 Buscando sucursal con ID:', id);
+            const sucursalResult = await pool.query(sucursalQuery, [`%${id}%`, id, id]);
+            
+            if (sucursalResult.rows.length === 0) {
+                console.log('❌ Sucursal no encontrada para ID:', id);
+                return res.status(404).json({ 
+                    success: false, 
+                    error: 'Sucursal no encontrada',
+                    debug: { searchId: id, query: sucursalQuery, method: 'NEW (CAS)' }
+                });
             }
-        };
-        
-        console.log(`🎯 Análisis crítico generado para ${sucursal.nombre_normalizado}: ${areasResult.rows.length} áreas de oportunidad`);
-        
-        res.json(response);
+            
+            const sucursal = sucursalResult.rows[0];
+            
+            // Obtener performance general con CAS values - HYBRID approach
+            const performanceQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct,
+                        date_completed
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT 
+                    ROUND(AVG(cp.calificacion_general_pct), 2) as promedio_actual,
+                    COUNT(DISTINCT cp.submission_id) as total_supervisiones,
+                    MAX(cp.date_completed) as fecha_mas_reciente
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                WHERE snv.nombre_normalizado = $1
+                  AND snv.area_tipo = 'area_principal'
+            `;
+            
+            const performanceResult = await pool.query(performanceQuery, [sucursal.nombre_normalizado]);
+            const currentPerformance = performanceResult.rows[0];
+            
+            // Obtener áreas de oportunidad (abajo de 80%) - usando áreas de normalized_view
+            const areasQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                      AND date_completed >= '2025-02-01'
+                )
+                SELECT 
+                    area_evaluacion,
+                    ROUND(AVG(porcentaje), 2) as score_actual,
+                    COUNT(DISTINCT snv.submission_id) as supervisiones,
+                    MAX(snv.fecha_supervision) as ultima_evaluacion
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                WHERE snv.nombre_normalizado = $1
+                  AND snv.area_tipo = 'area_principal'
+                  AND snv.area_evaluacion IS NOT NULL
+                  AND snv.area_evaluacion != ''
+                GROUP BY area_evaluacion
+                HAVING ROUND(AVG(porcentaje), 2) < 80
+                ORDER BY AVG(porcentaje) ASC
+                LIMIT 5
+            `;
+            
+            const areasResult = await pool.query(areasQuery, [sucursal.nombre_normalizado]);
+            
+            // Calcular período CAS actual
+            const periodoCAS = calculateCASPeriod(currentPerformance.fecha_mas_reciente);
+            
+            // Formatear respuesta con valores CAS
+            const response = {
+                success: true,
+                sucursal: sucursal.nombre_normalizado,
+                numero_sucursal: sucursal.numero_sucursal,
+                grupo_operativo: sucursal.grupo_normalizado,
+                estado: sucursal.estado_final,
+                ciudad: sucursal.ciudad_normalizada,
+                coordenadas: {
+                    lat: sucursal.lat_validada,
+                    lng: sucursal.lng_validada
+                },
+                performance_general: {
+                    actual: currentPerformance.promedio_actual || 0,
+                    anterior: 0, // Implementar comparación histórica futura
+                    cambio: 0,
+                    tendencia: "📊"
+                },
+                areas_criticas: areasResult.rows.map(area => ({
+                    area_evaluacion: area.area_evaluacion,
+                    score_actual: area.score_actual,
+                    supervisiones: area.supervisiones,
+                    tendencia: area.score_actual < 70 ? "🔴" : "🟡",
+                    ultima_evaluacion: area.ultima_evaluacion
+                })),
+                ultima_supervision: currentPerformance.fecha_mas_reciente,
+                total_supervisiones: currentPerformance.total_supervisiones,
+                periodos: {
+                    actual: periodoCAS,
+                    anterior: "N/A",
+                    es_fallback: false
+                },
+                metadata: {
+                    areas_con_fallback: 0,
+                    data_source: "HYBRID (normalized_view + CAS)",
+                    calculation_method: "NEW (calificacion_general_pct)",
+                    generado: new Date().toISOString()
+                }
+            };
+            
+            console.log(`🎯 Análisis crítico NUEVO generado para ${sucursal.nombre_normalizado}: ${response.performance_general.actual}% (CAS) - ${areasResult.rows.length} áreas de oportunidad`);
+            
+            res.json(response);
+            
+        } else {
+            // 📊 MÉTODO ACTUAL: supervision_normalized_view con promedio de áreas
+            console.log('🔍 Análisis crítico using CURRENT calculation method (normalized_view)');
+            
+            // Buscar la sucursal por nombre o número - BÚSQUEDA MEJORADA
+            const sucursalQuery = `
+                SELECT 
+                    nombre_normalizado,
+                    numero_sucursal,
+                    grupo_normalizado,
+                    estado_final,
+                    ciudad_normalizada,
+                    lat_validada,
+                    lng_validada,
+                    MAX(fecha_supervision) as ultima_supervision
+                FROM supervision_normalized_view 
+                WHERE (nombre_normalizado ILIKE $1 
+                    OR location_name ILIKE $1
+                    OR numero_sucursal::text = $2
+                    OR LOWER(nombre_normalizado) = LOWER($3))
+                  AND area_tipo = 'area_principal'
+                  AND porcentaje IS NOT NULL
+                  AND fecha_supervision >= '2025-02-01'
+                GROUP BY nombre_normalizado, numero_sucursal, grupo_normalizado, estado_final, ciudad_normalizada, lat_validada, lng_validada
+                LIMIT 1
+            `;
+            
+            console.log('🔍 Buscando sucursal con ID:', id);
+            const sucursalResult = await pool.query(sucursalQuery, [`%${id}%`, id, id]);
+            
+            if (sucursalResult.rows.length === 0) {
+                console.log('❌ Sucursal no encontrada para ID:', id);
+                return res.status(404).json({ 
+                    success: false, 
+                    error: 'Sucursal no encontrada',
+                    debug: { searchId: id, query: sucursalQuery, method: 'CURRENT (normalized_view)' }
+                });
+            }
+            
+            const sucursal = sucursalResult.rows[0];
+            
+            // Obtener performance general actual
+            const performanceQuery = `
+                SELECT 
+                    ROUND(AVG(porcentaje), 2) as promedio_actual,
+                    COUNT(DISTINCT submission_id) as total_supervisiones,
+                    MAX(fecha_supervision) as fecha_mas_reciente
+                FROM supervision_normalized_view 
+                WHERE nombre_normalizado = $1
+                  AND area_tipo = 'area_principal'
+                  AND porcentaje IS NOT NULL
+                  AND fecha_supervision >= '2025-02-01'
+            `;
+            
+            const performanceResult = await pool.query(performanceQuery, [sucursal.nombre_normalizado]);
+            const currentPerformance = performanceResult.rows[0];
+            
+            // Obtener áreas de oportunidad (abajo de 80%)
+            const areasQuery = `
+                SELECT 
+                    area_evaluacion,
+                    ROUND(AVG(porcentaje), 2) as score_actual,
+                    COUNT(DISTINCT submission_id) as supervisiones,
+                    MAX(fecha_supervision) as ultima_evaluacion
+                FROM supervision_normalized_view 
+                WHERE nombre_normalizado = $1
+                  AND area_tipo = 'area_principal'
+                  AND porcentaje IS NOT NULL
+                  AND fecha_supervision >= '2025-02-01'
+                  AND area_evaluacion IS NOT NULL
+                  AND area_evaluacion != ''
+                GROUP BY area_evaluacion
+                HAVING ROUND(AVG(porcentaje), 2) < 80
+                ORDER BY AVG(porcentaje) ASC
+                LIMIT 5
+            `;
+            
+            const areasResult = await pool.query(areasQuery, [sucursal.nombre_normalizado]);
+            
+            // Formatear respuesta
+            const response = {
+                success: true,
+                sucursal: sucursal.nombre_normalizado,
+                numero_sucursal: sucursal.numero_sucursal,
+                grupo_operativo: sucursal.grupo_normalizado,
+                estado: sucursal.estado_final,
+                ciudad: sucursal.ciudad_normalizada,
+                coordenadas: {
+                    lat: sucursal.lat_validada,
+                    lng: sucursal.lng_validada
+                },
+                performance_general: {
+                    actual: currentPerformance.promedio_actual || 0,
+                    anterior: 0, // Sin datos históricos por ahora
+                    cambio: 0,
+                    tendencia: "📊"
+                },
+                areas_criticas: areasResult.rows.map(area => ({
+                    area_evaluacion: area.area_evaluacion,
+                    score_actual: area.score_actual,
+                    supervisiones: area.supervisiones,
+                    tendencia: area.score_actual < 70 ? "🔴" : "🟡",
+                    ultima_evaluacion: area.ultima_evaluacion
+                })),
+                ultima_supervision: sucursal.ultima_supervision,
+                total_supervisiones: currentPerformance.total_supervisiones,
+                periodos: {
+                    actual: "Feb-Nov 2025",
+                    anterior: "N/A",
+                    es_fallback: false
+                },
+                metadata: {
+                    areas_con_fallback: 0,
+                    data_source: "supervision_normalized_view",
+                    calculation_method: "CURRENT (promedio áreas)",
+                    generado: new Date().toISOString()
+                }
+            };
+            
+            console.log(`🎯 Análisis crítico ACTUAL generado para ${sucursal.nombre_normalizado}: ${response.performance_general.actual}% (áreas) - ${areasResult.rows.length} áreas de oportunidad`);
+            
+            res.json(response);
+        }
         
     } catch (error) {
         console.error('❌ Error en análisis crítico:', error);
