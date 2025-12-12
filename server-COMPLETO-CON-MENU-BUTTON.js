@@ -1326,85 +1326,42 @@ app.get('/api/sucursales-ranking', async (req, res) => {
         const USE_NEW_CALCULATION = process.env.USE_CAS_TABLE === 'true';
         
         if (USE_NEW_CALCULATION) {
-            console.log('🆕 USANDO MÉTODO NUEVO: supervision_operativa_cas');
+            console.log('🆕 USANDO MÉTODO HÍBRIDO: normalized structure + CAS values para sucursales-ranking');
             
-            // NEW: Use supervision_operativa_cas with calificacion_general_pct
-            const newQuery = `
-                WITH grupo_mapping AS (
-                    SELECT DISTINCT
-                        location_name,
-                        -- Mapeo TEPEYAC names
-                        CASE 
-                            WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
-                            WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
-                            WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
-                            ELSE location_name
-                        END as nombre_normalizado,
-                        -- Inferir grupo desde nombres TEPEYAC o usar default
-                        CASE 
-                            WHEN location_name IN ('Sucursal SC - Santa Catarina', 'Sucursal GC - Garcia', 'Sucursal LH - La Huasteca',
-                                                  '4 - Santa Catarina', '6 - Garcia', '7 - La Huasteca') THEN 'TEPEYAC'
-                            WHEN location_name LIKE '%Centro%' OR location_name LIKE '%CENTRO%' THEN 'CENTRO'
-                            WHEN location_name LIKE '%Apodaca%' OR location_name LIKE '%APODACA%' THEN 'APODACA'
-                            WHEN location_name LIKE '%Saltillo%' OR location_name LIKE '%SALTILLO%' THEN 'GRUPO SALTILLO'
-                            WHEN location_name ~* '(harold|pape)' THEN 'HAROLD R. PAPE'
-                            WHEN location_name ~* '(carrizo)' THEN 'CARRIZO'
-                            WHEN location_name ~* '(guerrero)' THEN 'GUERRERO'
-                            ELSE 'OTROS'
-                        END as grupo_normalizado,
-                        -- Inferir estado desde location_name pattern
-                        CASE 
-                            WHEN location_name ~* '(nuevo león|monterrey|garcia|santa catarina|huasteca|apodaca|guadalupe)' THEN 'Nuevo León'
-                            WHEN location_name ~* '(saltillo|coahuila)' THEN 'Coahuila'
-                            WHEN location_name ~* '(chihuahua)' THEN 'Chihuahua' 
-                            WHEN location_name ~* '(tamaulipas|reynosa|matamoros)' THEN 'Tamaulipas'
-                            WHEN location_name ~* '(veracruz)' THEN 'Veracruz'
-                            ELSE 'Nuevo León'  -- Default para NL
-                        END as estado_final,
-                        -- Inferir ciudad desde location_name
-                        CASE 
-                            WHEN location_name ~* 'garcia' THEN 'Garcia'
-                            WHEN location_name ~* 'santa catarina' THEN 'Santa Catarina'
-                            WHEN location_name ~* 'huasteca' THEN 'La Huasteca'
-                            WHEN location_name ~* 'apodaca' THEN 'Apodaca'
-                            WHEN location_name ~* 'saltillo' THEN 'Saltillo'
-                            WHEN location_name ~* 'monterrey' THEN 'Monterrey'
-                            ELSE 'N/D'
-                        END as ciudad_normalizada,
-                        -- Extract numero_sucursal pattern
-                        CASE 
-                            WHEN location_name ~ '^[0-9]+'
-                            THEN CAST(SUBSTRING(location_name FROM '^([0-9]+)') AS INTEGER)
-                            ELSE 999  -- Default for no number
-                        END as numero_sucursal
-                    FROM supervision_operativa_cas
-                    WHERE calificacion_general_pct IS NOT NULL 
-                      AND date_completed >= '2025-02-01'
+            // HÍBRIDO: Use normalized structure + CAS values
+            const hybridQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
                 )
                 SELECT 
-                    gm.nombre_normalizado as sucursal,
-                    gm.numero_sucursal,
-                    gm.estado_final as estado,
-                    gm.ciudad_normalizada as ciudad,
-                    COUNT(DISTINCT soc.submission_id) as supervisiones,
-                    COUNT(DISTINCT soc.submission_id) as evaluaciones,
-                    ROUND(AVG(soc.calificacion_general_pct), 2) as promedio,
-                    MAX(soc.date_completed) as ultima_evaluacion
-                FROM supervision_operativa_cas soc
-                JOIN grupo_mapping gm ON soc.location_name = gm.location_name
-                WHERE gm.grupo_normalizado = $1 
-                  AND soc.calificacion_general_pct IS NOT NULL
-                  AND soc.date_completed >= '2025-02-01'
-                GROUP BY gm.nombre_normalizado, gm.numero_sucursal, gm.estado_final, gm.ciudad_normalizada
-                ORDER BY AVG(soc.calificacion_general_pct) DESC
+                    snv.nombre_normalizado as sucursal,
+                    snv.numero_sucursal,
+                    snv.estado_final as estado,
+                    snv.ciudad_normalizada as ciudad,
+                    COUNT(DISTINCT snv.submission_id) as supervisiones,
+                    COUNT(DISTINCT snv.submission_id) as evaluaciones,
+                    ROUND(AVG(cp.calificacion_general_pct), 2) as promedio,
+                    MAX(snv.fecha_supervision) as ultima_evaluacion
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                WHERE snv.grupo_normalizado = $1 
+                  AND snv.porcentaje IS NOT NULL
+                  AND snv.area_tipo = 'area_principal'
+                  AND snv.fecha_supervision >= '2025-02-01'
+                GROUP BY snv.nombre_normalizado, snv.numero_sucursal, snv.estado_final, snv.ciudad_normalizada
+                ORDER BY AVG(cp.calificacion_general_pct) DESC
             `;
             
-            const result = await pool.query(newQuery, [grupo]);
+            const result = await pool.query(hybridQuery, [grupo]);
             
-            console.log(`🏢 Sucursales NUEVO encontradas para ${grupo}: ${result.rows.length} sucursales (calificacion_general_pct)`);
+            console.log(`🏢 Sucursales HÍBRIDO encontradas para ${grupo}: ${result.rows.length} sucursales (normalized structure + CAS values)`);
             
             res.json({
-                calculation_method: 'NEW (calificacion_general_pct)',
+                calculation_method: 'NEW (hybrid - normalized structure + CAS values)',
                 grupo: grupo,
                 total_sucursales: result.rows.length,
                 sucursales: result.rows
