@@ -4708,6 +4708,23 @@
         
         async function loadSucursalTrendChart(data) {
             const canvas = document.getElementById('sucursalTrendChart');
+            
+            // Defensive check for canvas element
+            if (!canvas) {
+                console.error('❌ Canvas element "sucursalTrendChart" not found in DOM');
+                const container = document.querySelector('.trend-chart-container');
+                if (container) {
+                    container.innerHTML = `
+                        <div style="padding: 40px; text-align: center; color: var(--ios-red);">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 12px;"></i>
+                            <div style="font-size: 16px; font-weight: 500;">Error del gráfico</div>
+                            <div style="font-size: 14px; margin-top: 4px;">El elemento canvas no está disponible</div>
+                        </div>
+                    `;
+                }
+                return;
+            }
+            
             const ctx = canvas.getContext('2d');
             
             // Clear any existing chart
