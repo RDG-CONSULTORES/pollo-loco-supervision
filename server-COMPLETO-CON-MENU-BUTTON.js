@@ -183,17 +183,57 @@ app.get('/api/sucursal-detail', async (req, res) => {
         let sucursalData;
         
         if (USE_NEW_CALCULATION) {
-            // 🆕 NUEVO MÉTODO: supervision_operativa_cas con calificacion_general_pct
-            console.log('🆕 Using NEW calculation method (supervision_operativa_cas)');
+            // 🆕 MÉTODO HÍBRIDO: normalized structure + CAS values
+            console.log('🆕 Sucursal detail using HYBRID method (normalized structure + CAS values)');
             
-            // Normalizar nombre para búsqueda en supervision_operativa_cas
-            const normalizedName = sucursal.replace('la-', '').replace('-', ' ');
-            
-            const newQuery = `
+            const hybridQuery = `
+                WITH cas_performance AS (
+                    SELECT 
+                        submission_id,
+                        calificacion_general_pct
+                    FROM supervision_operativa_cas 
+                    WHERE calificacion_general_pct IS NOT NULL
+                )
                 SELECT 
-                    -- Normalizar nombres TEPEYAC
-                    CASE 
-                        WHEN location_name = 'Sucursal SC - Santa Catarina' THEN '4 - Santa Catarina'
+                    snv.nombre_normalizado as sucursal,
+                    snv.numero_sucursal,
+                    snv.estado_final as estado,
+                    snv.ciudad_normalizada as municipio,
+                    snv.grupo_normalizado as grupo_operativo,
+                    ROUND(AVG(cp.calificacion_general_pct)::numeric, 2) as performance,
+                    COUNT(DISTINCT snv.submission_id) as total_evaluaciones,
+                    MAX(snv.fecha_supervision) as ultima_supervision,
+                    COUNT(DISTINCT snv.area_evaluacion) as areas_evaluadas
+                FROM supervision_normalized_view snv
+                JOIN cas_performance cp ON snv.submission_id = cp.submission_id
+                ${whereClause}
+                  AND snv.fecha_supervision >= '2025-02-01'
+                GROUP BY snv.nombre_normalizado, snv.numero_sucursal, snv.estado_final, snv.ciudad_normalizada, snv.grupo_normalizado
+            `;
+            
+            const hybridResult = await pool.query(hybridQuery, params);
+            
+            if (hybridResult.rows.length === 0) {
+                return res.status(404).json({ 
+                    error: 'Sucursal not found',
+                    sucursal,
+                    method: 'HYBRID (normalized structure + CAS values)'
+                });
+            }
+            
+            sucursalData = hybridResult.rows[0];
+            sucursalData.calculation_method = 'NEW (hybrid - normalized structure + CAS values)';
+            
+        } else {
+            // 📊 CURRENT METHOD: supervision_normalized_view con promedio de áreas
+            console.log('📊 Sucursal detail using CURRENT calculation method (supervision_normalized_view)');
+            
+            const currentQuery = `
+                SELECT 
+                    nombre_normalizado as sucursal,
+                    numero_sucursal,
+                    estado_final as estado,
+                    ciudad_normalizada as municipio,
                         WHEN location_name = 'Sucursal GC - Garcia' THEN '6 - Garcia'
                         WHEN location_name = 'Sucursal LH - La Huasteca' THEN '7 - La Huasteca'
                         ELSE location_name 
