@@ -5572,7 +5572,7 @@
                     console.log('🌐 Fetching fresh popup data...');
                     
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for slow API
                     
                     try {
                         const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`, {
