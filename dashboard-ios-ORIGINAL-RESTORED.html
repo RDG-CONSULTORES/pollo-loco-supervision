@@ -6370,9 +6370,264 @@
             return foreignGroups.includes(groupName);
         }
         
-        // Legacy function - redirects to McKinsey
+        // RESTORED: Historic tab functionality with local/foreign separation
         async function loadHistoricoData() {
-            await loadMckinseyHistoric();
+            try {
+                console.log('📊 Loading Historic CAS periods data...');
+                
+                // Use the existing heatmap-periods endpoint for real period data
+                const endpoint = `${API_BASE}/heatmap-periods/all${buildQueryString()}`;
+                console.log('🔗 Fetching from endpoint:', endpoint);
+                
+                const data = await cachedFetch(endpoint);
+                console.log('✅ Historic period data loaded:', data);
+                
+                if (data && data.success && data.data) {
+                    // Use original function but adapted for McKinsey separation
+                    renderHistoricWithSeparation(data.data);
+                } else {
+                    console.warn('⚠️ No historic period data, showing error');
+                    showHistoricError('No historic periods data available');
+                }
+                
+            } catch (error) {
+                console.error('❌ Error loading Historic data:', error);
+                showHistoricError(error.message);
+            }
+        }
+        
+        function showHistoricError(message) {
+            const containers = ['local-heatmap', 'foreign-heatmap'];
+            containers.forEach(id => {
+                const container = document.getElementById(id);
+                if (container) {
+                    container.innerHTML = `
+                        <div style="text-align: center; padding: 32px; color: #666;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 24px; margin-bottom: 8px; opacity: 0.5;"></i>
+                            <p>Error loading historic data</p>
+                            <p style="font-size: 12px; opacity: 0.7;">${message}</p>
+                        </div>
+                    `;
+                }
+            });
+        }
+        
+        function renderHistoricWithSeparation(data) {
+            console.log('🎯 Rendering Historic with separation:', data.groups?.length, 'groups');
+            console.log('📅 Available periods:', data.periods);
+            
+            const { groups, periods } = data;
+            
+            if (!groups || groups.length === 0) {
+                console.error('❌ No groups data in response:', data);
+                showHistoricError('No groups data available');
+                return;
+            }
+            
+            // Separate periods into local (T1-T4) and foreign (S1-S2)
+            const localPeriods = periods.filter(p => p.includes('T')).sort();  // NL-T1, NL-T2, etc.
+            const foreignPeriods = periods.filter(p => p.includes('S')).sort(); // FOR-S1, FOR-S2
+            
+            console.log('🏠 Local periods:', localPeriods);
+            console.log('🌍 Foreign periods:', foreignPeriods);
+            
+            // Now render the separated heatmaps using original logic but split
+            renderOriginalLocalHeatmap(groups, localPeriods);
+            renderOriginalForeignHeatmap(groups, foreignPeriods);
+            
+            console.log('✅ Historic with separation rendered successfully');
+        }
+        
+        function renderOriginalLocalHeatmap(groups, localPeriods) {
+            const container = document.getElementById('local-heatmap');
+            if (!container) {
+                console.error('❌ Local heatmap container not found');
+                return;
+            }
+            
+            // Filter groups based on REAL territorial logic + mixed groups with LOCAL data
+            const localGroups = groups.filter(group => {
+                const groupName = group.grupo;
+                
+                // Mixed groups: include if they have LOCAL periods data
+                if (territorialMapping[groupName]) {
+                    return group.periodos && localPeriods.some(period => group.periodos[period]);
+                }
+                
+                // Pure local groups from coordenadas_validadas
+                const pureLocalGroups = [
+                    'TEPEYAC', 'OGAS', 'EFM', 'EPL SO', 'PLOG NUEVO LEON', 
+                    'GRUPO CENTRITO', 'GRUPO SABINAS HIDALGO'
+                ];
+                
+                return pureLocalGroups.includes(groupName) && group.periodos;
+            });
+            
+            console.log('🏠 Local groups found:', localGroups.map(g => g.grupo));
+            
+            if (localGroups.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 32px; color: #666;">
+                        <p>No local historic data available</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Use original heatmap rendering but with local data only
+            renderOriginalHeatmapTable(container, localGroups, localPeriods, 'Local Operations', '🏠');
+        }
+        
+        function renderOriginalForeignHeatmap(groups, foreignPeriods) {
+            const container = document.getElementById('foreign-heatmap');
+            if (!container) {
+                console.error('❌ Foreign heatmap container not found');
+                return;
+            }
+            
+            // Filter groups based on REAL territorial logic + mixed groups with FOREIGN data
+            const foreignGroups = groups.filter(group => {
+                const groupName = group.grupo;
+                
+                // Mixed groups: include if they have FOREIGN periods data
+                if (territorialMapping[groupName]) {
+                    return group.periodos && foreignPeriods.some(period => group.periodos[period]);
+                }
+                
+                // Pure foreign groups from coordenadas_validadas
+                const pureForeignGroups = [
+                    'OCHTER TAMPICO', 'GRUPO MATAMOROS', 'RAP', 'CRR', 'PLOG LAGUNA', 
+                    'PLOG QUERETARO', 'GRUPO CANTERA ROSA (MORELIA)', 'GRUPO PIEDRAS NEGRAS', 
+                    'GRUPO RIO BRAVO', 'GRUPO NUEVO LAREDO (RUELAS)'
+                ];
+                
+                return pureForeignGroups.includes(groupName) && group.periodos;
+            });
+            
+            console.log('🌍 Foreign groups found:', foreignGroups.map(g => g.grupo));
+            
+            if (foreignGroups.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 32px; color: #666;">
+                        <p>No foreign historic data available</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Use original heatmap rendering but with foreign data only
+            renderOriginalHeatmapTable(container, foreignGroups, foreignPeriods, 'Foreign Operations', '🌍');
+        }
+        
+        function renderOriginalHeatmapTable(container, groupsData, periods, title, icon) {
+            // Sort groups by general average descending
+            const sortedGroups = groupsData.sort((a, b) => (b.promedio_general || 0) - (a.promedio_general || 0));
+            
+            // Sort periods properly
+            const sortedPeriods = periods.sort((a, b) => {
+                const order = ['NL-T1-2025', 'NL-T2-2025', 'NL-T3-2025', 'NL-T4-2025', 'FOR-S1-2025', 'FOR-S2-2025'];
+                return order.indexOf(a) - order.indexOf(b);
+            });
+            
+            console.log(`📊 Rendering ${title}: ${sortedGroups.length} groups, ${sortedPeriods.length} periods`);
+            
+            // Build the HTML using original structure
+            container.innerHTML = `
+                <div style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.1);">
+                    <div style="padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6;">
+                        <h3 style="margin: 0; color: #1d1d1f; font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px;">
+                            ${icon} ${title} (${sortedGroups.length})
+                        </h3>
+                        <p style="color: #666; font-size: 14px; margin: 8px 0 0 0;">
+                            Performance by CAS periods • ${periods.length} periods
+                        </p>
+                    </div>
+                    <div style="overflow-x: auto; background: white;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                            <thead>
+                                <tr>
+                                    <th style="padding: 12px 8px; text-align: left; background: #f8f9fa; border-bottom: 2px solid #dee2e6; position: sticky; left: 0; background: #f8f9fa; z-index: 10; min-width: 140px;">
+                                        Grupo Operativo
+                                    </th>
+                                    ${sortedPeriods.map(period => `
+                                        <th style="padding: 12px 8px; text-align: center; background: #f8f9fa; border-bottom: 2px solid #dee2e6; min-width: 80px;">
+                                            ${period.split('-')[1]}
+                                        </th>
+                                    `).join('')}
+                                    <th style="padding: 12px 8px; text-align: center; background: #e3f2fd; border-bottom: 2px solid #2196f3; font-weight: 700; min-width: 80px;">
+                                        Promedio
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody id="heatmap-tbody-${title.replace(/\s+/g, '-').toLowerCase()}">
+                                <!-- Rows will be populated here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            // Now populate the rows using the original logic
+            const tbody = container.querySelector(`#heatmap-tbody-${title.replace(/\s+/g, '-').toLowerCase()}`);
+            if (!tbody) {
+                console.error('❌ Tbody not found for', title);
+                return;
+            }
+            
+            // Render each group row (from original function)
+            sortedGroups.forEach(group => {
+                const row = document.createElement('tr');
+                
+                // Group name cell
+                const nameCell = document.createElement('td');
+                nameCell.style.cssText = 'padding: 12px 8px; font-weight: 600; border-bottom: 1px solid #dee2e6; position: sticky; left: 0; background: white; z-index: 5; position: relative;';
+                
+                const groupName = group.grupo || 'Sin nombre';
+                const isMixed = territorialMapping[groupName];
+                
+                nameCell.innerHTML = isMixed ? 
+                    `${groupName} <span style="color: var(--ios-orange); font-size: 12px;">🔀</span>` : 
+                    groupName;
+                
+                if (isMixed) {
+                    nameCell.title = `Grupo mixto: Locales (${territorialMapping[groupName].local.length}) + Foráneas (${territorialMapping[groupName].foranea.length})`;
+                }
+                
+                row.appendChild(nameCell);
+                
+                // Period cells
+                sortedPeriods.forEach(period => {
+                    const cell = document.createElement('td');
+                    cell.style.cssText = 'padding: 12px 8px; text-align: center; border-bottom: 1px solid #dee2e6; position: relative;';
+                    
+                    const periodData = group.periodos && group.periodos[period];
+                    if (periodData && periodData.promedio > 0) {
+                        const performance = parseFloat(periodData.promedio) || 0;
+                        cell.innerHTML = `
+                            <div style="font-weight: 600; margin-bottom: 2px;">${performance.toFixed(1)}%</div>
+                            <div style="font-size: 10px; opacity: 0.7;">${periodData.evaluaciones || 0} eval.</div>
+                        `;
+                        cell.className = getHeatClass(performance);
+                        cell.title = `${group.grupo} - ${period}: ${performance.toFixed(2)}% (${periodData.evaluaciones || 0} evaluaciones)`;
+                    } else {
+                        cell.innerHTML = '<div style="color: #999;">-</div>';
+                        cell.style.background = '#f8f9fa';
+                        cell.title = `${group.grupo} - ${period}: Sin datos`;
+                    }
+                    
+                    row.appendChild(cell);
+                });
+                
+                // Average cell
+                const avgCell = document.createElement('td');
+                avgCell.style.cssText = 'padding: 12px 8px; text-align: center; font-weight: 700; border-bottom: 1px solid #dee2e6; background: #e3f2fd;';
+                const promedio = parseFloat(group.promedio_general) || 0;
+                avgCell.innerHTML = `${promedio.toFixed(1)}%`;
+                avgCell.title = `Promedio general: ${promedio.toFixed(2)}%`;
+                row.appendChild(avgCell);
+                
+                tbody.appendChild(row);
+            });
         }
         
         // Render CAS periods heatmap
