@@ -1563,6 +1563,15 @@
             /* PROFESSIONAL FIX: Safe area padding for tab-bar */
             margin-bottom: calc(60px + env(safe-area-inset-bottom));
         }
+        
+        /* CRITICAL FIX: Missing heatmap-grid styles */
+        .heatmap-grid {
+            display: block !important;
+            width: 100%;
+            overflow-x: auto;
+            min-height: 200px;
+            position: relative;
+        }
 
         .heatmap-table {
             width: 100%;
@@ -5270,9 +5279,11 @@
                 queryParams.append('sucursal', sucursalName);
                 if (grupoName) queryParams.append('grupo', grupoName);
                 
+                console.log('📡 Requesting sucursal detail:', `${API_BASE}/sucursal-detail?${queryParams.toString()}`);
                 const response = await fetch(`${API_BASE}/sucursal-detail?${queryParams.toString()}`);
                 
                 if (!response.ok) {
+                    console.error(`❌ Sucursal detail API error: ${response.status} ${response.statusText}`);
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
                 }
                 
@@ -5626,6 +5637,12 @@
             try {
                 console.log('📊 Loading McKinsey historic analysis...');
                 
+                // OPTIMIZED: Check if already loaded to prevent redundant calls
+                if (window.mckinseyDataLoaded) {
+                    console.log('⚡ McKinsey data already loaded, skipping reload');
+                    return;
+                }
+                
                 // FIXED: Use the same normalized data source as main dashboard
                 // Use /api/grupos which has the 20 normalized groups
                 const endpoint = `${API_BASE}/grupos${buildQueryString()}`;
@@ -5651,6 +5668,10 @@
                     
                     // Generate insights
                     generatePerformanceInsights(periodsData);
+                    
+                    // Mark as loaded to prevent redundant calls
+                    window.mckinseyDataLoaded = true;
+                    console.log('🏁 McKinsey data loading complete');
                     
                 } else {
                     throw new Error('Error loading historic data');
