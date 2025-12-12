@@ -2591,6 +2591,46 @@
         // PERFORMANCE OPTIMIZATION: Simple cache system
         const apiCache = new Map();
         const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
+        
+        // POPUP OPTIMIZATION: Dedicated popup cache with shorter TTL
+        const popupCache = {};
+        const POPUP_CACHE_DURATION = 3 * 60 * 1000; // 3 minutes for popup data
+        
+        // Helper function for period calculation
+        function determineCASPeriodFromDate(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            
+            if (year === 2025) {
+                if (month >= 1 && month <= 3) return 'NL-T1-2025';
+                if (month >= 4 && month <= 6) return 'NL-T2-2025'; 
+                if (month >= 7 && month <= 9) return 'NL-T3-2025';
+                if (month >= 10 && month <= 12) return 'NL-T4-2025';
+            }
+            
+            return 'PERIODO-' + year + '-Q' + Math.ceil(month / 3);
+        }
+        
+        // OPTIMIZATION: Cleanup old cache entries to prevent memory leaks
+        function cleanupPopupCache() {
+            const now = Date.now();
+            const keysToDelete = [];
+            
+            for (const [key, value] of Object.entries(popupCache)) {
+                if (now - value.timestamp > POPUP_CACHE_DURATION) {
+                    keysToDelete.push(key);
+                }
+            }
+            
+            keysToDelete.forEach(key => delete popupCache[key]);
+            
+            if (keysToDelete.length > 0) {
+                console.log(`🧹 Cleaned up ${keysToDelete.length} expired popup cache entries`);
+            }
+        }
+        
+        // Run cache cleanup every 5 minutes
+        setInterval(cleanupPopupCache, 5 * 60 * 1000);
 
         async function cachedFetch(url, cacheTTL = CACHE_TTL) {
             const cacheKey = url;
@@ -4204,6 +4244,40 @@
             }
         }
 
+        // OPTIMIZATION: Pre-load popup data for popular sucursales
+        function preloadPopularPopups() {
+            if (mapData.length === 0) return;
+            
+            // Get top 5 worst performing sucursales (most likely to be clicked)
+            const worstPerformers = mapData
+                .filter(point => point.performance < 85)
+                .sort((a, b) => parseFloat(a.performance) - parseFloat(b.performance))
+                .slice(0, 5);
+                
+            // Pre-load their data in background
+            worstPerformers.forEach(point => {
+                const sucursalName = point.nombre || point.sucursal || 'Sucursal';
+                const estado = point.estado || 'Estado';
+                const cacheKey = `${sucursalName}-${estado}`;
+                
+                if (!popupCache[cacheKey]) {
+                    // Silently pre-load in background
+                    fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}`)
+                        .then(response => response.ok ? response.json() : null)
+                        .then(data => {
+                            if (data && data.success) {
+                                popupCache[cacheKey] = {
+                                    data: data,
+                                    timestamp: Date.now()
+                                };
+                                console.log(`🚀 Pre-loaded popup data for ${sucursalName}`);
+                            }
+                        })
+                        .catch(() => {}); // Silent fail for background preloading
+                }
+            });
+        }
+        
         function initMap() {
             // Clear existing markers if map exists
             if (map) {
@@ -4267,6 +4341,8 @@
             if (currentTab === 'mapa') {
                 setTimeout(() => {
                     initMapCollapsible();
+                    // OPTIMIZATION: Pre-load popular popup data
+                    setTimeout(() => preloadPopularPopups(), 500);
                 }, 100);
             }
         }
@@ -5458,14 +5534,14 @@
                             🎯 Performance General: ${performance || 'N/A'}%
                         </span>
                         <div id="tendencia-${uniqueId}" style="font-size: 13px; color: #666; margin-top: 4px;">
-                            📊 Cargando tendencia...
+                            📊 ${performance >= 80 ? 'Performance sólida' : 'Área de oportunidad'}
                         </div>
                     </div>
                     <div id="areas-criticas-${uniqueId}" style="margin-top: 8px; font-size: 13px;">
-                        🔍 Cargando áreas críticas...
+                        ${performance < 80 ? '🎯 Revisando oportunidades de mejora...' : '✅ Performance dentro del rango objetivo'}
                     </div>
                     <div id="fecha-supervision-${uniqueId}" style="margin-top: 6px; font-size: 12px; color: #86868b;">
-                        📅 Cargando fecha...
+                        📅 ${point.ultima_evaluacion ? new Date(point.ultima_evaluacion).toLocaleDateString('es-MX', {day: 'numeric', month: 'short'}) : 'Actualizando fecha...'}
                     </div>
                 </div>
             `;
@@ -5480,21 +5556,68 @@
             const uniqueId = sucursalName.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
             
             try {
-                console.log('🎯 Showing basic popup for:', sucursalName);
+                console.log('🚀 Loading optimized popup for:', sucursalName);
                 
-                // TEMPORARILY DISABLED: Enrich popup with analisis-critico data
-                // const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`);
-                // const data = await response.json();
+                // OPTIMIZED: Check cache first for instant loading
+                const cacheKey = `${sucursalName}-${estado}`;
+                const cached = popupCache[cacheKey];
                 
-                // Use basic data for popup instead
-                const data = {
-                    success: true,
-                    sucursal: sucursalName,
-                    performance: performance,
-                    estado: estado,
-                    grupo: grupoOperativo,
-                    message: 'Popup básico - Análisis crítico temporalmente deshabilitado'
-                };
+                if (cached && (Date.now() - cached.timestamp < POPUP_CACHE_DURATION)) {
+                    console.log('⚡ Using cached data for instant popup');
+                    const data = cached.data;
+                } else {
+                    // OPTIMIZED: Fetch with timeout and cache
+                    console.log('🌐 Fetching fresh popup data...');
+                    
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000); // 3s timeout
+                    
+                    try {
+                        const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`, {
+                            signal: controller.signal
+                        });
+                        clearTimeout(timeoutId);
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            
+                            // Cache successful response
+                            popupCache[cacheKey] = {
+                                data: data,
+                                timestamp: Date.now()
+                            };
+                            console.log('💾 Popup data cached for future use');
+                        } else {
+                            throw new Error(`API returned ${response.status}`);
+                        }
+                    } catch (fetchError) {
+                        clearTimeout(timeoutId);
+                        console.log('⚠️ API timeout or error, using optimized fallback');
+                        
+                        // OPTIMIZED FALLBACK: Rich basic data instead of loading states
+                        const data = {
+                            success: true,
+                            sucursal: sucursalName,
+                            performance_general: {
+                                actual: parseFloat(performance) || 0,
+                                anterior: 0,
+                                cambio: 0,
+                                tendencia: "📊"
+                            },
+                            periodos: {
+                                actual: determineCASPeriodFromDate(new Date()),
+                                anterior: 'Período anterior',
+                                es_fallback: true
+                            },
+                            areas_criticas: [],
+                            ultima_supervision: point.ultima_evaluacion || new Date(),
+                            metadata: {
+                                areas_con_fallback: 0,
+                                method: 'OPTIMIZED_FALLBACK'
+                            }
+                        };
+                    }
+                }
                 
                 console.log('📊 Datos recibidos:', data);
                 
