@@ -2621,9 +2621,75 @@
         const apiCache = new Map();
         const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache
         
-        // POPUP OPTIMIZATION: Dedicated popup cache with shorter TTL
+        // POPUP OPTIMIZATION: Enhanced cache with localStorage persistence
         const popupCache = {};
-        const POPUP_CACHE_DURATION = 3 * 60 * 1000; // 3 minutes for popup data
+        const POPUP_CACHE_DURATION = 10 * 60 * 1000; // 10 minutes for popup data (increased from 3)
+        
+        // PHASE 2: Persistent cache functions
+        function getCachedPopupData(key) {
+            try {
+                const stored = localStorage.getItem(`popup_${key}`);
+                if (stored) {
+                    const data = JSON.parse(stored);
+                    if (Date.now() - data.timestamp < POPUP_CACHE_DURATION) {
+                        console.log(`💾 Using localStorage cache for ${key}`);
+                        return data.content;
+                    } else {
+                        localStorage.removeItem(`popup_${key}`);
+                    }
+                }
+            } catch (e) {
+                console.log('⚠️ localStorage error:', e.message);
+            }
+            return null;
+        }
+        
+        function setCachedPopupData(key, data) {
+            try {
+                const cacheEntry = {
+                    content: data,
+                    timestamp: Date.now()
+                };
+                localStorage.setItem(`popup_${key}`, JSON.stringify(cacheEntry));
+                console.log(`💾 Cached ${key} to localStorage`);
+            } catch (e) {
+                console.log('⚠️ localStorage write error:', e.message);
+                // Fallback to memory cache
+                popupCache[key] = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+            }
+        }
+        
+        // PHASE 2: Adaptive timeout based on response time history
+        const responseTimeHistory = {};
+        
+        function getAdaptiveTimeout(sucursalKey) {
+            const history = responseTimeHistory[sucursalKey] || [];
+            if (history.length === 0) {
+                return 15000; // Default 15s for new sucursales
+            }
+            
+            const avgTime = history.reduce((a, b) => a + b, 0) / history.length;
+            // Timeout = average + 50% buffer, minimum 8s, maximum 25s
+            const adaptiveTimeout = Math.max(8000, Math.min(25000, avgTime * 1.5));
+            
+            console.log(`⏱️ Adaptive timeout for ${sucursalKey}: ${adaptiveTimeout}ms (avg: ${avgTime.toFixed(0)}ms)`);
+            return adaptiveTimeout;
+        }
+        
+        function recordResponseTime(sucursalKey, responseTime) {
+            if (!responseTimeHistory[sucursalKey]) {
+                responseTimeHistory[sucursalKey] = [];
+            }
+            
+            // Keep only last 5 response times
+            responseTimeHistory[sucursalKey].push(responseTime);
+            if (responseTimeHistory[sucursalKey].length > 5) {
+                responseTimeHistory[sucursalKey].shift();
+            }
+        }
         
         // Helper function for period calculation
         function determineCASPeriodFromDate(date) {
@@ -2640,26 +2706,55 @@
             return 'PERIODO-' + year + '-Q' + Math.ceil(month / 3);
         }
         
-        // OPTIMIZATION: Cleanup old cache entries to prevent memory leaks
+        // PHASE 2: Enhanced cache cleanup (memory + localStorage)
         function cleanupPopupCache() {
             const now = Date.now();
-            const keysToDelete = [];
+            let memoryCleanups = 0;
+            let localStorageCleanups = 0;
             
+            // Clean memory cache
+            const keysToDelete = [];
             for (const [key, value] of Object.entries(popupCache)) {
                 if (now - value.timestamp > POPUP_CACHE_DURATION) {
                     keysToDelete.push(key);
                 }
             }
-            
             keysToDelete.forEach(key => delete popupCache[key]);
+            memoryCleanups = keysToDelete.length;
             
-            if (keysToDelete.length > 0) {
-                console.log(`🧹 Cleaned up ${keysToDelete.length} expired popup cache entries`);
+            // Clean localStorage cache
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key && key.startsWith('popup_')) {
+                        try {
+                            const data = JSON.parse(localStorage.getItem(key));
+                            if (now - data.timestamp > POPUP_CACHE_DURATION) {
+                                localStorage.removeItem(key);
+                                localStorageCleanups++;
+                                i--; // Adjust index after removal
+                            }
+                        } catch (e) {
+                            localStorage.removeItem(key); // Remove corrupted entries
+                            localStorageCleanups++;
+                            i--;
+                        }
+                    }
+                }
+            } catch (e) {
+                console.log('⚠️ Error cleaning localStorage:', e.message);
+            }
+            
+            if (memoryCleanups > 0 || localStorageCleanups > 0) {
+                console.log(`🧹 Cache cleanup: ${memoryCleanups} memory + ${localStorageCleanups} localStorage entries removed`);
             }
         }
         
-        // Run cache cleanup every 5 minutes
+        // Run enhanced cache cleanup every 5 minutes
         setInterval(cleanupPopupCache, 5 * 60 * 1000);
+        
+        // Initial cleanup on page load
+        setTimeout(cleanupPopupCache, 2000);
 
         async function cachedFetch(url, cacheTTL = CACHE_TTL) {
             const cacheKey = url;
@@ -4273,38 +4368,95 @@
             }
         }
 
-        // OPTIMIZATION: Pre-load popup data for popular sucursales
+        // PHASE 2: Enhanced intelligent pre-loading
         function preloadPopularPopups() {
             if (mapData.length === 0) return;
             
-            // Get top 5 worst performing sucursales (most likely to be clicked)
+            console.log('🚀 Starting enhanced pre-loading...');
+            
+            // Strategy 1: Top 10 worst performers (most likely to be clicked)
             const worstPerformers = mapData
-                .filter(point => point.performance < 85)
+                .filter(point => point.performance < 80)
                 .sort((a, b) => parseFloat(a.performance) - parseFloat(b.performance))
+                .slice(0, 10);
+            
+            // Strategy 2: Most supervised sucursales (popular for monitoring)
+            const mostSupervised = mapData
+                .filter(point => parseInt(point.total_supervisiones || 0) > 0)
+                .sort((a, b) => parseInt(b.total_supervisiones || 0) - parseInt(a.total_supervisiones || 0))
                 .slice(0, 5);
+            
+            // Strategy 3: Recent activity (if available)
+            const recentActivity = mapData
+                .filter(point => point.ultima_evaluacion)
+                .sort((a, b) => new Date(b.ultima_evaluacion) - new Date(a.ultima_evaluacion))
+                .slice(0, 5);
+            
+            // Combine strategies and remove duplicates
+            const toPreload = [...new Map(
+                [...worstPerformers, ...mostSupervised, ...recentActivity]
+                    .map(point => [point.nombre || point.sucursal, point])
+            ).values()].slice(0, 20); // Maximum 20 pre-loads
+            
+            console.log(`📊 Pre-loading ${toPreload.length} strategic sucursales...`);
+            
+            // Batch preload in groups of 5 to avoid overwhelming server
+            batchPreloadPopups(toPreload, 5);
+        }
+        
+        async function batchPreloadPopups(sucursales, batchSize = 5) {
+            for (let i = 0; i < sucursales.length; i += batchSize) {
+                const batch = sucursales.slice(i, i + batchSize);
                 
-            // Pre-load their data in background
-            worstPerformers.forEach(point => {
-                const sucursalName = point.nombre || point.sucursal || 'Sucursal';
-                const estado = point.estado || 'Estado';
-                const cacheKey = `${sucursalName}-${estado}`;
+                // Process batch in parallel
+                const promises = batch.map(point => preloadSinglePopup(point));
+                await Promise.allSettled(promises);
                 
-                if (!popupCache[cacheKey]) {
-                    // Silently pre-load in background
-                    fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}`)
-                        .then(response => response.ok ? response.json() : null)
-                        .then(data => {
-                            if (data && data.success) {
-                                popupCache[cacheKey] = {
-                                    data: data,
-                                    timestamp: Date.now()
-                                };
-                                console.log(`🚀 Pre-loaded popup data for ${sucursalName}`);
-                            }
-                        })
-                        .catch(() => {}); // Silent fail for background preloading
+                // Small delay between batches to be gentle on server
+                if (i + batchSize < sucursales.length) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
                 }
-            });
+            }
+            
+            console.log(`✅ Pre-loading completed: ${sucursales.length} sucursales processed`);
+        }
+        
+        async function preloadSinglePopup(point) {
+            const sucursalName = point.nombre || point.sucursal || 'Sucursal';
+            const estado = point.estado || 'Estado';
+            const cacheKey = `${sucursalName}-${estado}`;
+            
+            // Check if already cached (memory or localStorage)
+            if (popupCache[cacheKey] || getCachedPopupData(cacheKey)) {
+                return;
+            }
+            
+            try {
+                const startTime = Date.now();
+                const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const responseTime = Date.now() - startTime;
+                    
+                    if (data && data.success) {
+                        // Cache in both memory and localStorage
+                        popupCache[cacheKey] = {
+                            data: data,
+                            timestamp: Date.now()
+                        };
+                        setCachedPopupData(cacheKey, data);
+                        
+                        // Record response time for adaptive timeout
+                        recordResponseTime(cacheKey, responseTime);
+                        
+                        console.log(`🚀 Pre-loaded ${sucursalName} (${responseTime}ms)`);
+                    }
+                }
+            } catch (error) {
+                // Silent fail for background preloading
+                console.log(`⚠️ Pre-load failed for ${sucursalName}: ${error.message}`);
+            }
         }
         
         function initMap() {
@@ -4370,8 +4522,8 @@
             if (currentTab === 'mapa') {
                 setTimeout(() => {
                     initMapCollapsible();
-                    // OPTIMIZATION: Pre-load popular popup data
-                    setTimeout(() => preloadPopularPopups(), 500);
+                    // PHASE 2: Enhanced pre-loading starts immediately
+                    setTimeout(() => preloadPopularPopups(), 100);
                 }, 100);
             }
         }
@@ -5589,19 +5741,30 @@
                 
                 let data = null;
                 
-                // OPTIMIZED: Check cache first for instant loading
+                // PHASE 2: Enhanced cache check (localStorage + memory)
                 const cacheKey = `${sucursalName}-${estado}`;
-                const cached = popupCache[cacheKey];
                 
-                if (cached && (Date.now() - cached.timestamp < POPUP_CACHE_DURATION)) {
-                    console.log('⚡ Using cached data for instant popup');
-                    data = cached.data;
+                // Check localStorage first
+                data = getCachedPopupData(cacheKey);
+                if (data) {
+                    console.log('⚡ Using localStorage cache for instant popup');
                 } else {
-                    // OPTIMIZED: Fetch with timeout and cache
+                    // Check memory cache
+                    const cached = popupCache[cacheKey];
+                    if (cached && (Date.now() - cached.timestamp < POPUP_CACHE_DURATION)) {
+                        console.log('⚡ Using memory cache for instant popup');
+                        data = cached.data;
+                    }
+                }
+                
+                if (!data) {
+                    // PHASE 2: Fetch with adaptive timeout and enhanced caching
                     console.log('🌐 Fetching fresh popup data...');
                     
+                    const adaptiveTimeout = getAdaptiveTimeout(cacheKey);
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for slow API
+                    const timeoutId = setTimeout(() => controller.abort(), adaptiveTimeout);
+                    const startTime = Date.now();
                     
                     try {
                         const response = await fetch(`${API_BASE}/analisis-critico?tipo=sucursal&id=${encodeURIComponent(sucursalName)}&estado=${encodeURIComponent(estado)}&grupo=${encodeURIComponent(grupoOperativo)}`, {
@@ -5611,13 +5774,19 @@
                         
                         if (response.ok) {
                             data = await response.json();
+                            const responseTime = Date.now() - startTime;
                             
-                            // Cache successful response
+                            // PHASE 2: Enhanced caching (memory + localStorage)
                             popupCache[cacheKey] = {
                                 data: data,
                                 timestamp: Date.now()
                             };
-                            console.log('💾 Popup data cached for future use');
+                            setCachedPopupData(cacheKey, data);
+                            
+                            // Record response time for adaptive timeout
+                            recordResponseTime(cacheKey, responseTime);
+                            
+                            console.log(`💾 Popup data cached (${responseTime}ms response)`);
                         } else {
                             throw new Error(`API returned ${response.status}`);
                         }
